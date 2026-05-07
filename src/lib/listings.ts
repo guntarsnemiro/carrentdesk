@@ -149,7 +149,10 @@ export async function getFeaturedListings(limit = 3): Promise<Listing[]> {
 export async function getAllListingSlugs(): Promise<string[]> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase.from("companies").select("slug");
+  const { data, error } = await supabase
+    .from("companies")
+    .select("slug")
+    .returns<{ slug: string }[]>();
   if (error) throw error;
   return (data ?? []).map((r) => r.slug);
 }

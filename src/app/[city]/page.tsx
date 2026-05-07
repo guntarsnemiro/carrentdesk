@@ -10,6 +10,9 @@ import {
 } from "@/lib/vehicle-types";
 import { ListingCard } from "@/components/marketing/listing-card";
 
+// Re-render every 60s so DB updates surface without a manual redeploy.
+export const revalidate = 60;
+
 type PageProps = {
   params: Promise<{ city: string }>;
   searchParams: Promise<{ type?: string }>;

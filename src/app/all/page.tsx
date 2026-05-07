@@ -9,6 +9,9 @@ import {
 } from "@/lib/vehicle-types";
 import { ListingCard } from "@/components/marketing/listing-card";
 
+// Re-render every 60s so new listings show up shortly after they're added.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "All car rentals across the Baltics",
   description:

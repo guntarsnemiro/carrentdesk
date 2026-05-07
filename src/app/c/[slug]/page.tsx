@@ -10,6 +10,9 @@ import {
   type Listing,
 } from "@/lib/listings";
 
+// Re-render company profiles every 60s so operator edits surface fast.
+export const revalidate = 60;
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
