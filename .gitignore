@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scraping pipeline — raw exports are ephemeral; the script + DB are the source of truth
+scripts/raw/*.json
+scripts/raw/*.sql
+scripts/raw/*.txt
+!scripts/raw/.gitkeep
+!scripts/raw/README.md
