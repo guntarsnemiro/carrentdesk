@@ -199,7 +199,7 @@ function rowToListing(row: CompanyRow): Listing {
   return {
     id: row.id,
     slug: row.slug,
-    name: row.name,
+    name: cleanDisplayName(row.name),
     city: row.city,
     country: row.country,
     status: row.status,
@@ -222,4 +222,105 @@ function rowToListing(row: CompanyRow): Listing {
 function normalizeFleet(input: FleetRow | FleetRow[] | null): FleetRow | null {
   if (!input) return null;
   return Array.isArray(input) ? (input[0] ?? null) : input;
+}
+
+/* ---------------------------------------------------------------------------
+ * Display-name cleanup.
+ *
+ * Google Maps names are often messy: ALL CAPS, multilingual slashes, location
+ * suffixes like "in Tallinn", trailing parentheticals, generic "Car Rental"
+ * boilerplate. We keep the original `name` in the DB (so we can re-match on
+ * re-scrape and operators recognize themselves) but display a cleaned version.
+ *
+ * Operators can override this with their own preferred name once they claim.
+ * ------------------------------------------------------------------------- */
+
+const CITY_COMMA = /,\s+(Tallinn|Riga|R\u012bga|Vilnius)(\s+car\s+rentals?)?\s*$/iu;
+const CITY_IN = /\s+in\s+(Tallinn|Riga|R\u012bga|Vilnius|Estonia|Latvia|Lithuania)\s*$/iu;
+const CITY_TRAILING = /\s+(Tallinn|Riga|R\u012bga|Vilnius|Estonia|Latvia|Lithuania)\s*$/iu;
+// Note: `autorent` deliberately excluded — it's a real Estonian brand suffix
+// ("Eesti Autorent", "Sir Autorent OÜ"), not boilerplate.
+const RENTAL_BOILERPLATE = /(car rental services?|car rentals?|car rent|rent a car|rental services?|automobili[u\u0173] nuomos?|auto noma|autonuoma)/i;
+
+function cleanDisplayName(raw: string): string {
+  let s = raw.trim();
+
+  // Hard rules — always apply.
+  s = s.replace(/\s*\([^)]*\)\s*$/u, "").trim(); // trailing parens
+  if (/[\u0400-\u04FF]/.test(s) && s.includes(" / ")) {
+    s = s.split(" / ")[0].trim(); // Cyrillic blob
+  }
+  if (s.length > 35 && s.includes(" / ")) {
+    s = s.split(" / ")[0].trim(); // long bilingual
+  }
+  if (s.includes(" | ")) {
+    s = s.split(" | ")[0].trim(); // pipe-separated suffix
+  }
+  s = s.replace(CITY_COMMA, "").trim();
+
+  // Soft rules — each can be reverted if it leaves a useless stub.
+  s = trySoftRule(s, (x) => x.replace(CITY_IN, "").trim());
+  s = trySoftRule(s, (x) => x.replace(CITY_TRAILING, "").trim());
+  s = trySoftRule(s, (x) =>
+    x.replace(new RegExp(`\\s*[-\u2013\u2014]?\\s*${RENTAL_BOILERPLATE.source}\\s*$`, "i"), "").trim(),
+  );
+
+  // ALL CAPS (>= 4 chars) -> Title Case
+  if (s.length >= 4 && s === s.toUpperCase() && /[A-Z]/.test(s)) {
+    s = titleCase(s);
+  }
+
+  s = s.replace(/\s+/g, " ").trim();
+  return s.length < 2 ? raw.trim() : s;
+}
+
+function trySoftRule(input: string, rule: (s: string) => string): string {
+  const after = rule(input).trim();
+  if (
+    after.length < 4 ||
+    /^(car|auto|rent|the|a|in|at|of|on)\s*$/i.test(after) ||
+    /^(car|auto)\s+(rent|rental)s?(\s+in)?\s*$/i.test(after) ||
+    /^(Tallinn|Riga|R\u012bga|Vilnius|Estonia|Latvia|Lithuania)\s*$/i.test(after) ||
+    /[-\u2013\u2014]\s*$/.test(after) ||
+    // Single short word is probably a generic English word, not a brand
+    (!/\s/.test(after) && after.length < 8)
+  ) {
+    return input;
+  }
+  return after;
+}
+
+const KEEP_UPPERCASE = new Set([
+  "OU",
+  "O\u00dc",
+  "SIA",
+  "UAB",
+  "GMBH",
+  "BV",
+  "AS",
+  "AB",
+  "SP",
+  "EU",
+  "EV",
+  "DBA",
+  "VIP",
+  "VNO",
+  "RIX",
+  "TLL",
+]);
+
+function titleCase(s: string): string {
+  return s
+    .toLowerCase()
+    .split(/(\s+|-)/)
+    .map((part) => {
+      if (!part || /^\s+$/.test(part) || part === "-") return part;
+      const upper = part.toUpperCase();
+      if (KEEP_UPPERCASE.has(upper)) return upper;
+      // Preserve common name patterns like "EZrent", "addCar", etc by leaving
+      // mixed-case original tokens alone elsewhere — here we only run on
+      // already-uppercase strings so we always title-case.
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join("");
 }
