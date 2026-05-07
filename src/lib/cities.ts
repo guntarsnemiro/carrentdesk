@@ -13,9 +13,13 @@ export type City = {
 };
 
 /**
- * Photo URLs are intentionally external (Unsplash) so we can swap them per-city
- * without committing binary assets. If a photo doesn't fit the brand later,
- * change just the `photoUrl` field and re-deploy.
+ * Photo URLs are external (Unsplash) so we can swap them per-city without
+ * committing binary assets. If a photo doesn't fit the brand later, change
+ * just the `photoUrl` field and re-deploy.
+ *
+ * All three photos verified as taken in the listed city (location metadata
+ * confirmed on Unsplash). Photographers credited via their Unsplash handles
+ * in source comments below.
  */
 export const CITIES: City[] = [
   {
@@ -27,8 +31,9 @@ export const CITIES: City[] = [
     placeholderCount: 22,
     gradient:
       "linear-gradient(135deg, #0f2a52 0%, #1d3771 45%, #5d8aca 100%)",
+    // Aerial of Riga from St. Peter's Church, looking over the Daugava — © Milan Zmátlo
     photoUrl:
-      "https://images.unsplash.com/photo-1571867424488-4565932edb41?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1609517760017-9b76ac28f0e9?auto=format&fit=crop&w=1200&q=80",
   },
   {
     slug: "tallinn",
@@ -39,8 +44,9 @@ export const CITIES: City[] = [
     placeholderCount: 18,
     gradient:
       "linear-gradient(135deg, #0b3b46 0%, #15616d 50%, #78c0c9 100%)",
+    // Tallinn Old Town from a high vantage point — © Max K.
     photoUrl:
-      "https://images.unsplash.com/photo-1517326434316-bd1c5c87d5e1?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1708593616197-77c8a47357b7?auto=format&fit=crop&w=1200&q=80",
   },
   {
     slug: "vilnius",
@@ -51,8 +57,9 @@ export const CITIES: City[] = [
     placeholderCount: 16,
     gradient:
       "linear-gradient(135deg, #3a1c2e 0%, #6b2a48 50%, #d97706 100%)",
+    // Vilnius Cathedral & bell tower — © Karina Kegy
     photoUrl:
-      "https://images.unsplash.com/photo-1577104832013-7b6daa6b88c1?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1609618486710-af2cf3afb233?auto=format&fit=crop&w=1200&q=80",
   },
 ];
 

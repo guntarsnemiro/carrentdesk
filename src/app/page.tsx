@@ -20,7 +20,7 @@ export default function HomePage() {
 
 function Hero() {
   return (
-    <section className="px-3 pt-3 sm:px-4 sm:pt-4 lg:px-6 lg:pt-6">
+    <section className="mx-auto w-full max-w-7xl px-6 pt-4 lg:px-8 lg:pt-6">
       <div className="relative isolate overflow-hidden rounded-2xl shadow-sm sm:rounded-3xl">
         {/* Layer 1: navy gradient fallback */}
         <div
