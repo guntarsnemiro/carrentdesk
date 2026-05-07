@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ListingCard } from "@/components/marketing/listing-card";
-import { SAMPLE_LISTINGS } from "@/lib/listings";
+import { getFeaturedListings } from "@/lib/listings";
 
 const FEATURED_LIMIT = 3;
 
-export function FeaturedRentals() {
-  const featured = SAMPLE_LISTINGS.slice(0, FEATURED_LIMIT);
+export async function FeaturedRentals() {
+  const featured = await getFeaturedListings(FEATURED_LIMIT);
   if (featured.length === 0) return null;
 
   return (
@@ -13,17 +13,17 @@ export function FeaturedRentals() {
       <div className="flex items-end justify-between gap-6">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-brand-950 sm:text-3xl">
-            Featured in Riga
+            Featured rentals
           </h2>
           <p className="mt-1 text-sm text-neutral-600">
-            Independent rentals our team is in touch with directly.
+            Verified operators and design partners we&apos;re working with directly.
           </p>
         </div>
         <Link
-          href="/riga"
+          href="/all"
           className="hidden text-sm font-medium text-brand-700 hover:text-brand-900 sm:inline"
         >
-          See all Riga rentals →
+          See all rentals →
         </Link>
       </div>
 

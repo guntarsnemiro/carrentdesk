@@ -4,22 +4,24 @@ import { notFound } from "next/navigation";
 import { CITIES } from "@/lib/cities";
 import {
   AMENITY_LABELS,
-  SAMPLE_LISTINGS,
+  getAllListingSlugs,
   getListingBySlug,
   type AmenityKey,
+  type Listing,
 } from "@/lib/listings";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return SAMPLE_LISTINGS.map((l) => ({ slug: l.slug }));
+export async function generateStaticParams() {
+  const slugs = await getAllListingSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const listing = getListingBySlug(slug);
+  const listing = await getListingBySlug(slug);
   if (!listing) return {};
 
   const city = CITIES.find((c) => c.slug === listing.city);
@@ -40,7 +42,7 @@ const ALL_AMENITIES: AmenityKey[] = Object.keys(AMENITY_LABELS) as AmenityKey[];
 
 export default async function CompanyPage({ params }: PageProps) {
   const { slug } = await params;
-  const listing = getListingBySlug(slug);
+  const listing = await getListingBySlug(slug);
   if (!listing) notFound();
 
   const city = CITIES.find((c) => c.slug === listing.city);
@@ -175,7 +177,7 @@ export default async function CompanyPage({ params }: PageProps) {
   );
 }
 
-function ContactCTAs({ listing }: { listing: ReturnType<typeof getListingBySlug> }) {
+function ContactCTAs({ listing }: { listing: Listing | null }) {
   if (!listing) return null;
   return (
     <div className="flex flex-wrap gap-3">
@@ -209,7 +211,7 @@ function ContactCTAs({ listing }: { listing: ReturnType<typeof getListingBySlug>
   );
 }
 
-function FleetBlock({ listing }: { listing: ReturnType<typeof getListingBySlug> }) {
+function FleetBlock({ listing }: { listing: Listing | null }) {
   if (!listing) return null;
   return (
     <div>

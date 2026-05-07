@@ -23,7 +23,7 @@ type PageProps = {
 export default async function AllPage({ searchParams }: PageProps) {
   const { type } = await searchParams;
   const activeType = isValidVehicleType(type) ? type : undefined;
-  const listings = filterListings({ vehicleType: activeType });
+  const listings = await filterListings({ vehicleType: activeType });
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
 
   return (

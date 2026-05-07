@@ -42,7 +42,7 @@ export default async function CityPage({ params, searchParams }: PageProps) {
   if (!city) notFound();
 
   const activeType = isValidVehicleType(type) ? type : undefined;
-  const listings = filterListings({ city: slug, vehicleType: activeType });
+  const listings = await filterListings({ city: slug, vehicleType: activeType });
   const verifiedCount = listings.filter((l) => l.status === "verified").length;
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
 

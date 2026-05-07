@@ -1,10 +1,7 @@
 import { CITIES } from "@/lib/cities";
-import { SAMPLE_LISTINGS } from "@/lib/listings";
 
 export function TrustStrip() {
-  const totalListings =
-    CITIES.reduce((sum, c) => sum + c.placeholderCount, 0) ||
-    SAMPLE_LISTINGS.length;
+  const totalListings = CITIES.reduce((sum, c) => sum + c.placeholderCount, 0);
 
   const items = [
     { value: `${totalListings}+`, label: "local rentals" },
