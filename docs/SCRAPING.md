@@ -135,6 +135,22 @@ where city = 'riga' and status = 'unclaimed';
 
 Then drop a new Apify JSON in `scripts/raw/` and ping the agent to re-seed.
 
+## Design-partner anchors (verified, hand-curated)
+
+Three Riga rentals are full design partners with hand-curated real data sourced
+from their own websites via the browser MCP (not Apify). They pin to the top
+of `/riga`, the homepage featured row, and any "verified operator" filter:
+
+| slug | website | role |
+| ---- | ------- | ---- |
+| `baltic-car-rent` | balticcarrent.lv | Guntars's own rental — founder anchor for the pitch |
+| `busrent` | busrent.lv | Vans, minibuses, tour buses (8–55 seats), trailers |
+| `ecorent` | ecorent.lv | Multi-location: airport + 9 mall pickup points across Riga and Jūrmala |
+
+To refresh their data, re-run the browser-MCP scrape against each website and
+issue an UPDATE statement. Don't include them in re-scrapes from Apify
+(`on conflict (slug) do nothing` protects them, but be careful).
+
 ## Open questions to revisit after pitch
 
 - Should we run Apify weekly to catch new operators?
