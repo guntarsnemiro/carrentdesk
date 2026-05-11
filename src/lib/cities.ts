@@ -10,6 +10,13 @@ export type City = {
   gradient: string;
   /** External photo URL (Unsplash). If it fails to load, the gradient shows behind. */
   photoUrl: string;
+  /**
+   * Approximate city-center coordinates [lat, lng]. Used as the fallback
+   * center for the listings map when no listing in the current filter has
+   * coordinates yet. Real listings will typically auto-fit bounds around
+   * themselves and override this.
+   */
+  center: [number, number];
 };
 
 /**
@@ -34,6 +41,7 @@ export const CITIES: City[] = [
     // Aerial of Riga from St. Peter's Church, looking over the Daugava — © Milan Zmátlo
     photoUrl:
       "https://images.unsplash.com/photo-1609517760017-9b76ac28f0e9?auto=format&fit=crop&w=1200&q=80",
+    center: [56.9496, 24.1052],
   },
   {
     slug: "tallinn",
@@ -47,6 +55,7 @@ export const CITIES: City[] = [
     // Tallinn Old Town from a high vantage point — © Max K.
     photoUrl:
       "https://images.unsplash.com/photo-1708593616197-77c8a47357b7?auto=format&fit=crop&w=1200&q=80",
+    center: [59.437, 24.7536],
   },
   {
     slug: "vilnius",
@@ -60,6 +69,7 @@ export const CITIES: City[] = [
     // Vilnius Cathedral & bell tower — © Karina Kegy
     photoUrl:
       "https://images.unsplash.com/photo-1609618486710-af2cf3afb233?auto=format&fit=crop&w=1200&q=80",
+    center: [54.6872, 25.2797],
   },
 ];
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CITIES } from "@/lib/cities";
-import { AMENITY_LABELS, type Listing } from "@/lib/listings";
+import { AMENITY_LABELS, type Listing } from "@/lib/listings-types";
 
 const TOP_AMENITIES_TO_SHOW = 3;
 

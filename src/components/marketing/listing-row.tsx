@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CITIES } from "@/lib/cities";
-import type { Listing } from "@/lib/listings";
+import type { Listing } from "@/lib/listings-types";
 
 /**
  * Compact, no-image row for *unverified* (unclaimed / claimed-but-not-verified)

@@ -11,59 +11,19 @@
  */
 
 import "server-only";
-import type { City } from "@/lib/cities";
 import type { VehicleType } from "@/lib/vehicle-types";
 import { createServerClient } from "@/lib/supabase/server";
+import type {
+  AmenityKey,
+  CompanyStatus,
+  Listing,
+} from "@/lib/listings-types";
 
-export type CompanyStatus = "unclaimed" | "claimed" | "verified";
-
-export type AmenityKey =
-  | "airport_pickup"
-  | "airport_delivery"
-  | "city_delivery"
-  | "cross_border"
-  | "english_staff"
-  | "service_24_7"
-  | "child_seats"
-  | "winter_tires"
-  | "long_term_discount"
-  | "card_payment";
-
-export type Listing = {
-  id: string;
-  slug: string;
-  name: string;
-  city: City["slug"];
-  country: City["countryCode"];
-  status: CompanyStatus;
-  phone?: string;
-  whatsapp?: string;
-  email?: string;
-  website?: string;
-  address?: string;
-  description?: string;
-  logoUrl?: string;
-  fleet: {
-    countMin: number;
-    countMax: number;
-    description: string;
-  };
-  amenities: AmenityKey[];
-  vehicleTypes: VehicleType[];
-};
-
-export const AMENITY_LABELS: Record<AmenityKey, string> = {
-  airport_pickup: "Airport pickup",
-  airport_delivery: "Airport delivery",
-  city_delivery: "City delivery",
-  cross_border: "Cross-border allowed",
-  english_staff: "English-speaking staff",
-  service_24_7: "24/7 service",
-  child_seats: "Child seats",
-  winter_tires: "Winter tires included",
-  long_term_discount: "Long-term discounts",
-  card_payment: "Card payments",
-};
+// Re-export the shared types from the client-safe module so existing imports
+// from `@/lib/listings` keep working unchanged. New client components should
+// prefer importing directly from `@/lib/listings-types`.
+export type { AmenityKey, CompanyStatus, Listing } from "@/lib/listings-types";
+export { AMENITY_LABELS } from "@/lib/listings-types";
 
 export type ListingFilter = {
   city?: string;
@@ -86,7 +46,7 @@ const SELECT_LISTING = `
   vehicle_types,
   company_amenities ( amenity_key, value ),
   company_fleet_summary ( fleet_count_min, fleet_count_max, fleet_description ),
-  locations ( address, is_primary )
+  locations ( address, lat, lng, is_primary )
 ` as const;
 
 const STATUS_PRIORITY: Record<CompanyStatus, number> = {
@@ -167,7 +127,12 @@ export async function getAllListingSlugs(): Promise<string[]> {
  * Internal: row → Listing transform
  * ------------------------------------------------------------------------- */
 
-type LocationRow = { address: string; is_primary: boolean };
+type LocationRow = {
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  is_primary: boolean;
+};
 type AmenityRow = { amenity_key: string; value: boolean };
 type FleetRow = {
   fleet_count_min: number | null;
@@ -220,6 +185,10 @@ function rowToListing(row: CompanyRow): Listing {
     address: primaryLocation?.address ?? undefined,
     description: row.description ?? undefined,
     logoUrl: row.logo_url ?? undefined,
+    coordinates:
+      primaryLocation?.lat != null && primaryLocation?.lng != null
+        ? { lat: primaryLocation.lat, lng: primaryLocation.lng }
+        : undefined,
     fleet: {
       countMin: fleet?.fleet_count_min ?? 0,
       countMax: fleet?.fleet_count_max ?? 0,

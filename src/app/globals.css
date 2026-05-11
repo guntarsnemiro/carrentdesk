@@ -96,3 +96,123 @@ body {
   background: var(--color-brand-900);
   color: var(--color-neutral-0);
 }
+
+/* ---------------------------------------------------------------------------
+ * Leaflet map: brand-styled pins and popup
+ *
+ * Leaflet's default markers are PNG sprites that don't tree-shake well with
+ * bundlers and look generic. We use HTML divIcons instead — see
+ * components/marketing/listings-map.tsx — and style them here so the styling
+ * is colocated with the rest of the design system tokens.
+ * ------------------------------------------------------------------------- */
+
+.crd-pin-wrapper {
+  background: transparent;
+  border: 0;
+}
+
+.crd-pin {
+  position: relative;
+  display: block;
+  width: 28px;
+  height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(8, 26, 58, 0.25));
+}
+
+.crd-pin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px 14px 14px 2px;
+  transform: rotate(-45deg);
+  transform-origin: 14px 14px;
+}
+
+.crd-pin__dot {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.crd-pin--verified::before {
+  background: #0f6f3f; /* success-deep */
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.crd-pin--default::before {
+  background: #0f2a52; /* brand-900 */
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+/* Popup tweaks so the default Leaflet card matches our card styling. */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(8, 26, 58, 0.18);
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 14px 14px 12px;
+  min-width: 220px;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-brand-950);
+}
+
+.crd-popup__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--color-brand-950);
+}
+
+.crd-popup__address {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--color-neutral-500);
+}
+
+.crd-popup__desc {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-neutral-700);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.crd-popup__row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.crd-popup__phone {
+  color: var(--color-neutral-700);
+  text-decoration: none;
+}
+
+.crd-popup__phone:hover {
+  color: var(--color-brand-900);
+}
+
+.crd-popup__view {
+  color: var(--color-brand-700);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.crd-popup__view:hover {
+  color: var(--color-brand-950);
+}
