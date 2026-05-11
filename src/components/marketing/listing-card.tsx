@@ -10,6 +10,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const topAmenities = listing.amenities.slice(0, TOP_AMENITIES_TO_SHOW);
   const moreCount = Math.max(0, listing.amenities.length - TOP_AMENITIES_TO_SHOW);
 
+  // Hide the "0-0 vehicles" range when we don't have real fleet numbers yet.
+  // We still render the fleet description (or a neutral fallback).
+  const hasFleetCount =
+    listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
+  const fleetText =
+    listing.fleet.description ||
+    `Independent local rental in ${city?.name ?? "the Baltics"}. Contact directly for current fleet and rates.`;
+
   return (
     <Link
       href={`/c/${listing.slug}`}
@@ -52,28 +60,34 @@ export function ListingCard({ listing }: { listing: Listing }) {
         )}
 
         <p className="mt-2 line-clamp-2 text-sm leading-5 text-neutral-700">
-          <span className="font-medium text-brand-900">
-            {listing.fleet.countMin}–{listing.fleet.countMax} vehicles
-          </span>
-          <span className="text-neutral-400"> · </span>
-          {listing.fleet.description}
+          {hasFleetCount && (
+            <>
+              <span className="font-medium text-brand-900">
+                {listing.fleet.countMin}–{listing.fleet.countMax} vehicles
+              </span>
+              <span className="text-neutral-400"> · </span>
+            </>
+          )}
+          {fleetText}
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {topAmenities.map((key) => (
-            <span
-              key={key}
-              className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-neutral-700 ring-1 ring-border"
-            >
-              {AMENITY_LABELS[key]}
-            </span>
-          ))}
-          {moreCount > 0 && (
-            <span className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-neutral-500 ring-1 ring-border">
-              +{moreCount} more
-            </span>
-          )}
-        </div>
+        {topAmenities.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {topAmenities.map((key) => (
+              <span
+                key={key}
+                className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-neutral-700 ring-1 ring-border"
+              >
+                {AMENITY_LABELS[key]}
+              </span>
+            ))}
+            {moreCount > 0 && (
+              <span className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-neutral-500 ring-1 ring-border">
+                +{moreCount} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   );

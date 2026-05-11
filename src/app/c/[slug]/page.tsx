@@ -216,18 +216,31 @@ function ContactCTAs({ listing }: { listing: Listing | null }) {
 
 function FleetBlock({ listing }: { listing: Listing | null }) {
   if (!listing) return null;
+
+  const hasFleetCount =
+    listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
+  const fleetText =
+    listing.fleet.description ||
+    "Independent local rental. Contact directly for the current fleet, availability, and rates.";
+
   return (
     <div>
       <h2 className="text-2xl font-semibold tracking-tight text-brand-950">
         Fleet overview
       </h2>
       <div className="mt-4 rounded-2xl bg-background p-6 ring-1 ring-border">
-        <p className="text-3xl font-semibold tracking-tight text-brand-900">
-          {listing.fleet.countMin}–{listing.fleet.countMax}
-          <span className="ml-2 text-base font-medium text-neutral-500">vehicles</span>
-        </p>
-        <p className="mt-3 text-base leading-7 text-neutral-700">
-          {listing.fleet.description}
+        {hasFleetCount && (
+          <p className="text-3xl font-semibold tracking-tight text-brand-900">
+            {listing.fleet.countMin}–{listing.fleet.countMax}
+            <span className="ml-2 text-base font-medium text-neutral-500">
+              vehicles
+            </span>
+          </p>
+        )}
+        <p
+          className={`${hasFleetCount ? "mt-3" : ""} text-base leading-7 text-neutral-700`}
+        >
+          {fleetText}
         </p>
         {listing.status !== "verified" && (
           <p className="mt-4 text-xs text-neutral-500">
@@ -241,6 +254,26 @@ function FleetBlock({ listing }: { listing: Listing | null }) {
 }
 
 function AmenitiesBlock({ amenities }: { amenities: AmenityKey[] }) {
+  // When we have no amenity data for a listing yet, don't render a grid of
+  // grey-dot "we don't offer this" rows — that misrepresents the operator.
+  // Instead, show a single neutral line that nudges the visitor to call.
+  if (amenities.length === 0) {
+    return (
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-brand-950">
+          Services & amenities
+        </h2>
+        <div className="mt-4 rounded-2xl bg-background p-6 ring-1 ring-border">
+          <p className="text-sm leading-6 text-neutral-600">
+            Service details (airport pickup, delivery, child seats, etc.) are
+            still being verified for this rental. Contact them directly to
+            confirm what they offer.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold tracking-tight text-brand-950">
