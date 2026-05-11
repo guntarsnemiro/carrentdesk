@@ -8,6 +8,7 @@ import {
   type VehicleType,
 } from "@/lib/vehicle-types";
 import { ListingCard } from "@/components/marketing/listing-card";
+import { ListingRowList } from "@/components/marketing/listing-row";
 
 // Re-render every 60s so new listings show up shortly after they're added.
 export const revalidate = 60;
@@ -78,11 +79,40 @@ export default async function AllPage({ searchParams }: PageProps) {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          (() => {
+            const verified = listings.filter((l) => l.status === "verified");
+            const rest = listings.filter((l) => l.status !== "verified");
+            return (
+              <div className="space-y-10">
+                {verified.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-brand-950">
+                      Verified rentals
+                    </h2>
+                    <p className="mt-0.5 text-sm text-neutral-600">
+                      Operators on the CarRentDesk operations platform.
+                    </p>
+                    <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {verified.map((listing) => (
+                        <ListingCard key={listing.id} listing={listing} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {rest.length > 0 && (
+                  <ListingRowList
+                    listings={rest}
+                    title={
+                      verified.length > 0
+                        ? "Other rentals across the Baltics"
+                        : "Rentals across the Baltics"
+                    }
+                    subtitle="Independent operators we've listed. Contact them directly."
+                  />
+                )}
+              </div>
+            );
+          })()
         )}
 
         <div className="mt-12 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">

@@ -4,50 +4,79 @@ import { AMENITY_LABELS, type Listing } from "@/lib/listings";
 
 const TOP_AMENITIES_TO_SHOW = 3;
 
+/**
+ * Visual card used for *verified* operators on the homepage and city pages.
+ * Renders the operator's own logo on a clean surface (no city photo) so each
+ * verified rental looks distinct rather than sharing a stock city background.
+ *
+ * Unverified rentals use the more compact <ListingRow /> component.
+ */
 export function ListingCard({ listing }: { listing: Listing }) {
   const city = CITIES.find((c) => c.slug === listing.city);
   const verified = listing.status === "verified";
   const topAmenities = listing.amenities.slice(0, TOP_AMENITIES_TO_SHOW);
   const moreCount = Math.max(0, listing.amenities.length - TOP_AMENITIES_TO_SHOW);
 
-  // Hide the "0-0 vehicles" range when we don't have real fleet numbers yet.
-  // We still render the fleet description (or a neutral fallback).
   const hasFleetCount =
     listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
   const fleetText =
     listing.fleet.description ||
     `Independent local rental in ${city?.name ?? "the Baltics"}. Contact directly for current fleet and rates.`;
 
+  // Verified + has logo  -> clean logo header
+  // Otherwise            -> city photo (legacy look, used for `claimed` only;
+  //                         unverified listings are rendered as rows instead)
+  const useLogoHeader = verified && Boolean(listing.logoUrl);
+
   return (
     <Link
       href={`/c/${listing.slug}`}
       className="group flex flex-col overflow-hidden rounded-xl bg-background ring-1 ring-border transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-brand-200"
     >
-      <div
-        className="relative isolate aspect-[16/10] w-full overflow-hidden"
-        style={{ background: city?.gradient ?? "var(--color-brand-900)" }}
-      >
-        {city?.photoUrl && (
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-10 bg-cover bg-center transition-transform duration-500 group-hover:scale-[1.04]"
-            style={{ backgroundImage: `url('${city.photoUrl}')` }}
+      {useLogoHeader ? (
+        <div className="relative isolate flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-surface-soft px-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={listing.logoUrl}
+            alt={`${listing.name} logo`}
+            className="max-h-[60%] max-w-[80%] object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+            loading="lazy"
           />
-        )}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"
-        />
-        {verified && (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-medium text-brand-900 shadow-sm ring-1 ring-brand-200">
             <span aria-hidden className="size-1.5 rounded-full bg-success" />
             Verified
           </span>
-        )}
-        <span className="absolute bottom-3 left-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/85">
-          {city?.name}
-        </span>
-      </div>
+          <span className="absolute bottom-3 left-3 text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+            {city?.name}
+          </span>
+        </div>
+      ) : (
+        <div
+          className="relative isolate aspect-[16/10] w-full overflow-hidden"
+          style={{ background: city?.gradient ?? "var(--color-brand-900)" }}
+        >
+          {city?.photoUrl && (
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-10 bg-cover bg-center transition-transform duration-500 group-hover:scale-[1.04]"
+              style={{ backgroundImage: `url('${city.photoUrl}')` }}
+            />
+          )}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"
+          />
+          {verified && (
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-medium text-brand-900 shadow-sm ring-1 ring-brand-200">
+              <span aria-hidden className="size-1.5 rounded-full bg-success" />
+              Verified
+            </span>
+          )}
+          <span className="absolute bottom-3 left-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/85">
+            {city?.name}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col p-4">
         <h3 className="text-base font-semibold text-brand-950 group-hover:text-brand-700">

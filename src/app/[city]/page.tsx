@@ -9,6 +9,7 @@ import {
   type VehicleType,
 } from "@/lib/vehicle-types";
 import { ListingCard } from "@/components/marketing/listing-card";
+import { ListingRowList } from "@/components/marketing/listing-row";
 
 // Re-render every 60s so DB updates surface without a manual redeploy.
 export const revalidate = 60;
@@ -101,11 +102,44 @@ export default async function CityPage({ params, searchParams }: PageProps) {
         {listings.length === 0 ? (
           <EmptyState cityName={city.name} activeMeta={activeMeta} />
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          (() => {
+            const verified = listings.filter((l) => l.status === "verified");
+            const rest = listings.filter((l) => l.status !== "verified");
+            return (
+              <div className="space-y-10">
+                {verified.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-brand-950">
+                      Verified rentals
+                    </h2>
+                    <p className="mt-0.5 text-sm text-neutral-600">
+                      Operators on the CarRentDesk operations platform.
+                    </p>
+                    <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {verified.map((listing) => (
+                        <ListingCard key={listing.id} listing={listing} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {rest.length > 0 && (
+                  <ListingRowList
+                    listings={rest}
+                    title={
+                      verified.length > 0
+                        ? `Other rentals in ${city.name}`
+                        : `Rentals in ${city.name}`
+                    }
+                    subtitle={
+                      verified.length > 0
+                        ? "Independent operators we've listed. Contact them directly."
+                        : "Independent local operators. Contact them directly."
+                    }
+                  />
+                )}
+              </div>
+            );
+          })()
         )}
 
         <div className="mt-12 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">

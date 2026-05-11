@@ -42,6 +42,7 @@ export type Listing = {
   website?: string;
   address?: string;
   description?: string;
+  logoUrl?: string;
   fleet: {
     countMin: number;
     countMax: number;
@@ -81,6 +82,7 @@ const SELECT_LISTING = `
   email,
   website,
   description,
+  logo_url,
   vehicle_types,
   company_amenities ( amenity_key, value ),
   company_fleet_summary ( fleet_count_min, fleet_count_max, fleet_description ),
@@ -139,10 +141,14 @@ export async function getListingBySlug(slug: string): Promise<Listing | null> {
   return rowToListing(data);
 }
 
-/** First N listings sorted by status (verified first), used on the homepage. */
+/**
+ * Verified operators only, capped at `limit`. Used on the homepage's
+ * "Featured rentals" strip. Unverified rentals get a different (text-list)
+ * treatment elsewhere on the site.
+ */
 export async function getFeaturedListings(limit = 3): Promise<Listing[]> {
   const all = await filterListings();
-  return all.slice(0, limit);
+  return all.filter((l) => l.status === "verified").slice(0, limit);
 }
 
 /** Used by `generateStaticParams` for company profile pages. */
@@ -181,6 +187,7 @@ type CompanyRow = {
   email: string | null;
   website: string | null;
   description: string | null;
+  logo_url: string | null;
   vehicle_types: string[];
   // Supabase returns nested relations as either an object (1:1) or array (1:many).
   // We keep both possibilities in the type and normalize at runtime.
@@ -212,6 +219,7 @@ function rowToListing(row: CompanyRow): Listing {
     website: row.website ?? undefined,
     address: primaryLocation?.address ?? undefined,
     description: row.description ?? undefined,
+    logoUrl: row.logo_url ?? undefined,
     fleet: {
       countMin: fleet?.fleet_count_min ?? 0,
       countMax: fleet?.fleet_count_max ?? 0,
