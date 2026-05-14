@@ -9,14 +9,13 @@ import type { Listing } from "@/lib/listings-types";
  * rentals without each one needing its own image — and so the visual contrast
  * with verified-card operators is immediate.
  *
- * Layout (Option 1, "dense row"):
- *   Line 1: Name · Since YYYY  ......................................  View →
- *   Line 2: 50–60 vehicles · short description (1-line clamp)
- *   Line 3: 📍 address · 4.8 km centre · 2.1 km RIX
- *   Line 4: 📞 phone · 💬 WhatsApp · 🌐 website
+ * Layout: two lines, each filled wall-to-wall.
  *
- * Each metadata line is rendered only if it has at least one piece to show, so
- * rentals with sparse data degrade gracefully without leaving empty lines.
+ *   Line 1:  Name · Since YYYY · 50–80 vehicles · short description…    View →
+ *   Line 2:  📍 address · 4.8 km centre · 4.3 km RIX · 📞 phone · 🌐 site
+ *
+ * Every chip is conditional, so listings with sparse data still produce a tidy
+ * row without leaving large empty regions.
  */
 export function ListingRow({ listing }: { listing: Listing }) {
   const city = CITIES.find((c) => c.slug === listing.city);
@@ -27,9 +26,6 @@ export function ListingRow({ listing }: { listing: Listing }) {
     listing.fleet.description ||
     `Independent local rental in ${city?.name ?? "the Baltics"}.`;
 
-  // Distance chips depend on the listing having coordinates AND the city
-  // having an airport / center configured (which is true for all three of
-  // RIX/TLL/VNO today).
   const distanceFromCenterKm =
     city && listing.coordinates
       ? haversineKm(listing.coordinates, {
@@ -44,89 +40,86 @@ export function ListingRow({ listing }: { listing: Listing }) {
 
   const websiteDomain = formatDomain(listing.website);
 
-  const hasContactRow = Boolean(
-    listing.phone || listing.whatsapp || websiteDomain,
-  );
-  const hasLocationRow = Boolean(
-    listing.address || distanceFromCenterKm != null,
-  );
+  const hasMetaRow =
+    Boolean(listing.address) ||
+    distanceFromCenterKm != null ||
+    distanceFromAirportKm != null ||
+    Boolean(listing.phone) ||
+    Boolean(listing.whatsapp) ||
+    Boolean(websiteDomain);
 
   return (
     <Link
       href={`/c/${listing.slug}`}
-      className="group flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-surface-soft sm:px-5"
+      className="group flex flex-col gap-2 px-4 py-5 transition-colors hover:bg-surface-soft sm:px-5"
     >
-      {/* Line 1: name + since-year, with right-aligned View affordance. */}
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate text-base font-semibold text-brand-950 group-hover:text-brand-700">
+      {/* Line 1: name, since-year, fleet count + description, View →
+          The middle slot grows to consume the empty space on wider screens
+          and truncates with ellipsis on narrower ones. */}
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="min-w-0 flex-1 truncate text-[15px] leading-6 text-neutral-700 sm:text-base">
+          <span className="font-semibold text-brand-950 group-hover:text-brand-700">
             {listing.name}
-          </h3>
-          {listing.foundedYear && (
-            <span className="shrink-0 text-xs font-medium text-neutral-500">
-              · Since {listing.foundedYear}
-            </span>
-          )}
-          <span className="ml-1 hidden shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 sm:inline">
-            {city?.name}
           </span>
-        </div>
+          {listing.foundedYear && (
+            <>
+              <Sep />
+              <span className="text-neutral-500">
+                Since {listing.foundedYear}
+              </span>
+            </>
+          )}
+          {hasFleetCount && (
+            <>
+              <Sep />
+              <span className="font-medium text-brand-900">
+                {listing.fleet.countMin}–{listing.fleet.countMax} vehicles
+              </span>
+            </>
+          )}
+          <Sep />
+          <span className="text-neutral-700">{fleetSnippet}</span>
+        </p>
         <span className="hidden shrink-0 items-center gap-1 text-sm font-medium text-brand-700 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand-900 sm:inline-flex">
           View profile
           <span aria-hidden>→</span>
         </span>
       </div>
 
-      {/* Line 2: fleet + short description (1-line clamp). */}
-      <p className="line-clamp-1 text-sm text-neutral-700">
-        {hasFleetCount && (
-          <>
-            <span className="font-medium text-brand-900">
-              {listing.fleet.countMin}–{listing.fleet.countMax} vehicles
-            </span>
-            <span className="text-neutral-400"> · </span>
-          </>
-        )}
-        {fleetSnippet}
-      </p>
-
-      {/* Line 3: address + distance chips. */}
-      {hasLocationRow && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
+      {/* Line 2: location, distance, and contact chips — all on a single
+          wrapping row so this line is also visually filled. */}
+      {hasMetaRow && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-neutral-600 sm:text-sm">
           {listing.address && (
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex min-w-0 items-center gap-1.5">
               <PinIcon />
-              <span className="max-w-[28rem] truncate">{listing.address}</span>
+              <span className="max-w-[32rem] truncate">{listing.address}</span>
             </span>
           )}
           {distanceFromCenterKm != null && (
-            <span>{formatKm(distanceFromCenterKm)} centre</span>
+            <span className="text-neutral-500">
+              {formatKm(distanceFromCenterKm)} centre
+            </span>
           )}
           {distanceFromAirportKm != null && city && (
-            <span>
+            <span className="text-neutral-500">
               {formatKm(distanceFromAirportKm)} {city.airport.code}
             </span>
           )}
-        </div>
-      )}
-
-      {/* Line 4: contact channels. */}
-      {hasContactRow && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-600">
           {listing.phone && (
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1.5">
               <PhoneIcon />
               {listing.phone}
             </span>
           )}
           {listing.whatsapp && (
-            <span className="inline-flex items-center gap-1 text-emerald-700">
+            <span className="inline-flex items-center gap-1.5 text-emerald-700">
               <ChatIcon />
               WhatsApp
             </span>
           )}
           {websiteDomain && (
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1.5">
               <GlobeIcon />
               {websiteDomain}
             </span>
@@ -182,10 +175,18 @@ export function ListingRowList({
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** Small middot separator used between inline meta chips on line 1. */
+function Sep() {
+  return (
+    <span className="mx-2 text-neutral-300" aria-hidden>
+      ·
+    </span>
+  );
+}
+
 /**
  * Strips protocol, www, and trailing slash for a clean display:
  *   https://www.balticcarrent.lv/ -> balticcarrent.lv
- * Returns undefined if the URL is missing or unparseable.
  */
 function formatDomain(url: string | undefined): string | undefined {
   if (!url) return undefined;
@@ -197,14 +198,14 @@ function formatDomain(url: string | undefined): string | undefined {
   }
 }
 
-/* Inline icons — kept here to avoid a runtime icon dependency for this hot path. */
+/* Inline icons — kept here to avoid a runtime icon dependency on this hot path. */
 
 function PinIcon() {
   return (
     <svg
       aria-hidden
-      width="12"
-      height="12"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -222,8 +223,8 @@ function PhoneIcon() {
   return (
     <svg
       aria-hidden
-      width="12"
-      height="12"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -240,8 +241,8 @@ function ChatIcon() {
   return (
     <svg
       aria-hidden
-      width="12"
-      height="12"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -258,8 +259,8 @@ function GlobeIcon() {
   return (
     <svg
       aria-hidden
-      width="12"
-      height="12"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
