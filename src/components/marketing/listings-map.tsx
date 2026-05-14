@@ -73,12 +73,18 @@ export default function ListingsMap({ listings, fallbackCenter }: Props) {
   }, [pinned, fallbackCenter]);
 
   return (
-    <div className="overflow-hidden rounded-2xl ring-1 ring-border">
+    // Responsive map height — kept short on mobile so the list of rentals
+    // below remains visible above the fold, then grows on larger screens
+    // where the user has more room to spare.
+    //   mobile  : 300px (≈ 40% of a typical phone viewport)
+    //   sm 640+ : 400px
+    //   lg 1024+: 520px
+    <div className="h-[300px] overflow-hidden rounded-2xl ring-1 ring-border sm:h-[400px] lg:h-[520px]">
       <MapContainer
         center={initialCenter}
         zoom={12}
         scrollWheelZoom={false}
-        style={{ height: 560, width: "100%" }}
+        style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

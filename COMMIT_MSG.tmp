@@ -1,0 +1,12 @@
+Shrink listings map vertically; especially on mobile
+
+The 560px-tall map dominated the viewport on phones (typical ~700px tall),
+pushing the list of rentals well below the fold. Step the map height
+responsively so the list is reachable without scrolling past a giant map:
+
+  mobile  : 300px (~40% of a typical phone viewport)
+  sm 640+ : 400px
+  lg 1024+: 520px
+
+MapContainer now fills its parent (style height "100%"), so the parent's
+Tailwind responsive height controls everything.
