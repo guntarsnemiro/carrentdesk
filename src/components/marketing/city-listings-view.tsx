@@ -44,7 +44,11 @@ export function CityListingsView({
   cityName,
   mapFallbackCenter,
 }: Props) {
-  const [view, setView] = useState<"list" | "map">("list");
+  // Map is the default landing view on city pages so visitors immediately
+  // see where each rental sits relative to the airport / city center / their
+  // destination. The list is always rendered underneath in map mode, so
+  // nothing is hidden from the user.
+  const [view, setView] = useState<"list" | "map">("map");
 
   const verified = listings.filter((l) => l.status === "verified");
   const rest = listings.filter((l) => l.status !== "verified");
