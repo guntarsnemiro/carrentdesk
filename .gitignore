@@ -47,3 +47,8 @@ scripts/raw/*.sql
 scripts/raw/*.txt
 !scripts/raw/.gitkeep
 !scripts/raw/README.md
+
+# Throw-away commit message buffer used by the assistant on Windows
+# (PowerShell can't do heredocs the way git commit -m wants).
+COMMIT_MSG.tmp
+.git/COMMIT_EDITMSG_TMP
