@@ -17,6 +17,12 @@ export type City = {
    * themselves and override this.
    */
   center: [number, number];
+  /**
+   * Primary international airport for the city. Used to compute & display
+   * "X km airport" on listing rows. `code` is the IATA code for trust /
+   * recognition ("4.2 km RIX" reads cleaner than "4.2 km Riga Airport").
+   */
+  airport: { code: "RIX" | "TLL" | "VNO"; lat: number; lng: number };
 };
 
 /**
@@ -42,6 +48,7 @@ export const CITIES: City[] = [
     photoUrl:
       "https://images.unsplash.com/photo-1609517760017-9b76ac28f0e9?auto=format&fit=crop&w=1200&q=80",
     center: [56.9496, 24.1052],
+    airport: { code: "RIX", lat: 56.9236, lng: 23.9711 },
   },
   {
     slug: "tallinn",
@@ -56,6 +63,7 @@ export const CITIES: City[] = [
     photoUrl:
       "https://images.unsplash.com/photo-1708593616197-77c8a47357b7?auto=format&fit=crop&w=1200&q=80",
     center: [59.437, 24.7536],
+    airport: { code: "TLL", lat: 59.4133, lng: 24.8328 },
   },
   {
     slug: "vilnius",
@@ -70,6 +78,7 @@ export const CITIES: City[] = [
     photoUrl:
       "https://images.unsplash.com/photo-1609618486710-af2cf3afb233?auto=format&fit=crop&w=1200&q=80",
     center: [54.6872, 25.2797],
+    airport: { code: "VNO", lat: 54.6341, lng: 25.2858 },
   },
 ];
 

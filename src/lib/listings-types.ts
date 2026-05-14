@@ -39,6 +39,8 @@ export type Listing = {
   address?: string;
   description?: string;
   logoUrl?: string;
+  /** Year the operator was founded. Surfaced in list rows as "Since 2012". */
+  foundedYear?: number;
   coordinates?: { lat: number; lng: number };
   fleet: {
     countMin: number;

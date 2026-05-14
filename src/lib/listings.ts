@@ -43,6 +43,7 @@ const SELECT_LISTING = `
   website,
   description,
   logo_url,
+  founded_year,
   vehicle_types,
   company_amenities ( amenity_key, value ),
   company_fleet_summary ( fleet_count_min, fleet_count_max, fleet_description ),
@@ -153,6 +154,7 @@ type CompanyRow = {
   website: string | null;
   description: string | null;
   logo_url: string | null;
+  founded_year: number | null;
   vehicle_types: string[];
   // Supabase returns nested relations as either an object (1:1) or array (1:many).
   // We keep both possibilities in the type and normalize at runtime.
@@ -185,6 +187,7 @@ function rowToListing(row: CompanyRow): Listing {
     address: primaryLocation?.address ?? undefined,
     description: row.description ?? undefined,
     logoUrl: row.logo_url ?? undefined,
+    foundedYear: row.founded_year ?? undefined,
     coordinates:
       primaryLocation?.lat != null && primaryLocation?.lng != null
         ? { lat: primaryLocation.lat, lng: primaryLocation.lng }

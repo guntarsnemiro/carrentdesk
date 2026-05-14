@@ -79,9 +79,16 @@ export function ListingCard({ listing }: { listing: Listing }) {
       )}
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-base font-semibold text-brand-950 group-hover:text-brand-700">
-          {listing.name}
-        </h3>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="truncate text-base font-semibold text-brand-950 group-hover:text-brand-700">
+            {listing.name}
+          </h3>
+          {listing.foundedYear && (
+            <span className="shrink-0 text-xs font-medium text-neutral-500">
+              Since {listing.foundedYear}
+            </span>
+          )}
+        </div>
         {listing.address && (
           <p className="mt-0.5 truncate text-xs text-neutral-500">
             {listing.address}
