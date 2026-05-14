@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { randomBytes } from "crypto";
+import { sendClaimInvite } from "@/lib/email";
 
 /**
  * Admin-only endpoint to generate a claim token for a company.
@@ -71,11 +72,22 @@ export async function POST(request: Request) {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carrentdesk.com";
   const claimUrl = `${base}/claim?token=${token}`;
 
+  // Auto-send invite email if an address was provided
+  let emailSent = false;
+  if (email) {
+    try {
+      await sendClaimInvite({ email, companyName: company.name, claimUrl });
+      emailSent = true;
+    } catch (err) {
+      console.error("[generate-claim-token] invite email failed:", err);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     company: company.name,
     claimUrl,
     expiresAt,
-    ...(email ? { sentToEmail: email } : {}),
+    ...(email ? { sentToEmail: email, emailSent } : {}),
   });
 }

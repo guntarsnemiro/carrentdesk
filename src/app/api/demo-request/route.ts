@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHash } from "node:crypto";
+import { sendAccessRequestNotification } from "@/lib/email";
 
 /**
  * POST /api/demo-request
@@ -134,6 +135,11 @@ export async function POST(req: NextRequest) {
       { status: 502 }
     );
   }
+
+  // Fire-and-forget — email failure must not block the success response
+  sendAccessRequestNotification({ name, email, phone, companyName, city, fleetBucket, message }).catch(
+    (err) => console.error("[demo-request] notification email failed:", err)
+  );
 
   return NextResponse.json({ ok: true });
 }

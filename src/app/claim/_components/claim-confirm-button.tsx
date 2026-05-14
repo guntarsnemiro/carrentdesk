@@ -55,7 +55,7 @@ export function ClaimConfirmButton({ token, companyName, userEmail }: Props) {
         disabled={status === "loading"}
         className="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {status === "loading" ? "Confirming…" : "Confirm — claim this listing"}
+        {status === "loading" ? "Activating…" : "Activate my operator account"}
       </button>
 
       <p className="text-center text-xs text-neutral-400">
