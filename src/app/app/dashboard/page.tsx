@@ -6,7 +6,12 @@ import { SignOutButton } from "./_components/sign-out-button";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ claimed?: string }>;
+}) {
+  const { claimed } = await searchParams;
   const supabase = await createAuthServerClient();
   const {
     data: { user },
@@ -44,9 +49,21 @@ export default async function DashboardPage() {
       {/* Main */}
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         <h1 className="mb-2 text-2xl font-bold text-neutral-900">Dashboard</h1>
-        <p className="mb-8 text-sm text-neutral-500">
+        <p className="mb-6 text-sm text-neutral-500">
           Welcome back. Manage your company profiles below.
         </p>
+
+        {claimed === "1" && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+            <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-emerald-800">Listing claimed successfully!</p>
+              <p className="text-sm text-emerald-700">Your company is now linked to this account. You can edit your profile below.</p>
+            </div>
+          </div>
+        )}
 
         {companies.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-white px-8 py-14 text-center">
@@ -97,7 +114,12 @@ export default async function DashboardPage() {
                   >
                     View public profile →
                   </a>
-                  {/* More actions will appear here: Edit profile, Fleet, Inspections */}
+                  <a
+                    href={`/app/profile/${company.id}`}
+                    className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800"
+                  >
+                    Edit profile
+                  </a>
                 </div>
               </div>
             ))}
