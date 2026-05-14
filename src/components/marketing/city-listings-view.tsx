@@ -51,57 +51,74 @@ export function CityListingsView({
   const onMap = listings.filter((l) => !!l.coordinates).length;
   const missing = listings.length - onMap;
 
+  const list = (
+    <div className="space-y-10">
+      {verified.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-brand-950">
+            Verified rentals
+          </h2>
+          <p className="mt-0.5 text-sm text-neutral-600">
+            Operators on the CarRentDesk operations platform.
+          </p>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {verified.map((l) => (
+              <ListingCard key={l.id} listing={l} />
+            ))}
+          </div>
+        </div>
+      )}
+      {rest.length > 0 && (
+        <ListingRowList
+          listings={rest}
+          title={
+            verified.length > 0
+              ? `Other rentals in ${cityName}`
+              : `Rentals in ${cityName}`
+          }
+          subtitle={
+            verified.length > 0
+              ? "Independent operators we've listed. Contact them directly."
+              : "Independent local operators. Contact them directly."
+          }
+        />
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <ViewToggle view={view} onChange={setView} onMap={onMap} />
 
-      {view === "list" ? (
-        <div className="space-y-10">
-          {verified.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-brand-950">
-                Verified rentals
-              </h2>
-              <p className="mt-0.5 text-sm text-neutral-600">
-                Operators on the CarRentDesk operations platform.
-              </p>
-              <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {verified.map((l) => (
-                  <ListingCard key={l.id} listing={l} />
-                ))}
-              </div>
-            </div>
-          )}
-          {rest.length > 0 && (
-            <ListingRowList
-              listings={rest}
-              title={
-                verified.length > 0
-                  ? `Other rentals in ${cityName}`
-                  : `Rentals in ${cityName}`
-              }
-              subtitle={
-                verified.length > 0
-                  ? "Independent operators we've listed. Contact them directly."
-                  : "Independent local operators. Contact them directly."
-              }
-            />
-          )}
-        </div>
-      ) : (
+      {view === "map" && (
         <div className="space-y-3">
           <ListingsMap
             listings={listings}
             fallbackCenter={mapFallbackCenter}
           />
-          {missing > 0 && (
-            <p className="text-xs text-neutral-500">
-              {missing} {missing === 1 ? "rental" : "rentals"} not shown on the
-              map yet (location pending).
+          <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+            <p>
+              {onMap} {onMap === 1 ? "rental" : "rentals"} on the map
+              {missing > 0 && (
+                <>
+                  {" "}
+                  · {missing} not shown yet (location pending)
+                </>
+              )}
             </p>
-          )}
+            <p className="hidden sm:block">
+              All {listings.length}{" "}
+              {listings.length === 1 ? "rental is" : "rentals are"} listed
+              below.
+            </p>
+          </div>
         </div>
       )}
+
+      {/* The list is always rendered. In map view it sits below the map so
+          the user can scan the same set of rentals as a structured list
+          without losing the spatial context above. */}
+      {list}
     </div>
   );
 }
