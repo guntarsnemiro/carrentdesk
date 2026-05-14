@@ -82,7 +82,7 @@ export default function ListingsMap({ listings, fallbackCenter }: Props) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBoundsToListings listings={pinned} />
         {pinned.map((l) => (
@@ -127,15 +127,24 @@ function FitBoundsToListings({ listings }: { listings: Listing[] }) {
   const map = useMap();
   useEffect(() => {
     if (listings.length === 0) return;
-    if (listings.length === 1) {
-      const { lat, lng } = listings[0].coordinates!;
-      map.setView([lat, lng], 14);
-      return;
-    }
-    const bounds = L.latLngBounds(
-      listings.map((l) => [l.coordinates!.lat, l.coordinates!.lng]),
-    );
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+
+    // Deferred to the next animation frame so Leaflet sees the final container
+    // size after the toggle reveal. Without this, fitBounds occasionally runs
+    // while the container is still 0x0 and produces a bogus viewport.
+    const id = requestAnimationFrame(() => {
+      map.invalidateSize();
+
+      if (listings.length === 1) {
+        const { lat, lng } = listings[0].coordinates!;
+        map.setView([lat, lng], 14);
+        return;
+      }
+      const bounds = L.latLngBounds(
+        listings.map((l) => [l.coordinates!.lat, l.coordinates!.lng]),
+      );
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    });
+    return () => cancelAnimationFrame(id);
   }, [listings, map]);
   return null;
 }
