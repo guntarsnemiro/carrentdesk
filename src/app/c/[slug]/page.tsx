@@ -51,9 +51,77 @@ export default async function CompanyPage({ params }: PageProps) {
   const city = CITIES.find((c) => c.slug === listing.city);
   const verified = listing.status === "verified";
   const claimed = listing.status === "claimed" || verified;
+  const profileUrl = `https://carrentdesk.com/c/${listing.slug}`;
+
+  // Schema.org CarRental for rich-results eligibility on Google. Falls back
+  // gracefully when fields aren't available (we don't emit nulls).
+  const businessJsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "CarRental",
+    name: listing.name,
+    url: profileUrl,
+    image: `${profileUrl}/opengraph-image`,
+    ...(listing.description && { description: listing.description }),
+    ...(listing.phone && { telephone: listing.phone }),
+    ...(listing.email && claimed && { email: listing.email }),
+    ...(listing.address && {
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: listing.address,
+        addressLocality: city?.name,
+        addressCountry: city?.countryCode,
+      },
+    }),
+    ...(listing.coordinates && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: listing.coordinates.lat,
+        longitude: listing.coordinates.lng,
+      },
+    }),
+    ...(listing.website && { sameAs: [listing.website] }),
+    ...(listing.foundedYear && { foundingDate: String(listing.foundedYear) }),
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://carrentdesk.com/",
+      },
+      ...(city
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: city.name,
+              item: `https://carrentdesk.com/${city.slug}`,
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: city ? 3 : 2,
+        name: listing.name,
+        item: profileUrl,
+      },
+    ],
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <section className="border-b border-border bg-surface-soft">
         <div className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8 lg:py-14">
           <nav className="text-xs text-neutral-500">

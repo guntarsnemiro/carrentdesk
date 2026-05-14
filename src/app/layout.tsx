@@ -31,6 +31,18 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const ORGANIZATION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "CarRentDesk",
+  url: "https://carrentdesk.com",
+  logo: "https://carrentdesk.com/opengraph-image",
+  description:
+    "Directory of independent car rental companies in the Baltics. Riga, Tallinn, Vilnius. Direct contact, no middleman.",
+  areaServed: ["Latvia", "Estonia", "Lithuania"],
+  sameAs: [] as string[],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,6 +57,12 @@ export default function RootLayout({
         <SiteHeader />
         <main className="flex-1 flex flex-col">{children}</main>
         <SiteFooter />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(ORGANIZATION_JSONLD),
+          }}
+        />
       </body>
     </html>
   );

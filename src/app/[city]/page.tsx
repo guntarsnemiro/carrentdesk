@@ -49,8 +49,37 @@ export default async function CityPage({ params, searchParams }: PageProps) {
   const verifiedCount = listings.filter((l) => l.status === "verified").length;
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://carrentdesk.com/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: city.country,
+        item: `https://carrentdesk.com/${city.slug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: city.name,
+        item: `https://carrentdesk.com/${city.slug}`,
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <section className="border-b border-border bg-surface-soft">
         <div className="mx-auto w-full max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
           <nav className="text-xs text-neutral-500">
