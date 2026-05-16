@@ -36,6 +36,15 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // If Supabase redirected an auth code to a non-callback page (e.g. homepage),
+  // forward it to the proper callback route so the session is established.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && pathname !== "/auth/callback") {
+    const callbackUrl = request.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+    return NextResponse.redirect(callbackUrl);
+  }
+
   // Protect every /app route except the login page itself.
   if (pathname.startsWith("/app") && pathname !== "/app/login") {
     if (!user) {
