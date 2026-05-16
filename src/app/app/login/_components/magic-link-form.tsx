@@ -34,7 +34,7 @@ export function MagicLinkForm({ searchParams }: Props) {
       email: email.trim(),
       options: {
         emailRedirectTo: redirectTo,
-        shouldCreateUser: false, // only pre-approved operators can sign in
+        shouldCreateUser: true, // account is created on first sign-in; access is gated by company_members rows
       },
     });
 
