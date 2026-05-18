@@ -46,6 +46,22 @@ export default async function ProfileEditPage({ params }: Props) {
     .eq("is_primary", true)
     .maybeSingle();
 
+  const { data: fleet } = await db
+    .from("company_fleet_summary")
+    .select("fleet_count_min, fleet_count_max, fleet_description, transmission_mix, fuel_mix, age_range")
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  const { data: amenityRows } = await db
+    .from("company_amenities")
+    .select("amenity_key, value")
+    .eq("company_id", companyId);
+
+  const amenities: Record<string, boolean> = {};
+  for (const row of amenityRows ?? []) {
+    amenities[row.amenity_key] = row.value;
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       {/* Top nav */}
@@ -73,6 +89,8 @@ export default async function ProfileEditPage({ params }: Props) {
         <ProfileEditForm
           company={company}
           location={location ?? null}
+          fleet={fleet ?? null}
+          amenities={amenities}
         />
       </main>
     </div>
