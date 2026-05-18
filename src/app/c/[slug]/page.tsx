@@ -9,6 +9,7 @@ import {
   type AmenityKey,
   type Listing,
 } from "@/lib/listings";
+import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 
 // Re-render company profiles every 60s so operator edits surface fast.
 export const revalidate = 60;
@@ -225,21 +226,26 @@ export default async function CompanyPage({ params }: PageProps) {
               <p className="text-sm text-neutral-700">
                 {listing.address ?? `${city?.name}, ${city?.country}`}
               </p>
-              <div
-                aria-hidden
-                className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-lg ring-1 ring-border"
-                style={{ background: city?.gradient }}
-              >
-                {city?.photoUrl && (
-                  <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url('${city.photoUrl}')` }}
-                  />
-                )}
-              </div>
-              <p className="mt-2 text-xs text-neutral-500">
-                Map preview. Detailed map coming with verified operators.
-              </p>
+              {listing.coordinates ? (
+                <LocationMapLoader
+                  lat={listing.coordinates.lat}
+                  lng={listing.coordinates.lng}
+                  label={listing.name}
+                />
+              ) : (
+                <div
+                  aria-hidden
+                  className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-lg ring-1 ring-border"
+                  style={{ background: city?.gradient }}
+                >
+                  {city?.photoUrl && (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url('${city.photoUrl}')` }}
+                    />
+                  )}
+                </div>
+              )}
             </SidebarCard>
           </aside>
         </div>
