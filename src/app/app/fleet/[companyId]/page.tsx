@@ -53,7 +53,7 @@ export default async function FleetPage({
 
   const { data: vehicles } = await db
     .from("vehicles")
-    .select("*")
+    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin")
     .eq("company_id", companyId)
     .order("make")
     .order("model");
@@ -106,14 +106,18 @@ export default async function FleetPage({
 
       {/* Vehicle table */}
       {vehicles && vehicles.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-border bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-white">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50 text-left text-xs">
                 <th className="px-4 py-3 font-medium text-neutral-500">Vehicle</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Plate</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Fuel</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Color</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Seats</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Category</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Odometer</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">VIN</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
                 <th className="px-4 py-3 font-medium text-neutral-500"></th>
               </tr>
@@ -123,11 +127,17 @@ export default async function FleetPage({
                 <tr key={v.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-neutral-900">{v.make} {v.model}</p>
-                    <p className="mt-0.5 text-xs text-neutral-400">{v.year}{v.color ? ` · ${v.color}` : ""}</p>
+                    <p className="mt-0.5 text-xs text-neutral-400">{v.year}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-sm text-neutral-700">{v.plate}</td>
-                  <td className="px-4 py-3 text-sm capitalize text-neutral-500">{v.color ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm capitalize text-neutral-600">{v.fuel ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-500">{v.color ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-neutral-500">{v.seats ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm capitalize text-neutral-500">{v.category ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-500">
+                    {v.odometer_km != null ? `${v.odometer_km.toLocaleString()} km` : "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-neutral-400">{v.vin ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[v.status] ?? ""}`}>
                       {v.status}
