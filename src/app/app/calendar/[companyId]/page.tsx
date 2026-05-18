@@ -37,10 +37,10 @@ export default async function CalendarPage({
     .neq("status", "retired")
     .order("make").order("model");
 
-  // Fetch bookings for ±2 months window so navigation stays fast
+  // Fetch bookings for full timeline window (60 days back, 90 days forward)
   const now   = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-  const end   = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString();
+  const start = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
+  const end   = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: rawBookings } = await db
     .from("bookings")
@@ -70,8 +70,6 @@ export default async function CalendarPage({
         companyId={companyId}
         vehicles={vehicles ?? []}
         bookings={bookings}
-        initialYear={now.getFullYear()}
-        initialMonth={now.getMonth()}
       />
     </div>
   );
