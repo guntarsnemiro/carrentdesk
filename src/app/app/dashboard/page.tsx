@@ -49,8 +49,8 @@ export default async function DashboardPage({
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Overview</h1>
-        <p className="mt-1 text-sm text-neutral-500">Your operations at a glance.</p>
+        <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-neutral-500">Today&apos;s operations at a glance.</p>
       </div>
 
       {companies.length === 0 ? (
