@@ -36,18 +36,35 @@ interface ParsedRow {
 
 function parseDateStr(val: unknown): string | null {
   if (!val) return null;
+
+  // JS Date object — when Excel auto-formats cells as dates (cellDates: true)
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const y  = val.getUTCFullYear();
+    const mo = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const da = String(val.getUTCDate()).padStart(2, "0");
+    return `${y}-${mo}-${da}`;
+  }
+
   const s = String(val).trim();
   if (!s) return null;
-  // DD/MM/YYYY
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) return `${m[3]}-${m[2]!.padStart(2,"0")}-${m[1]!.padStart(2,"0")}`;
+
+  // D/M/YYYY or DD/MM/YYYY (European style — 9/6/2026 or 09/06/2026)
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]!.padStart(2,"0")}-${dmy[1]!.padStart(2,"0")}`;
+
   // YYYY-MM-DD passthrough
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // Excel serial number
-  if (/^\d+$/.test(s)) {
-    const d = utils.format_cell({ v: Number(s), t: "n" }, undefined, { dateNF: "yyyy-mm-dd" });
-    if (d) return d;
+
+  // Excel date serial number fallback (e.g. 46000)
+  const num = Number(s);
+  if (!isNaN(num) && num > 40000 && num < 70000) {
+    const d  = new Date(Math.round((num - 25569) * 86400 * 1000));
+    const y  = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const da = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${mo}-${da}`;
   }
+
   return null;
 }
 
@@ -119,7 +136,7 @@ export function FleetImport({ companyId }: { companyId: string }) {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const wb   = read(data, { type: "array", cellDates: false });
+        const wb   = read(data, { type: "array", cellDates: true });
         const ws   = wb.Sheets[wb.SheetNames[0]!]!;
         const raw  = utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
         const parsed = raw.map((r, i) => parseRow(r, i + 2)); // row 1 = header
