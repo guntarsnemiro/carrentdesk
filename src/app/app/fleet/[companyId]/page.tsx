@@ -101,10 +101,11 @@ export default async function FleetPage({
         <div className="overflow-hidden rounded-2xl border border-border bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-slate-50 text-left">
+              <tr className="border-b border-border bg-slate-50 text-left text-xs">
                 <th className="px-4 py-3 font-medium text-neutral-500">Vehicle</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Plate</th>
-                <th className="px-4 py-3 font-medium text-neutral-500">Category</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Fuel</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Seats</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
                 <th className="px-4 py-3 font-medium text-neutral-500"></th>
               </tr>
@@ -113,27 +114,19 @@ export default async function FleetPage({
               {vehicles.map((v) => (
                 <tr key={v.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <span className="font-medium text-neutral-900">
-                      {v.year} {v.make} {v.model}
-                    </span>
-                    {v.color && (
-                      <span className="ml-2 text-neutral-400">{v.color}</span>
-                    )}
+                    <span className="font-medium text-neutral-900">{v.year} {v.make} {v.model}</span>
+                    {v.color && <span className="ml-2 text-xs text-neutral-400">{v.color}</span>}
                   </td>
-                  <td className="px-4 py-3 font-mono text-neutral-700">{v.plate}</td>
-                  <td className="px-4 py-3 text-neutral-500">{CATEGORY_LABELS[v.category] ?? v.category}</td>
+                  <td className="px-4 py-3 font-mono text-sm text-neutral-700">{v.plate}</td>
+                  <td className="px-4 py-3 text-sm capitalize text-neutral-500">{v.fuel ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-500">{v.seats ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[v.status] ?? ""}`}>
                       {v.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/app/fleet/${companyId}/${v.id}`}
-                      className="text-xs text-brand-700 hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <Link href={`/app/fleet/${companyId}/${v.id}`} className="text-xs text-brand-700 hover:underline">Edit</Link>
                   </td>
                 </tr>
               ))}

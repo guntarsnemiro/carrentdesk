@@ -295,13 +295,24 @@ export type Database = {
           color: string | null
           company_id: string
           created_at: string
+          fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
+          gov_inspection_date: string | null
+          gov_inspection_next: string | null
           id: string
+          insurance_number: string | null
+          insurance_valid_until: string | null
           make: string
           model: string
           notes: string | null
+          odometer_km: number | null
           plate: string
+          registration_number: string | null
+          seats: number | null
+          service_date: string | null
+          service_next: string | null
           status: Database["public"]["Enums"]["vehicle_status"]
           updated_at: string
+          vin: string | null
           year: number
         }
         Insert: {
@@ -309,13 +320,24 @@ export type Database = {
           color?: string | null
           company_id: string
           created_at?: string
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          gov_inspection_date?: string | null
+          gov_inspection_next?: string | null
           id?: string
+          insurance_number?: string | null
+          insurance_valid_until?: string | null
           make: string
           model: string
           notes?: string | null
+          odometer_km?: number | null
           plate: string
+          registration_number?: string | null
+          seats?: number | null
+          service_date?: string | null
+          service_next?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
+          vin?: string | null
           year: number
         }
         Update: {
@@ -323,13 +345,24 @@ export type Database = {
           color?: string | null
           company_id?: string
           created_at?: string
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          gov_inspection_date?: string | null
+          gov_inspection_next?: string | null
           id?: string
+          insurance_number?: string | null
+          insurance_valid_until?: string | null
           make?: string
           model?: string
           notes?: string | null
+          odometer_km?: number | null
           plate?: string
+          registration_number?: string | null
+          seats?: number | null
+          service_date?: string | null
+          service_next?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
+          vin?: string | null
           year?: number
         }
         Relationships: [
@@ -410,6 +443,7 @@ export type Database = {
         | "van"
         | "luxury"
         | "other"
+      vehicle_fuel: "diesel" | "petrol" | "electric" | "hybrid" | "lpg"
       vehicle_status: "available" | "rented" | "maintenance" | "retired"
     }
     CompositeTypes: {
