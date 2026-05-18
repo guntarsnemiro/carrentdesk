@@ -73,12 +73,20 @@ export default async function FleetPage({
           <h1 className="text-2xl font-bold text-neutral-900">Vehicles</h1>
           <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
         </div>
-        <Link
-          href={`/app/fleet/${companyId}/add`}
-          className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
-        >
-          + Add vehicle
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/app/fleet/${companyId}/import`}
+            className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-slate-50"
+          >
+            ↑ Import from Excel
+          </Link>
+          <Link
+            href={`/app/fleet/${companyId}/add`}
+            className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            + Add vehicle
+          </Link>
+        </div>
       </div>
 
       {/* Stats row */}
