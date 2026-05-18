@@ -48,8 +48,8 @@ function parseDateStr(val: unknown): string | null {
   const s = String(val).trim();
   if (!s) return null;
 
-  // D/M/YYYY or DD/MM/YYYY (European style — 9/6/2026 or 09/06/2026)
-  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // D/M/YYYY, DD/MM/YYYY, D.M.YYYY, DD.MM.YYYY (slash or dot separator — 9/6/2026 or 29.05.2024)
+  const dmy = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2]!.padStart(2,"0")}-${dmy[1]!.padStart(2,"0")}`;
 
   // YYYY-MM-DD passthrough
