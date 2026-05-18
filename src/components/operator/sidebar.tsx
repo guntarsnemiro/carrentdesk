@@ -48,7 +48,7 @@ const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
         label: "Calendar",
         href: (id) => `/app/calendar/${id}`,
         icon: <CalendarIcon />,
-        soon: true,
+        soon: false,
         requiresCompany: true,
       },
     ],
