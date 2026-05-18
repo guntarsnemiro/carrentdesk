@@ -34,36 +34,49 @@ interface ParsedRow {
   errors: string[];
 }
 
-function parseDateStr(val: unknown): string | null {
-  if (!val) return null;
+function excelSerialToISO(serial: number): string {
+  // Excel epoch is Jan 1 1900 (with the 1900 leap-year bug offset of 25569 to Unix epoch)
+  const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  const y  = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
 
-  // JS Date object — when Excel auto-formats cells as dates (cellDates: true)
-  if (val instanceof Date && !isNaN(val.getTime())) {
-    const y  = val.getUTCFullYear();
-    const mo = String(val.getUTCMonth() + 1).padStart(2, "0");
-    const da = String(val.getUTCDate()).padStart(2, "0");
+function parseDateStr(val: unknown): string | null {
+  if (val == null || val === "") return null;
+
+  // JS Date object — SheetJS cellDates:true converts properly formatted date cells
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null;
+    const y  = val.getFullYear();
+    const mo = String(val.getMonth() + 1).padStart(2, "0");
+    const da = String(val.getDate()).padStart(2, "0");
     return `${y}-${mo}-${da}`;
+  }
+
+  // Raw number — Excel serial date (e.g. 46696) for cells not typed as dates
+  if (typeof val === "number") {
+    if (val > 40000 && val < 70000) return excelSerialToISO(val);
+    return null;
   }
 
   const s = String(val).trim();
   if (!s) return null;
 
-  // D/M/YYYY, DD/MM/YYYY, D.M.YYYY, DD.MM.YYYY (slash or dot separator — 9/6/2026 or 29.05.2024)
+  // D/M/YYYY, DD/MM/YYYY, D.M.YYYY, DD.MM.YYYY (9/6/2026 or 29.05.2024)
   const dmy = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2]!.padStart(2,"0")}-${dmy[1]!.padStart(2,"0")}`;
 
-  // YYYY-MM-DD passthrough
+  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-  // Excel date serial number fallback (e.g. 46000)
+  // ISO datetime string (e.g. "2026-06-09T00:00:00.000Z") from some SheetJS versions
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+
+  // Numeric string that looks like a serial (e.g. "46696" as text)
   const num = Number(s);
-  if (!isNaN(num) && num > 40000 && num < 70000) {
-    const d  = new Date(Math.round((num - 25569) * 86400 * 1000));
-    const y  = d.getUTCFullYear();
-    const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const da = String(d.getUTCDate()).padStart(2, "0");
-    return `${y}-${mo}-${da}`;
-  }
+  if (!isNaN(num) && num > 40000 && num < 70000) return excelSerialToISO(num);
 
   return null;
 }
