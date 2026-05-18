@@ -133,6 +133,74 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          id: string
+          company_id: string
+          full_name: string
+          phone: string
+          email: string | null
+          language: "en" | "lv" | "ru" | "other" | null
+          address: string | null
+          date_of_birth: string | null
+          id_number: string | null
+          id_expiry: string | null
+          driver_license_number: string | null
+          driver_license_expiry: string | null
+          blacklisted: boolean
+          blacklist_reason: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          full_name: string
+          phone: string
+          email?: string | null
+          language?: "en" | "lv" | "ru" | "other" | null
+          address?: string | null
+          date_of_birth?: string | null
+          id_number?: string | null
+          id_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_expiry?: string | null
+          blacklisted?: boolean
+          blacklist_reason?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          full_name?: string
+          phone?: string
+          email?: string | null
+          language?: "en" | "lv" | "ru" | "other" | null
+          address?: string | null
+          date_of_birth?: string | null
+          id_number?: string | null
+          id_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_expiry?: string | null
+          blacklisted?: boolean
+          blacklist_reason?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       company_amenities: {
         Row: {
           amenity_key: string

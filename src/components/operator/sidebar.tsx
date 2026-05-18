@@ -79,7 +79,7 @@ const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
         label: "Customers",
         href: (id) => `/app/customers/${id}`,
         icon: <UsersIcon />,
-        soon: true,
+        soon: false,
         requiresCompany: true,
       },
     ],
