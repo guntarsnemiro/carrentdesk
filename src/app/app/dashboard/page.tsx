@@ -28,6 +28,19 @@ export default async function DashboardPage({
     .select("role, company:companies(id, name, slug, status, city)")
     .eq("user_id", user.id);
 
+  // Vehicle counts per company
+  const companyIds = (memberships ?? []).map((m) => (m.company as { id: string }).id);
+  const { data: vehicleRows } = companyIds.length
+    ? await db.from("vehicles").select("company_id, status").in("company_id", companyIds)
+    : { data: [] };
+
+  type VehicleRow = { company_id: string; status: string };
+  const vehiclesByCompany: Record<string, VehicleRow[]> = {};
+  for (const v of vehicleRows ?? []) {
+    if (!vehiclesByCompany[v.company_id]) vehiclesByCompany[v.company_id] = [];
+    vehiclesByCompany[v.company_id]!.push(v);
+  }
+
   const companies = (memberships ?? []).map((m) => ({
     ...(m.company as { id: string; name: string; slug: string; status: string; city: string }),
     role: m.role,
@@ -90,13 +103,21 @@ export default async function DashboardPage({
                 </a>
               </div>
 
-              {/* Quick stats row — will fill in as modules are built */}
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Vehicles" value="—" href={`/app/fleet/${company.id}`} />
-                <Stat label="Active bookings" value="—" soon />
-                <Stat label="Inspections this week" value="—" soon />
-                <Stat label="Revenue this month" value="—" soon />
-              </div>
+              {/* Quick stats row */}
+              {(() => {
+                const veh = vehiclesByCompany[company.id] ?? [];
+                const total = veh.length;
+                const available = veh.filter((v) => v.status === "available").length;
+                const rented = veh.filter((v) => v.status === "rented").length;
+                return (
+                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <Stat label="Total vehicles" value={total > 0 ? String(total) : "—"} href={`/app/fleet/${company.id}`} />
+                    <Stat label="Available" value={total > 0 ? String(available) : "—"} href={`/app/fleet/${company.id}`} />
+                    <Stat label="Rented out" value={total > 0 ? String(rented) : "—"} href={`/app/fleet/${company.id}`} />
+                    <Stat label="Revenue this month" value="—" soon />
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

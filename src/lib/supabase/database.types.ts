@@ -289,6 +289,59 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          category: Database["public"]["Enums"]["vehicle_category"]
+          color: string | null
+          company_id: string
+          created_at: string
+          id: string
+          make: string
+          model: string
+          notes: string | null
+          plate: string
+          status: Database["public"]["Enums"]["vehicle_status"]
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["vehicle_category"]
+          color?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          make: string
+          model: string
+          notes?: string | null
+          plate: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["vehicle_category"]
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          make?: string
+          model?: string
+          notes?: string | null
+          plate?: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string
@@ -349,6 +402,15 @@ export type Database = {
         | "qualified"
         | "converted"
         | "rejected"
+      vehicle_category:
+        | "economy"
+        | "compact"
+        | "midsize"
+        | "suv"
+        | "van"
+        | "luxury"
+        | "other"
+      vehicle_status: "available" | "rented" | "maintenance" | "retired"
     }
     CompositeTypes: {
       [_ in never]: never
