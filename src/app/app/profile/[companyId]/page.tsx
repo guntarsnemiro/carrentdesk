@@ -63,36 +63,23 @@ export default async function ProfileEditPage({ params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      {/* Top nav */}
-      <header className="border-b border-border bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <a
-            href="/app/dashboard"
-            className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline"
-          >
-            ← Dashboard
+    <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-neutral-900">My listing</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Changes are saved immediately and appear on your public profile at{" "}
+          <a href={`/c/${company.slug}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline-offset-2 hover:underline">
+            carrentdesk.com/c/{company.slug}
           </a>
-          <span className="text-neutral-300">/</span>
-          <span className="text-sm font-medium text-neutral-700">Edit profile</span>
-        </div>
-      </header>
+        </p>
+      </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-neutral-900">{company.name}</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Changes are saved immediately and appear on your public profile.
-          </p>
-        </div>
-
-        <ProfileEditForm
-          company={company}
-          location={location ?? null}
-          fleet={fleet ?? null}
-          amenities={amenities}
-        />
-      </main>
+      <ProfileEditForm
+        company={company}
+        location={location ?? null}
+        fleet={fleet ?? null}
+        amenities={amenities}
+      />
     </div>
   );
 }
