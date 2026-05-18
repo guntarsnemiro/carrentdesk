@@ -89,9 +89,9 @@ const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
     items: [
       {
         label: "Revenue",
-        href: (id) => `/app/revenue/${id}`,
+        href: (id) => `/app/finance/${id}`,
         icon: <ChartIcon />,
-        soon: true,
+        soon: false,
         requiresCompany: true,
       },
     ],
