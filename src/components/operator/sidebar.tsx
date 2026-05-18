@@ -65,9 +65,9 @@ const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
       },
       {
         label: "Bookings",
-        href: (id) => `/app/bookings/${id}`,
+        href: (id) => `/app/rentals/${id}`,
         icon: <BookingIcon />,
-        soon: true,
+        soon: false,
         requiresCompany: true,
       },
     ],

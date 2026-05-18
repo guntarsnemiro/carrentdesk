@@ -133,6 +133,91 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          id: string
+          company_id: string
+          vehicle_id: string
+          customer_id: string
+          status: "confirmed" | "active" | "returned" | "cancelled"
+          start_at: string
+          end_at: string
+          insurance: "none" | "partial" | "full"
+          child_seat_infant: boolean
+          child_seat_toddler: boolean
+          child_seat_child: boolean
+          booking_price: number | null
+          deposit_amount: number | null
+          deposit_paid: boolean
+          payment_method: "cash" | "card" | "bank_transfer" | "other" | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          vehicle_id: string
+          customer_id: string
+          status?: "confirmed" | "active" | "returned" | "cancelled"
+          start_at: string
+          end_at: string
+          insurance?: "none" | "partial" | "full"
+          child_seat_infant?: boolean
+          child_seat_toddler?: boolean
+          child_seat_child?: boolean
+          booking_price?: number | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          vehicle_id?: string
+          customer_id?: string
+          status?: "confirmed" | "active" | "returned" | "cancelled"
+          start_at?: string
+          end_at?: string
+          insurance?: "none" | "partial" | "full"
+          child_seat_infant?: boolean
+          child_seat_toddler?: boolean
+          child_seat_child?: boolean
+          booking_price?: number | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       customers: {
         Row: {
           id: string
@@ -512,6 +597,9 @@ export type Database = {
         | "luxury"
         | "other"
       vehicle_fuel: "diesel" | "petrol" | "electric" | "hybrid" | "lpg"
+      booking_status: "confirmed" | "active" | "returned" | "cancelled"
+      booking_insurance: "none" | "partial" | "full"
+      payment_method: "cash" | "card" | "bank_transfer" | "other"
       vehicle_status: "available" | "rented" | "maintenance" | "retired"
     }
     CompositeTypes: {

@@ -28,8 +28,9 @@ export default async function DashboardPage({
     .select("role, company:companies(id, name, slug, status, city)")
     .eq("user_id", user.id);
 
-  // Vehicle counts per company
   const companyIds = (memberships ?? []).map((m) => (m.company as { id: string }).id);
+
+  // Vehicle counts per company
   const { data: vehicleRows } = companyIds.length
     ? await db.from("vehicles").select("company_id, status").in("company_id", companyIds)
     : { data: [] };
@@ -39,6 +40,21 @@ export default async function DashboardPage({
   for (const v of vehicleRows ?? []) {
     if (!vehiclesByCompany[v.company_id]) vehiclesByCompany[v.company_id] = [];
     vehiclesByCompany[v.company_id]!.push(v);
+  }
+
+  // Active booking counts per company
+  const now = new Date().toISOString();
+  const { data: bookingRows } = companyIds.length
+    ? await db.from("bookings").select("company_id, status, start_at, end_at")
+        .in("company_id", companyIds)
+        .in("status", ["confirmed", "active"])
+    : { data: [] };
+
+  type BookingRow = { company_id: string; status: string; start_at: string; end_at: string };
+  const bookingsByCompany: Record<string, BookingRow[]> = {};
+  for (const b of bookingRows ?? []) {
+    if (!bookingsByCompany[b.company_id]) bookingsByCompany[b.company_id] = [];
+    bookingsByCompany[b.company_id]!.push(b);
   }
 
   const companies = (memberships ?? []).map((m) => ({
@@ -106,15 +122,18 @@ export default async function DashboardPage({
               {/* Quick stats row */}
               {(() => {
                 const veh = vehiclesByCompany[company.id] ?? [];
-                const total = veh.length;
+                const total     = veh.length;
                 const available = veh.filter((v) => v.status === "available").length;
-                const rented = veh.filter((v) => v.status === "rented").length;
+                const rented    = veh.filter((v) => v.status === "rented").length;
+                const bookings  = bookingsByCompany[company.id] ?? [];
+                const activeNow = bookings.filter((b) => b.start_at <= now && b.end_at >= now).length;
+                const upcoming  = bookings.filter((b) => b.start_at > now).length;
                 return (
                   <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Stat label="Total vehicles" value={total > 0 ? String(total) : "—"} href={`/app/fleet/${company.id}`} />
-                    <Stat label="Available" value={total > 0 ? String(available) : "—"} href={`/app/fleet/${company.id}`} />
-                    <Stat label="Rented out" value={total > 0 ? String(rented) : "—"} href={`/app/fleet/${company.id}`} />
-                    <Stat label="Revenue this month" value="—" soon />
+                    <Stat label="Available now"  value={total > 0 ? String(available) : "—"} href={`/app/fleet/${company.id}`} />
+                    <Stat label="Active rentals" value={String(activeNow)} href={`/app/rentals/${company.id}`} />
+                    <Stat label="Upcoming"       value={String(upcoming)}  href={`/app/rentals/${company.id}`} />
                   </div>
                 );
               })()}
