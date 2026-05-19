@@ -14,7 +14,7 @@ interface Customer { id: string; full_name: string; phone: string; blacklisted: 
 interface Booking {
   id: string;
   vehicle_id: string;
-  customer_id: string;
+  customer_id: string | null;
   status: BookingStatus;
   start_at: string;
   end_at: string;

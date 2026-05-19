@@ -138,7 +138,7 @@ export type Database = {
           id: string
           company_id: string
           vehicle_id: string
-          customer_id: string
+          customer_id: string | null
           status: "confirmed" | "active" | "returned" | "cancelled"
           start_at: string
           end_at: string
@@ -152,6 +152,7 @@ export type Database = {
           payment_method: "cash" | "card" | "bank_transfer" | "other" | null
           pickup_location: string | null
           return_location: string | null
+          is_maintenance: boolean
           notes: string | null
           created_at: string
           updated_at: string
@@ -160,7 +161,7 @@ export type Database = {
           id?: string
           company_id: string
           vehicle_id: string
-          customer_id: string
+          customer_id?: string | null
           status?: "confirmed" | "active" | "returned" | "cancelled"
           start_at: string
           end_at: string
@@ -174,6 +175,7 @@ export type Database = {
           payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
           pickup_location?: string | null
           return_location?: string | null
+          is_maintenance?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -182,7 +184,7 @@ export type Database = {
           id?: string
           company_id?: string
           vehicle_id?: string
-          customer_id?: string
+          customer_id?: string | null
           status?: "confirmed" | "active" | "returned" | "cancelled"
           start_at?: string
           end_at?: string
@@ -196,6 +198,7 @@ export type Database = {
           payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
           pickup_location?: string | null
           return_location?: string | null
+          is_maintenance?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string

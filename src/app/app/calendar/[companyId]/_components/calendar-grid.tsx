@@ -27,7 +27,8 @@ interface Booking {
   start_at: string;
   end_at: string;
   status: string;
-  customer_name: string;
+  is_maintenance: boolean;
+  customer_name: string | null;
   customer_phone: string | null;
   customer_id: string | null;
   vehicle_id: string;
@@ -50,6 +51,9 @@ interface Vehicle {
   model: string;
   plate: string;
   status: string;
+  gov_inspection_next: string | null;
+  service_next: string | null;
+  insurance_valid_until: string | null;
 }
 
 interface Customer {
@@ -66,14 +70,16 @@ interface Props {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  confirmed: "bg-amber-400 hover:bg-amber-500",
-  active:    "bg-emerald-500 hover:bg-emerald-600",
-  returned:  "bg-neutral-300 hover:bg-neutral-400",
+  confirmed:   "bg-amber-400 hover:bg-amber-500",
+  active:      "bg-emerald-500 hover:bg-emerald-600",
+  returned:    "bg-neutral-300 hover:bg-neutral-400",
+  maintenance: "bg-slate-400 hover:bg-slate-500",
 };
 const STATUS_TEXT: Record<string, string> = {
-  confirmed: "text-amber-900",
-  active:    "text-white",
-  returned:  "text-neutral-600",
+  confirmed:   "text-amber-900",
+  active:      "text-white",
+  returned:    "text-neutral-600",
+  maintenance: "text-white",
 };
 
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -82,7 +88,7 @@ const DAY_SHORT   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 const DAY_W_DESKTOP = 36;
 const DAY_W_MOBILE  = 28;
 const DAYS_PAST   = 60;
-const DAYS_FUTURE = 90;
+const DAYS_FUTURE = 365;
 const TOTAL_DAYS  = DAYS_PAST + 1 + DAYS_FUTURE;
 const SCROLL_OFFSET = 7;
 
@@ -133,15 +139,18 @@ function VehicleSelect({
   const startIso = startAt ? new Date(startAt).toISOString() : "";
   const endIso   = endAt   ? new Date(endAt).toISOString()   : "";
 
+  const sDate = startIso ? new Date(startIso) : null;
+  const eDate = endIso   ? new Date(endIso)   : null;
+
   const available   = vehicles.filter((v) => {
     if (v.id === value) return true;
-    if (!startIso || !endIso) return true;
+    if (!sDate || !eDate) return true;
     return !allBookings.some(
       (b) => b.id !== excludeBookingId &&
              b.vehicle_id === v.id &&
              b.status !== "cancelled" &&
-             b.start_at < endIso &&
-             b.end_at   > startIso
+             new Date(b.start_at) < eDate &&
+             new Date(b.end_at)   > sDate
     );
   });
   const unavailable = vehicles.filter((v) => !available.find((a) => a.id === v.id));
@@ -268,7 +277,8 @@ interface CreatePopupProps {
 function CreateBookingPopup({
   companyId, vehicles, allBookings, preVehicleId, preStart, preEnd, onClose, onCreated,
 }: CreatePopupProps) {
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer]         = useState<Customer | null>(null);
+  const [isMaintenance, setMaintenance] = useState(false);
   const [form, setForm] = useState({
     vehicle_id:         preVehicleId ?? (vehicles[0]?.id ?? ""),
     start_at:           preStart ?? strToLocalDatetime(toStr(new Date()), "10:00"),
@@ -301,15 +311,16 @@ function CreateBookingPopup({
   }
 
   async function handleSave() {
-    if (!customer) { setError("Please select a customer."); return; }
+    if (!isMaintenance && !customer) { setError("Please select a customer."); return; }
     if (!form.vehicle_id) { setError("Please select a car."); return; }
-    if (new Date(form.end_at) <= new Date(form.start_at)) { setError("Return must be after pickup."); return; }
+    if (new Date(form.end_at) <= new Date(form.start_at)) { setError("End must be after start."); return; }
     setSaving(true); setError("");
     const supabase = getAuthBrowserClient();
     const payload = {
       company_id:         companyId,
-      customer_id:        customer.id,
+      customer_id:        isMaintenance ? null : customer!.id,
       vehicle_id:         form.vehicle_id,
+      is_maintenance:     isMaintenance,
       status:             "confirmed" as const,
       start_at:           new Date(form.start_at).toISOString(),
       end_at:             new Date(form.end_at).toISOString(),
@@ -330,9 +341,10 @@ function CreateBookingPopup({
     if (err || !data) { setError(err?.message ?? "Failed to save."); return; }
     onCreated({
       ...data,
-      customer_name:  customer.full_name,
-      customer_phone: customer.phone,
-      customer_id:    customer.id,
+      is_maintenance: isMaintenance,
+      customer_name:  isMaintenance ? null : customer?.full_name ?? null,
+      customer_phone: isMaintenance ? null : customer?.phone ?? null,
+      customer_id:    isMaintenance ? null : customer?.id ?? null,
     } as Booking);
     onClose();
   }
@@ -351,7 +363,22 @@ function CreateBookingPopup({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-          {/* Customer */}
+            {/* Type toggle */}
+          <div className="flex gap-2">
+            <button type="button"
+              onClick={() => setMaintenance(false)}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${!isMaintenance ? "border-brand-700 bg-brand-50 text-brand-700" : "border-border text-neutral-500 hover:bg-slate-50"}`}>
+              Rental
+            </button>
+            <button type="button"
+              onClick={() => setMaintenance(true)}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${isMaintenance ? "border-slate-500 bg-slate-100 text-slate-700" : "border-border text-neutral-500 hover:bg-slate-50"}`}>
+              🔧 Maintenance block
+            </button>
+          </div>
+
+          {/* Customer (only for rentals) */}
+          {!isMaintenance && (
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Customer</p>
             <CustomerSearch companyId={companyId} value={customer} onChange={setCustomer} />
@@ -361,6 +388,7 @@ function CreateBookingPopup({
               </p>
             )}
           </div>
+          )}
 
           {/* Pickup */}
           <div>
@@ -504,6 +532,7 @@ interface BookingPopupProps {
 }
 
 function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUpdated }: BookingPopupProps) {
+  const [isMaintenance] = useState(booking.is_maintenance);
   const [form, setForm] = useState({
     vehicle_id:         booking.vehicle_id,
     start_at:           toLocalDatetime(booking.start_at),
@@ -580,13 +609,18 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border px-5 py-4">
           <div>
-            <p className="text-base font-semibold text-neutral-900">{booking.customer_name}</p>
-            {booking.customer_phone && (
+            {isMaintenance ? (
+              <p className="text-base font-semibold text-slate-700">🔧 Maintenance block</p>
+            ) : (
+              <p className="text-base font-semibold text-neutral-900">{booking.customer_name ?? "—"}</p>
+            )}
+            {!isMaintenance && booking.customer_phone && (
               <a href={`tel:${booking.customer_phone}`}
                 className="mt-0.5 flex items-center gap-1 text-sm text-brand-700 hover:underline">
                 📞 {booking.customer_phone}
               </a>
             )}
+            {isMaintenance && null}
           </div>
           <div className="flex items-center gap-3">
             <a href={`/app/rentals/${companyId}/${booking.id}`}
@@ -1021,6 +1055,26 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       );
                     })}
 
+                    {/* Inspection / insurance markers */}
+                    {[
+                      { date: v.gov_inspection_next,  color: "bg-orange-400", title: "Gov. inspection due" },
+                      { date: v.service_next,          color: "bg-blue-400",   title: "Service due" },
+                      { date: v.insurance_valid_until, color: "bg-red-400",    title: "Insurance expires" },
+                    ].map(({ date, color, title }) => {
+                      if (!date) return null;
+                      const markerStr = date.slice(0, 10);
+                      const idx = days.findIndex((d) => d.str === markerStr);
+                      if (idx === -1) return null;
+                      return (
+                        <div
+                          key={title}
+                          title={`${title}: ${markerStr}`}
+                          style={{ left: idx * DAY_W, width: DAY_W }}
+                          className={`pointer-events-none absolute top-0 h-1 ${color} z-20 opacity-80`}
+                        />
+                      );
+                    })}
+
                     {/* Booking blocks */}
                     {vBookings.map((b) => {
                       const startStr = b.start_at.slice(0, 10);
@@ -1039,12 +1093,19 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const clipsLeft  = startStr < rangeStart;
                       const clipsRight = endStr   > rangeEnd;
 
+                      const blockColor = b.is_maintenance
+                        ? "bg-slate-400 hover:bg-slate-500 text-white"
+                        : `${colorBg} ${colorText}`;
+                      const blockLabel = b.is_maintenance
+                        ? "🔧 Maintenance"
+                        : (b.customer_name ?? "—");
+
                       return (
                         <button
                           key={b.id}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => setActiveBooking(b)}
-                          title={`${b.customer_name} · Click to edit`}
+                          title={`${blockLabel} · Click to edit`}
                           style={{
                             left:  startIdx * DAY_W + 2,
                             width: span    * DAY_W - 4,
@@ -1052,12 +1113,12 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             transform: "translateY(-50%)",
                           }}
                           className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
-                            ${colorBg} ${colorText}
+                            ${blockColor}
                             ${!clipsLeft  ? "rounded-l-md" : ""}
                             ${!clipsRight ? "rounded-r-md" : ""}
                           `}
                         >
-                          <span className="truncate">{b.customer_name}</span>
+                          <span className="truncate">{blockLabel}</span>
                         </button>
                       );
                     })}
@@ -1076,21 +1137,30 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-5 border-t border-border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3">
           {[
-            { label: "Confirmed", color: "bg-amber-400" },
-            { label: "Active",    color: "bg-emerald-500" },
-            { label: "Returned",  color: "bg-neutral-300" },
+            { label: "Confirmed",    color: "bg-amber-400",   square: true },
+            { label: "Active",       color: "bg-emerald-500", square: true },
+            { label: "Returned",     color: "bg-neutral-300", square: true },
+            { label: "Maintenance",  color: "bg-slate-400",   square: true },
+            { label: "Today",        color: "bg-brand-500",   square: true },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
               <span className={`h-3 w-3 rounded-sm ${l.color}`} />
               <span className="text-xs text-neutral-500">{l.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-brand-500" />
-            <span className="text-xs text-neutral-500">Today</span>
-          </div>
+          <div className="mx-1 h-4 w-px bg-border" />
+          {[
+            { label: "Gov. inspection", color: "bg-orange-400" },
+            { label: "Service due",     color: "bg-blue-400"   },
+            { label: "Insurance exp.",  color: "bg-red-400"    },
+          ].map((l) => (
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className={`h-1.5 w-4 rounded-sm ${l.color}`} />
+              <span className="text-xs text-neutral-500">{l.label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </>

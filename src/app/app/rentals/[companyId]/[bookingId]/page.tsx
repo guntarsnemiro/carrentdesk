@@ -30,11 +30,11 @@ export default async function EditBookingPage({
   ]);
   if (!booking) notFound();
 
-  const { data: customer } = await db
+  const { data: customer } = booking.customer_id ? await db
     .from("customers")
     .select("id, full_name, phone, blacklisted, blacklist_reason")
     .eq("id", booking.customer_id)
-    .maybeSingle();
+    .maybeSingle() : { data: null };
 
   return (
     <div className="px-8 py-8">

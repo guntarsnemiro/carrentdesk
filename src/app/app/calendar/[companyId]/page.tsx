@@ -29,22 +29,33 @@ export default async function CalendarPage({
     .eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
-  // Fetch vehicles
-  const { data: vehicles } = await db
+  // Fetch vehicles including inspection/insurance dates for calendar markers
+  const { data: rawVehicles } = await db
     .from("vehicles")
-    .select("id, make, model, plate, status")
+    .select("id, make, model, plate, status, gov_inspection_next, service_next, insurance_valid_until")
     .eq("company_id", companyId)
     .neq("status", "retired")
     .order("make").order("model");
 
-  // Fetch bookings for full timeline window (60 days back, 90 days forward)
+  const vehicles = (rawVehicles ?? []).map((v) => ({
+    id:                   v.id,
+    make:                 v.make,
+    model:                v.model,
+    plate:                v.plate,
+    status:               v.status,
+    gov_inspection_next:  v.gov_inspection_next ?? null,
+    service_next:         v.service_next ?? null,
+    insurance_valid_until: v.insurance_valid_until ?? null,
+  }));
+
+  // 60 days back, 365 days forward
   const now   = new Date();
-  const start = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
-  const end   = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const start = new Date(now.getTime() - 60  * 24 * 60 * 60 * 1000).toISOString();
+  const end   = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, vehicle_id, status, start_at, end_at, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
+    .select("id, vehicle_id, status, start_at, end_at, is_maintenance, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
     .eq("company_id", companyId)
     .neq("status", "cancelled")
     .gte("end_at", start)
@@ -54,6 +65,7 @@ export default async function CalendarPage({
     id:                 b.id,
     vehicle_id:         b.vehicle_id,
     status:             b.status,
+    is_maintenance:     b.is_maintenance ?? false,
     start_at:           b.start_at,
     end_at:             b.end_at,
     insurance:          b.insurance,
@@ -67,21 +79,21 @@ export default async function CalendarPage({
     pickup_location:    b.pickup_location,
     return_location:    b.return_location,
     notes:              b.notes,
-    customer_name: (b.customers as { id: string; full_name: string; phone: string } | null)?.full_name ?? "—",
-    customer_phone:(b.customers as { id: string; full_name: string; phone: string } | null)?.phone ?? null,
-    customer_id:   (b.customers as { id: string; full_name: string; phone: string } | null)?.id ?? null,
+    customer_name:  (b.customers as { id: string; full_name: string; phone: string } | null)?.full_name ?? null,
+    customer_phone: (b.customers as { id: string; full_name: string; phone: string } | null)?.phone ?? null,
+    customer_id:    (b.customers as { id: string; full_name: string; phone: string } | null)?.id ?? null,
   }));
 
   return (
-    <div className="px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Calendar</h1>
-        <p className="mt-1 text-sm text-neutral-500">{company.name} — fleet availability</p>
+    <div className="px-4 py-4 lg:px-8 lg:py-8">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-neutral-900 lg:text-2xl">Calendar</h1>
+        <p className="mt-0.5 text-sm text-neutral-500">{company.name}</p>
       </div>
 
       <CalendarGrid
         companyId={companyId}
-        vehicles={vehicles ?? []}
+        vehicles={vehicles}
         bookings={bookings}
       />
     </div>
