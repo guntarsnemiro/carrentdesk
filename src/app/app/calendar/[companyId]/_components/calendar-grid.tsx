@@ -805,6 +805,12 @@ interface NewBookingTarget {
   endStr: string;
 }
 
+interface TooltipState {
+  lines: string[];
+  x: number;
+  y: number;
+}
+
 export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: initialBookings }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -836,6 +842,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
   // Popups
   const [activeBooking,    setActiveBooking]    = useState<Booking | null>(null);
+  const [tooltip,          setTooltip]          = useState<TooltipState | null>(null);
   const [newBookingTarget, setNewBookingTarget] = useState<NewBookingTarget | null>(null);
   const [showNewPopup,     setShowNewPopup]     = useState(false);
 
@@ -903,6 +910,18 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
   return (
     <>
+      {/* Hover tooltip */}
+      {tooltip && (
+        <div
+          className="fixed z-[200] pointer-events-none max-w-[220px] rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-white shadow-xl"
+          style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}
+        >
+          {tooltip.lines.map((line, i) => (
+            <p key={i} className={i === 0 ? "font-semibold" : "text-neutral-300 mt-0.5"}>{line}</p>
+          ))}
+        </div>
+      )}
+
       {/* Edit booking popup */}
       {activeBooking && (
         <BookingPopup
@@ -1055,22 +1074,25 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       );
                     })}
 
-                    {/* Inspection / insurance markers */}
+                    {/* Inspection / insurance markers — full cell */}
                     {[
-                      { date: v.gov_inspection_next,  color: "bg-orange-400", title: "Gov. inspection due" },
-                      { date: v.service_next,          color: "bg-blue-400",   title: "Service due" },
-                      { date: v.insurance_valid_until, color: "bg-red-400",    title: "Insurance expires" },
+                      { date: v.gov_inspection_next,  color: "bg-yellow-300", title: "Gov. inspection due" },
+                      { date: v.service_next,          color: "bg-blue-300",   title: "Service due" },
+                      { date: v.insurance_valid_until, color: "bg-emerald-300", title: "Insurance expires" },
                     ].map(({ date, color, title }) => {
                       if (!date) return null;
                       const markerStr = date.slice(0, 10);
                       const idx = days.findIndex((d) => d.str === markerStr);
                       if (idx === -1) return null;
+                      const fmtDate = new Date(markerStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                       return (
                         <div
                           key={title}
-                          title={`${title}: ${markerStr}`}
                           style={{ left: idx * DAY_W, width: DAY_W }}
-                          className={`pointer-events-none absolute top-0 h-1 ${color} z-20 opacity-80`}
+                          className={`absolute inset-y-0 ${color} z-[5] opacity-70 cursor-help`}
+                          onMouseEnter={(e) => setTooltip({ lines: [title, fmtDate], x: e.clientX, y: e.clientY })}
+                          onMouseMove={(e)  => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                          onMouseLeave={()  => setTooltip(null)}
                         />
                       );
                     })}
@@ -1100,12 +1122,26 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                         ? "🔧 Maintenance"
                         : (b.customer_name ?? "—");
 
+                      const fmtDt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                      const tipLines = b.is_maintenance
+                        ? ["🔧 Maintenance block", `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`, ...(b.notes ? [b.notes] : [])]
+                        : [
+                            b.customer_name ?? "—",
+                            ...(b.customer_phone ? [`📞 ${b.customer_phone}`] : []),
+                            `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`,
+                            ...(b.pickup_location ? [`↑ ${b.pickup_location}`] : []),
+                            ...(b.return_location ? [`↓ ${b.return_location}`] : []),
+                            ...(b.booking_price != null ? [`€${b.booking_price.toFixed(2)}`] : []),
+                          ];
+
                       return (
                         <button
                           key={b.id}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => setActiveBooking(b)}
-                          title={`${blockLabel} · Click to edit`}
+                          onMouseEnter={(e) => setTooltip({ lines: tipLines, x: e.clientX, y: e.clientY })}
+                          onMouseMove={(e)  => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                          onMouseLeave={()  => setTooltip(null)}
                           style={{
                             left:  startIdx * DAY_W + 2,
                             width: span    * DAY_W - 4,
@@ -1152,12 +1188,12 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           ))}
           <div className="mx-1 h-4 w-px bg-border" />
           {[
-            { label: "Gov. inspection", color: "bg-orange-400" },
-            { label: "Service due",     color: "bg-blue-400"   },
-            { label: "Insurance exp.",  color: "bg-red-400"    },
+            { label: "Gov. inspection", color: "bg-yellow-300"  },
+            { label: "Service due",     color: "bg-blue-300"    },
+            { label: "Insurance exp.",  color: "bg-emerald-300" },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
-              <span className={`h-1.5 w-4 rounded-sm ${l.color}`} />
+              <span className={`h-3 w-4 rounded-sm ${l.color} opacity-70`} />
               <span className="text-xs text-neutral-500">{l.label}</span>
             </div>
           ))}
