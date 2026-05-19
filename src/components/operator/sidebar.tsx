@@ -15,6 +15,7 @@ interface Props {
   user: { email: string };
   companies: Company[];
   activeCompanyId: string | null;
+  onCloseMobile?: () => void;
 }
 
 interface NavItem {
@@ -75,7 +76,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function Sidebar({ user, companies, activeCompanyId }: Props) {
+export function Sidebar({ user, companies, activeCompanyId, onCloseMobile }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const companyId = activeCompanyId ?? "";
@@ -92,13 +93,24 @@ export function Sidebar({ user, companies, activeCompanyId }: Props) {
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-white">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-border px-4">
+      <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-4">
         <Link href="/app/dashboard" className="flex items-center gap-2">
           <span className="text-sm font-bold text-brand-950">CarRentDesk</span>
           <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
             Ops
           </span>
         </Link>
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            aria-label="Close menu"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-slate-100 lg:hidden"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Company selector (if multiple) */}
