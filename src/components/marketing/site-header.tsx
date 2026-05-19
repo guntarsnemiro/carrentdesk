@@ -51,16 +51,10 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/app/login"
-            className="hidden rounded-full px-3.5 py-1.5 text-sm font-medium text-neutral-600 transition-colors hover:text-brand-900 md:inline-flex"
-          >
-            Sign in
-          </Link>
-          <Link
             href="/join"
-            className="hidden rounded-full bg-brand-900 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 md:inline-flex"
+            className="hidden text-sm text-neutral-400 transition-colors hover:text-brand-700 md:inline-flex"
           >
-            Start free trial
+            For rental owners
           </Link>
 
           <button
@@ -122,16 +116,10 @@ export function SiteHeader() {
             </Link>
             <div className="my-2 h-px bg-border" />
             <Link
-              href="/app/login"
-              className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
-            >
-              Sign in
-            </Link>
-            <Link
               href="/join"
-              className="mt-1 rounded-full bg-brand-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-brand-800"
+              className="rounded-lg px-3 py-2 text-base font-medium text-neutral-500 hover:bg-surface-soft"
             >
-              Start free trial
+              For rental owners
             </Link>
           </nav>
         </div>
