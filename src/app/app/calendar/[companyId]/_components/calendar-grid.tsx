@@ -834,7 +834,8 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
       const saved = localStorage.getItem(storageKey);
       if (!saved) return initialVehicles;
       const savedIds: string[] = JSON.parse(saved);
-      return [...initialVehicles].sort((a, b) => savedIds.indexOf(a.id) - savedIds.indexOf(b.id));
+      const rank = (id: string) => { const i = savedIds.indexOf(id); return i === -1 ? Infinity : i; };
+      return [...initialVehicles].sort((a, b) => rank(a.id) - rank(b.id));
     } catch { return initialVehicles; }
   });
 
