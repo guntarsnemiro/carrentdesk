@@ -329,12 +329,10 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer }: P
           </select>
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Pickup date & time *">
-            <input name="start_at" type="datetime-local" required value={form.start_at} onChange={set} className={inp} />
-          </Field>
-          <Field label="Return date & time *">
-            <input name="end_at" type="datetime-local" required value={form.end_at} onChange={set} className={inp} />
-          </Field>
+          <DateTimeField label="Pickup date & time *" required value={form.start_at}
+            onChange={(v) => setForm((p) => ({ ...p, start_at: v }))} />
+          <DateTimeField label="Return date & time *" required value={form.end_at}
+            onChange={(v) => setForm((p) => ({ ...p, end_at: v }))} />
         </div>
         {days != null && (
           <p className="text-sm text-neutral-500">
@@ -468,6 +466,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="block text-sm font-medium text-neutral-700">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function DateTimeField({ label, value, onChange, required }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+}) {
+  const [datePart, timePart] = value ? value.split("T") : ["", ""];
+  const inp = "mt-1 rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500";
+  return (
+    <div>
+      <label className="block text-sm font-medium text-neutral-700">{label}</label>
+      <div className="mt-1 flex gap-2">
+        <input type="date" required={required} value={datePart ?? ""}
+          onChange={(e) => onChange(`${e.target.value}T${timePart ?? "00:00"}`)}
+          className={`flex-1 ${inp}`} />
+        <input type="time" required={required} value={timePart ?? ""}
+          onChange={(e) => onChange(`${datePart ?? ""}T${e.target.value}`)}
+          className={`w-28 ${inp}`} />
+      </div>
     </div>
   );
 }

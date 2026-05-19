@@ -396,7 +396,8 @@ function CreateBookingPopup({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={INP} />
+                <CalDateTimeInput value={form.start_at}
+                  onChange={(v) => setForm((p) => ({ ...p, start_at: v }))} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
@@ -412,7 +413,8 @@ function CreateBookingPopup({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={INP} />
+                <CalDateTimeInput value={form.end_at}
+                  onChange={(v) => setForm((p) => ({ ...p, end_at: v }))} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
@@ -639,7 +641,8 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={INP} />
+                <CalDateTimeInput value={form.start_at}
+                  onChange={(v) => setForm((p) => ({ ...p, start_at: v }))} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
@@ -654,7 +657,8 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={INP} />
+                <CalDateTimeInput value={form.end_at}
+                  onChange={(v) => setForm((p) => ({ ...p, end_at: v }))} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
@@ -1201,5 +1205,23 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
         </div>
       </div>
     </>
+  );
+}
+
+function CalDateTimeInput({ value, onChange, className }: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const [datePart, timePart] = value ? value.split("T") : ["", ""];
+  return (
+    <div className="flex gap-1.5">
+      <input type="date" value={datePart ?? ""}
+        onChange={(e) => onChange(`${e.target.value}T${timePart ?? "00:00"}`)}
+        className={`flex-1 ${className ?? ""}`} />
+      <input type="time" value={timePart ?? ""}
+        onChange={(e) => onChange(`${datePart ?? ""}T${e.target.value}`)}
+        className={`w-24 ${className ?? ""}`} />
+    </div>
   );
 }
