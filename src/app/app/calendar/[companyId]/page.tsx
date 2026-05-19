@@ -44,19 +44,32 @@ export default async function CalendarPage({
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, vehicle_id, status, start_at, end_at, customers(full_name)")
+    .select("id, vehicle_id, status, start_at, end_at, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
     .eq("company_id", companyId)
     .neq("status", "cancelled")
     .gte("end_at", start)
     .lte("start_at", end);
 
   const bookings = (rawBookings ?? []).map((b) => ({
-    id:            b.id,
-    vehicle_id:    b.vehicle_id,
-    status:        b.status,
-    start_at:      b.start_at,
-    end_at:        b.end_at,
-    customer_name: (b.customers as { full_name: string } | null)?.full_name ?? "—",
+    id:                 b.id,
+    vehicle_id:         b.vehicle_id,
+    status:             b.status,
+    start_at:           b.start_at,
+    end_at:             b.end_at,
+    insurance:          b.insurance,
+    child_seat_infant:  b.child_seat_infant,
+    child_seat_toddler: b.child_seat_toddler,
+    child_seat_child:   b.child_seat_child,
+    booking_price:      b.booking_price,
+    deposit_amount:     b.deposit_amount,
+    deposit_paid:       b.deposit_paid,
+    payment_method:     b.payment_method,
+    pickup_location:    b.pickup_location,
+    return_location:    b.return_location,
+    notes:              b.notes,
+    customer_name: (b.customers as { id: string; full_name: string; phone: string } | null)?.full_name ?? "—",
+    customer_phone:(b.customers as { id: string; full_name: string; phone: string } | null)?.phone ?? null,
+    customer_id:   (b.customers as { id: string; full_name: string; phone: string } | null)?.id ?? null,
   }));
 
   return (

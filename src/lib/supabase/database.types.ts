@@ -150,6 +150,8 @@ export type Database = {
           deposit_amount: number | null
           deposit_paid: boolean
           payment_method: "cash" | "card" | "bank_transfer" | "other" | null
+          pickup_location: string | null
+          return_location: string | null
           notes: string | null
           created_at: string
           updated_at: string
@@ -170,6 +172,8 @@ export type Database = {
           deposit_amount?: number | null
           deposit_paid?: boolean
           payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
+          pickup_location?: string | null
+          return_location?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -190,6 +194,8 @@ export type Database = {
           deposit_amount?: number | null
           deposit_paid?: boolean
           payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
+          pickup_location?: string | null
+          return_location?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string

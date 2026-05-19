@@ -26,6 +26,8 @@ interface Booking {
   deposit_amount: number | null;
   deposit_paid: boolean;
   payment_method: PaymentMethod | null;
+  pickup_location: string | null;
+  return_location: string | null;
   notes: string | null;
 }
 
@@ -72,6 +74,8 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer }: P
     deposit_amount:     booking?.deposit_amount != null ? String(booking.deposit_amount) : "",
     deposit_paid:       booking?.deposit_paid ?? false,
     payment_method:     (booking?.payment_method ?? "") as PaymentMethod | "",
+    pickup_location:    booking?.pickup_location ?? "",
+    return_location:    booking?.return_location ?? "",
     notes:              booking?.notes ?? "",
   });
 
@@ -191,6 +195,8 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer }: P
       deposit_amount:     form.deposit_amount ? parseFloat(form.deposit_amount) : null,
       deposit_paid:       form.deposit_paid,
       payment_method:     (form.payment_method || null) as PaymentMethod | null,
+      pickup_location:    form.pickup_location.trim() || null,
+      return_location:    form.return_location.trim() || null,
       notes:              form.notes.trim() || null,
       updated_at:         new Date().toISOString(),
     };
@@ -335,6 +341,16 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer }: P
             Duration: <span className="font-semibold text-neutral-800">{days} {days === 1 ? "day" : "days"}</span>
           </p>
         )}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Pickup location">
+            <input name="pickup_location" value={form.pickup_location} onChange={set}
+              placeholder="e.g. Airport Terminal 1" className={inp} />
+          </Field>
+          <Field label="Return location">
+            <input name="return_location" value={form.return_location} onChange={set}
+              placeholder="e.g. Main office" className={inp} />
+          </Field>
+        </div>
       </Section>
 
       {/* ── Extras ── */}

@@ -19,13 +19,29 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 
+type Insurance     = "none" | "partial" | "full";
+type PaymentMethod = "cash" | "card" | "bank_transfer" | "other";
+
 interface Booking {
   id: string;
   start_at: string;
   end_at: string;
   status: string;
   customer_name: string;
+  customer_phone: string | null;
+  customer_id: string | null;
   vehicle_id: string;
+  insurance: Insurance | null;
+  child_seat_infant: boolean;
+  child_seat_toddler: boolean;
+  child_seat_child: boolean;
+  booking_price: number | null;
+  deposit_amount: number | null;
+  deposit_paid: boolean;
+  payment_method: PaymentMethod | null;
+  pickup_location: string | null;
+  return_location: string | null;
+  notes: string | null;
 }
 
 interface Vehicle {
@@ -71,106 +87,276 @@ function toStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// ── Booking reassign popup ──────────────────────────────────────────────────
+// ── Booking popup ───────────────────────────────────────────────────────────
 
-interface ReassignPopupProps {
-  booking: Booking;
-  vehicles: Vehicle[];
-  bookings: Booking[];
-  onClose: () => void;
-  onReassigned: (bookingId: string, newVehicleId: string) => void;
+function toLocalDatetime(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function ReassignPopup({ booking, vehicles, bookings, onClose, onReassigned }: ReassignPopupProps) {
-  const [selectedVehicleId, setSelectedVehicleId] = useState(booking.vehicle_id);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+function daysBetween(start: string, end: string) {
+  return Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000*60*60*24)));
+}
 
-  // Vehicles that have no conflicting booking (excluding current booking)
-  const available = vehicles.filter((v) => {
-    if (v.id === booking.vehicle_id) return true; // current vehicle always shown
-    const conflicts = bookings.filter(
+interface BookingPopupProps {
+  booking: Booking;
+  vehicles: Vehicle[];
+  allBookings: Booking[];
+  companyId: string;
+  onClose: () => void;
+  onUpdated: (bookingId: string, changes: Partial<Booking>) => void;
+}
+
+function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUpdated }: BookingPopupProps) {
+  const [form, setForm] = useState({
+    vehicle_id:         booking.vehicle_id,
+    start_at:           toLocalDatetime(booking.start_at),
+    end_at:             toLocalDatetime(booking.end_at),
+    pickup_location:    booking.pickup_location ?? "",
+    return_location:    booking.return_location ?? "",
+    child_seat_infant:  booking.child_seat_infant,
+    child_seat_toddler: booking.child_seat_toddler,
+    child_seat_child:   booking.child_seat_child,
+    insurance:          (booking.insurance ?? "none") as Insurance,
+    booking_price:      booking.booking_price  != null ? String(booking.booking_price)  : "",
+    deposit_amount:     booking.deposit_amount != null ? String(booking.deposit_amount) : "",
+    deposit_paid:       booking.deposit_paid,
+    payment_method:     (booking.payment_method ?? "") as PaymentMethod | "",
+    notes:              booking.notes ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [error, setError]  = useState("");
+
+  function setField(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+  }
+
+  const days = (() => {
+    const s = new Date(form.start_at).getTime();
+    const e = new Date(form.end_at).getTime();
+    return (isNaN(s) || isNaN(e) || e <= s) ? null : Math.ceil((e - s) / (1000*60*60*24));
+  })();
+
+  // Vehicles available for selected dates (excluding current booking)
+  const availableVehicles = vehicles.filter((v) => {
+    if (v.id === form.vehicle_id) return true;
+    const conflicts = allBookings.filter(
       (b) => b.id !== booking.id &&
              b.vehicle_id === v.id &&
              b.status !== "cancelled" &&
-             b.start_at < booking.end_at &&
-             b.end_at   > booking.start_at
+             b.start_at < new Date(form.end_at).toISOString() &&
+             b.end_at   > new Date(form.start_at).toISOString()
     );
     return conflicts.length === 0;
   });
-
-  const unavailable = vehicles.filter((v) => !available.find((a) => a.id === v.id));
+  const unavailableVehicles = vehicles.filter((v) => !availableVehicles.find((a) => a.id === v.id));
 
   async function handleSave() {
-    if (selectedVehicleId === booking.vehicle_id) { onClose(); return; }
-    setSaving(true);
-    setError("");
+    if (new Date(form.end_at) <= new Date(form.start_at)) {
+      setError("Return must be after pickup."); return;
+    }
+    setSaving(true); setError("");
     const supabase = getAuthBrowserClient();
-    const { error: err } = await supabase
-      .from("bookings")
-      .update({ vehicle_id: selectedVehicleId, updated_at: new Date().toISOString() })
-      .eq("id", booking.id);
+    const payload = {
+      vehicle_id:         form.vehicle_id,
+      start_at:           new Date(form.start_at).toISOString(),
+      end_at:             new Date(form.end_at).toISOString(),
+      pickup_location:    form.pickup_location.trim() || null,
+      return_location:    form.return_location.trim() || null,
+      child_seat_infant:  form.child_seat_infant,
+      child_seat_toddler: form.child_seat_toddler,
+      child_seat_child:   form.child_seat_child,
+      insurance:          form.insurance as Insurance,
+      booking_price:      form.booking_price  ? parseFloat(form.booking_price)  : null,
+      deposit_amount:     form.deposit_amount ? parseFloat(form.deposit_amount) : null,
+      deposit_paid:       form.deposit_paid,
+      payment_method:     (form.payment_method || null) as PaymentMethod | null,
+      notes:              form.notes.trim() || null,
+      updated_at:         new Date().toISOString(),
+    };
+    const { error: err } = await supabase.from("bookings").update(payload).eq("id", booking.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
-    onReassigned(booking.id, selectedVehicleId);
+    onUpdated(booking.id, { ...payload, start_at: payload.start_at, end_at: payload.end_at });
     onClose();
   }
 
-  function fmt(iso: string) {
-    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  async function handleCancel() {
+    if (!confirm("Cancel this booking?")) return;
+    setCancelling(true);
+    await getAuthBrowserClient().from("bookings").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", booking.id);
+    onUpdated(booking.id, { status: "cancelled" });
+    onClose();
   }
 
+  const inp = "mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-6 shadow-xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-neutral-900">Move booking</h3>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
+
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+          <div>
+            <p className="text-base font-semibold text-neutral-900">{booking.customer_name}</p>
+            {booking.customer_phone && (
+              <a href={`tel:${booking.customer_phone}`}
+                className="mt-0.5 flex items-center gap-1 text-sm text-brand-700 hover:underline">
+                📞 {booking.customer_phone}
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <a href={`/app/rentals/${companyId}/${booking.id}`}
+              className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline">
+              Full edit →
+            </a>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
+          </div>
         </div>
 
-        <div className="mb-4 rounded-lg bg-slate-50 px-4 py-3 text-sm">
-          <p className="font-medium text-neutral-900">{booking.customer_name}</p>
-          <p className="mt-0.5 text-neutral-500">{fmt(booking.start_at)} → {fmt(booking.end_at)}</p>
-        </div>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-        <div className="mb-4">
-          <label className="mb-1.5 block text-sm font-medium text-neutral-700">Move to vehicle</label>
-          <select
-            value={selectedVehicleId}
-            onChange={(e) => setSelectedVehicleId(e.target.value)}
-            className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          >
-            <optgroup label="Available on these dates">
-              {available.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.make} {v.model} — {v.plate}
-                  {v.id === booking.vehicle_id ? " (current)" : ""}
-                </option>
-              ))}
-            </optgroup>
-            {unavailable.length > 0 && (
-              <optgroup label="Booked on these dates (unavailable)">
-                {unavailable.map((v) => (
-                  <option key={v.id} value={v.id} disabled>
-                    {v.make} {v.model} — {v.plate}
+          {/* Pickup */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Pickup</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Date & time</label>
+                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Location</label>
+                <input name="pickup_location" value={form.pickup_location} onChange={setField}
+                  placeholder="e.g. Airport" className={inp} />
+              </div>
+            </div>
+          </div>
+
+          {/* Return */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Return</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Date & time</label>
+                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Location</label>
+                <input name="return_location" value={form.return_location} onChange={setField}
+                  placeholder="e.g. Main office" className={inp} />
+              </div>
+            </div>
+            {days && <p className="mt-1.5 text-xs text-neutral-400">Duration: <span className="font-semibold text-neutral-700">{days} {days === 1 ? "day" : "days"}</span></p>}
+          </div>
+
+          {/* Vehicle */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Vehicle</p>
+            <select name="vehicle_id" value={form.vehicle_id} onChange={setField} className={inp}>
+              <optgroup label="Available on these dates">
+                {availableVehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.make} {v.model} — {v.plate}{v.id === booking.vehicle_id ? " (current)" : ""}
                   </option>
                 ))}
               </optgroup>
-            )}
-          </select>
+              {unavailableVehicles.length > 0 && (
+                <optgroup label="Booked (unavailable)">
+                  {unavailableVehicles.map((v) => (
+                    <option key={v.id} value={v.id} disabled>
+                      {v.make} {v.model} — {v.plate}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+
+          {/* Extras */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Extras</p>
+            <div className="space-y-2">
+              {([
+                { name: "child_seat_infant",  label: "Infant seat (0–1 y)" },
+                { name: "child_seat_toddler", label: "Toddler seat (1–6 y)" },
+                { name: "child_seat_child",   label: "Child seat (6–12 y)" },
+              ] as const).map((s) => (
+                <label key={s.name} className="flex cursor-pointer items-center gap-2.5">
+                  <input type="checkbox" name={s.name} checked={form[s.name]} onChange={setField}
+                    className="h-4 w-4 rounded border-border text-brand-700" />
+                  <span className="text-sm text-neutral-700">{s.label}</span>
+                </label>
+              ))}
+              <div className="pt-1">
+                <label className="block text-xs font-medium text-neutral-600">Insurance</label>
+                <select name="insurance" value={form.insurance} onChange={setField} className={inp}>
+                  <option value="none">No insurance</option>
+                  <option value="partial">Partial</option>
+                  <option value="full">Full</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Payment</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Booking price (€)</label>
+                <input name="booking_price" type="number" min={0} step={0.01} value={form.booking_price}
+                  onChange={setField} placeholder="0.00" className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Deposit (€)</label>
+                <input name="deposit_amount" type="number" min={0} step={0.01} value={form.deposit_amount}
+                  onChange={setField} placeholder="0.00" className={inp} />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+                <input type="checkbox" name="deposit_paid" checked={form.deposit_paid} onChange={setField}
+                  className="h-4 w-4 rounded border-border text-brand-700" />
+                Deposit received
+              </label>
+              <div className="flex-1">
+                <select name="payment_method" value={form.payment_method} onChange={setField} className={inp}>
+                  <option value="">Payment method…</option>
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Notes</p>
+            <textarea name="notes" rows={2} value={form.notes} onChange={setField}
+              placeholder="Anything the team should know…" className={inp} />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-2">
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 rounded-lg bg-brand-700 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-            {saving ? "Saving…" : "Move booking"}
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border px-5 py-4">
+          <button onClick={handleSave} disabled={saving || cancelling}
+            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
+            {saving ? "Saving…" : "Save changes"}
           </button>
-          <button onClick={onClose}
-            className="rounded-lg border border-border px-4 py-2.5 text-sm text-neutral-600 hover:bg-slate-50">
-            Cancel
+          <button onClick={handleCancel} disabled={cancelling || saving}
+            className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50">
+            {cancelling ? "Cancelling…" : "Cancel booking"}
           </button>
         </div>
       </div>
@@ -269,9 +455,11 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
     });
   }
 
-  const handleReassigned = useCallback((bookingId: string, newVehicleId: string) => {
+  const handleUpdated = useCallback((bookingId: string, changes: Partial<Booking>) => {
     setBookings((prev) =>
-      prev.map((b) => b.id === bookingId ? { ...b, vehicle_id: newVehicleId } : b)
+      prev
+        .map((b) => b.id === bookingId ? { ...b, ...changes } : b)
+        .filter((b) => b.status !== "cancelled")
     );
   }, []);
 
@@ -281,12 +469,13 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
     <>
       {/* Reassign popup */}
       {activeBooking && (
-        <ReassignPopup
+        <BookingPopup
           booking={activeBooking}
           vehicles={vehicles}
-          bookings={bookings}
+          allBookings={bookings}
+          companyId={companyId}
           onClose={() => setActiveBooking(null)}
-          onReassigned={handleReassigned}
+          onUpdated={handleUpdated}
         />
       )}
 
