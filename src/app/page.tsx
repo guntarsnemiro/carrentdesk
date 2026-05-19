@@ -150,16 +150,16 @@ function ForOwnersStrip() {
         </div>
         <div className="flex shrink-0 gap-2">
           <Link
-            href="/for-rentals"
-            className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-medium text-brand-950 transition-colors hover:bg-brand-100"
+            href="/join"
+            className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
           >
-            Learn more
+            Start free trial →
           </Link>
           <Link
-            href="/for-rentals#claim"
+            href="/app/login"
             className="inline-flex items-center justify-center rounded-full border border-brand-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-900"
           >
-            Claim your listing
+            Sign in
           </Link>
         </div>
       </div>
