@@ -47,20 +47,20 @@ export function SiteHeader() {
               {c.name}
             </Link>
           ))}
-          <Link
-            href="/for-rentals"
-            className="transition-colors hover:text-brand-900"
-          >
-            For rental owners
-          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
           <Link
-            href="/for-rentals"
-            className="hidden rounded-full border border-border bg-background px-3.5 py-1.5 text-sm font-medium text-brand-900 transition-colors hover:bg-surface-soft md:inline-flex"
+            href="/app/login"
+            className="hidden rounded-full px-3.5 py-1.5 text-sm font-medium text-neutral-600 transition-colors hover:text-brand-900 md:inline-flex"
           >
-            List your rental
+            Sign in
+          </Link>
+          <Link
+            href="/join"
+            className="hidden rounded-full bg-brand-900 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 md:inline-flex"
+          >
+            Start free trial
           </Link>
 
           <button
@@ -122,16 +122,16 @@ export function SiteHeader() {
             </Link>
             <div className="my-2 h-px bg-border" />
             <Link
-              href="/for-rentals"
+              href="/app/login"
               className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
             >
-              For rental owners
+              Sign in
             </Link>
             <Link
-              href="/for-rentals#claim"
+              href="/join"
               className="mt-1 rounded-full bg-brand-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-brand-800"
             >
-              List your rental
+              Start free trial
             </Link>
           </nav>
         </div>
