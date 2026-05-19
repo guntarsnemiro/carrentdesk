@@ -45,7 +45,7 @@ export default async function CustomersPage({
 
   let query = db
     .from("customers")
-    .select("id, full_name, phone, email, language, blacklisted, created_at")
+    .select("id, full_name, phone, email, language, blacklisted, created_at", { count: "exact" })
     .eq("company_id", companyId)
     .order("full_name");
 
@@ -54,9 +54,9 @@ export default async function CustomersPage({
     query = query.or(`full_name.ilike.${term},phone.ilike.${term}`);
   }
 
-  const { data: customers } = await query;
+  const { data: customers, count } = await query.limit(10000);
 
-  const total      = customers?.length ?? 0;
+  const total       = count ?? customers?.length ?? 0;
   const blacklisted = customers?.filter((c) => c.blacklisted).length ?? 0;
 
   return (
