@@ -96,6 +96,13 @@ export function CustomerImport({ companyId }: { companyId: string }) {
 
   const validRows   = rows.filter((r) => r.errors.length === 0);
   const invalidRows = rows.filter((r) => r.errors.length > 0);
+  const phoneSet    = new Set<string>();
+  let   dupCount    = 0;
+  for (const r of validRows) {
+    if (phoneSet.has(r.phone.trim())) dupCount++;
+    else phoneSet.add(r.phone.trim());
+  }
+  const uniqueValidCount = phoneSet.size;
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,7 +124,13 @@ export function CustomerImport({ companyId }: { companyId: string }) {
     setIsImporting(true);
 
     const supabase = getAuthBrowserClient();
-    const payload  = validRows.map((r) => ({
+
+    // Deduplicate by phone — last row wins (same as upsert would do)
+    const seen = new Map<string, ParsedRow>();
+    for (const r of validRows) seen.set(r.phone.trim(), r);
+    const uniqueRows = Array.from(seen.values());
+
+    const payload  = uniqueRows.map((r) => ({
       company_id:             companyId,
       full_name:              r.full_name,
       phone:                  r.phone,
@@ -143,7 +156,7 @@ export function CustomerImport({ companyId }: { companyId: string }) {
       setIsImporting(false);
       return;
     }
-    setImportCount(validRows.length);
+    setImportCount(uniqueRows.length);
     setPhase("done");
   }
 
@@ -193,15 +206,18 @@ export function CustomerImport({ companyId }: { companyId: string }) {
             <div className="flex-1">
               <p className="text-sm font-medium text-neutral-900">
                 {rows.length} row{rows.length !== 1 ? "s" : ""} found
-                {" · "}<span className="text-emerald-700">{validRows.length} valid</span>
+                {" · "}<span className="text-emerald-700">{uniqueValidCount} unique valid</span>
                 {invalidRows.length > 0 && (
                   <span className="text-red-600"> · {invalidRows.length} with errors</span>
+                )}
+                {dupCount > 0 && (
+                  <span className="text-amber-600"> · {dupCount} duplicate phone{dupCount !== 1 ? "s" : ""} (last row kept)</span>
                 )}
               </p>
             </div>
             <button onClick={handleImport} disabled={!validRows.length || isImporting}
               className="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-              {isImporting ? "Importing…" : `Import ${validRows.length} customer${validRows.length !== 1 ? "s" : ""}`}
+              {isImporting ? "Importing…" : `Import ${uniqueValidCount} customer${uniqueValidCount !== 1 ? "s" : ""}`}
             </button>
           </div>
 
