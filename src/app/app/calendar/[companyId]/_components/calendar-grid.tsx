@@ -52,6 +52,13 @@ interface Vehicle {
   status: string;
 }
 
+interface Customer {
+  id: string;
+  full_name: string;
+  phone: string;
+  blacklisted: boolean;
+}
+
 interface Props {
   companyId: string;
   vehicles: Vehicle[];
@@ -86,18 +93,399 @@ function addDays(base: Date, n: number): Date {
 function toStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
-
-// ── Booking popup ───────────────────────────────────────────────────────────
-
 function toLocalDatetime(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
-function daysBetween(start: string, end: string) {
-  return Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000*60*60*24)));
+function strToLocalDatetime(dateStr: string, time = "10:00") {
+  return `${dateStr}T${time}`;
 }
+function strAddDay(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  return toStr(d);
+}
+
+const INP = "mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500";
+
+// ── Shared vehicle selector ─────────────────────────────────────────────────
+
+function VehicleSelect({
+  value, onChange, vehicles, allBookings, excludeBookingId, startAt, endAt, className,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  vehicles: Vehicle[];
+  allBookings: Booking[];
+  excludeBookingId?: string;
+  startAt: string;
+  endAt: string;
+  className?: string;
+}) {
+  const startIso = startAt ? new Date(startAt).toISOString() : "";
+  const endIso   = endAt   ? new Date(endAt).toISOString()   : "";
+
+  const available   = vehicles.filter((v) => {
+    if (v.id === value) return true;
+    if (!startIso || !endIso) return true;
+    return !allBookings.some(
+      (b) => b.id !== excludeBookingId &&
+             b.vehicle_id === v.id &&
+             b.status !== "cancelled" &&
+             b.start_at < endIso &&
+             b.end_at   > startIso
+    );
+  });
+  const unavailable = vehicles.filter((v) => !available.find((a) => a.id === v.id));
+
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={className ?? INP}>
+      <option value="">Select car…</option>
+      <optgroup label="Available on these dates">
+        {available.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.make} {v.model} — {v.plate}{v.id === value ? "" : ""}
+          </option>
+        ))}
+      </optgroup>
+      {unavailable.length > 0 && (
+        <optgroup label="Booked (unavailable)">
+          {unavailable.map((v) => (
+            <option key={v.id} value={v.id} disabled>
+              {v.make} {v.model} — {v.plate}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  );
+}
+
+// ── Customer search ─────────────────────────────────────────────────────────
+
+function CustomerSearch({
+  companyId,
+  value,
+  onChange,
+}: {
+  companyId: string;
+  value: Customer | null;
+  onChange: (c: Customer | null) => void;
+}) {
+  const [query, setQuery]     = useState("");
+  const [results, setResults] = useState<Customer[]>([]);
+  const [open, setOpen]       = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (query.trim().length < 1) { setResults([]); return; }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      const supabase = getAuthBrowserClient();
+      const { data } = await supabase
+        .from("customers")
+        .select("id, full_name, phone, blacklisted")
+        .eq("company_id", companyId)
+        .or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`)
+        .limit(8);
+      setResults(data ?? []);
+      setOpen(true);
+    }, 250);
+  }, [query, companyId]);
+
+  if (value) {
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-border bg-slate-50 px-3 py-2">
+        <div>
+          <p className="text-sm font-medium text-neutral-900">{value.full_name}</p>
+          <p className="text-xs text-neutral-400">{value.phone}</p>
+        </div>
+        <button onClick={() => { onChange(null); setQuery(""); }}
+          className="ml-2 text-neutral-400 hover:text-neutral-600">✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Search by name or phone…"
+        className={INP}
+      />
+      {open && results.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-white shadow-lg">
+          {results.map((c) => (
+            <button key={c.id}
+              onMouseDown={() => { onChange(c); setQuery(""); setOpen(false); }}
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50">
+              <span className="font-medium text-neutral-900">{c.full_name}</span>
+              <span className="text-xs text-neutral-400">{c.phone}</span>
+            </button>
+          ))}
+          <Link href={`/app/customers/${companyId}/add`}
+            className="flex w-full items-center px-3 py-2 text-sm text-brand-700 hover:bg-slate-50 border-t border-border">
+            + Add new customer
+          </Link>
+        </div>
+      )}
+      {open && results.length === 0 && query.trim().length >= 2 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-white shadow-lg">
+          <p className="px-3 py-2 text-sm text-neutral-400">No results</p>
+          <Link href={`/app/customers/${companyId}/add`}
+            className="flex w-full items-center px-3 py-2 text-sm text-brand-700 hover:bg-slate-50 border-t border-border">
+            + Add new customer
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Create booking popup ─────────────────────────────────────────────────────
+
+interface CreatePopupProps {
+  companyId: string;
+  vehicles: Vehicle[];
+  allBookings: Booking[];
+  preVehicleId?: string;
+  preStart?: string;
+  preEnd?: string;
+  onClose: () => void;
+  onCreated: (b: Booking) => void;
+}
+
+function CreateBookingPopup({
+  companyId, vehicles, allBookings, preVehicleId, preStart, preEnd, onClose, onCreated,
+}: CreatePopupProps) {
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [form, setForm] = useState({
+    vehicle_id:         preVehicleId ?? (vehicles[0]?.id ?? ""),
+    start_at:           preStart ?? strToLocalDatetime(toStr(new Date()), "10:00"),
+    end_at:             preEnd   ?? strToLocalDatetime(strAddDay(toStr(new Date())), "10:00"),
+    pickup_location:    "",
+    return_location:    "",
+    child_seat_infant:  false,
+    child_seat_toddler: false,
+    child_seat_child:   false,
+    insurance:          "none" as Insurance,
+    booking_price:      "",
+    deposit_amount:     "",
+    deposit_paid:       false,
+    payment_method:     "" as PaymentMethod | "",
+    notes:              "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const days = (() => {
+    const s = new Date(form.start_at).getTime();
+    const e = new Date(form.end_at).getTime();
+    return (isNaN(s) || isNaN(e) || e <= s) ? null : Math.ceil((e - s) / (1000*60*60*24));
+  })();
+
+  function setField(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+  }
+
+  async function handleSave() {
+    if (!customer) { setError("Please select a customer."); return; }
+    if (!form.vehicle_id) { setError("Please select a car."); return; }
+    if (new Date(form.end_at) <= new Date(form.start_at)) { setError("Return must be after pickup."); return; }
+    setSaving(true); setError("");
+    const supabase = getAuthBrowserClient();
+    const payload = {
+      company_id:         companyId,
+      customer_id:        customer.id,
+      vehicle_id:         form.vehicle_id,
+      status:             "confirmed" as const,
+      start_at:           new Date(form.start_at).toISOString(),
+      end_at:             new Date(form.end_at).toISOString(),
+      pickup_location:    form.pickup_location.trim() || null,
+      return_location:    form.return_location.trim() || null,
+      child_seat_infant:  form.child_seat_infant,
+      child_seat_toddler: form.child_seat_toddler,
+      child_seat_child:   form.child_seat_child,
+      insurance:          form.insurance,
+      booking_price:      form.booking_price  ? parseFloat(form.booking_price)  : null,
+      deposit_amount:     form.deposit_amount ? parseFloat(form.deposit_amount) : null,
+      deposit_paid:       form.deposit_paid,
+      payment_method:     (form.payment_method || null) as PaymentMethod | null,
+      notes:              form.notes.trim() || null,
+    };
+    const { data, error: err } = await supabase.from("bookings").insert(payload).select().single();
+    setSaving(false);
+    if (err || !data) { setError(err?.message ?? "Failed to save."); return; }
+    onCreated({
+      ...data,
+      customer_name:  customer.full_name,
+      customer_phone: customer.phone,
+      customer_id:    customer.id,
+    } as Booking);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <p className="text-base font-semibold text-neutral-900">New booking</p>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+          {/* Customer */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Customer</p>
+            <CustomerSearch companyId={companyId} value={customer} onChange={setCustomer} />
+            {customer?.blacklisted && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                ⚠ This customer is blacklisted.
+              </p>
+            )}
+          </div>
+
+          {/* Pickup */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Pickup</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Date & time</label>
+                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={INP} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Location</label>
+                <input name="pickup_location" value={form.pickup_location} onChange={setField}
+                  placeholder="e.g. Airport" className={INP} />
+              </div>
+            </div>
+          </div>
+
+          {/* Return */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Return</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Date & time</label>
+                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={INP} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Location</label>
+                <input name="return_location" value={form.return_location} onChange={setField}
+                  placeholder="e.g. Main office" className={INP} />
+              </div>
+            </div>
+            {days && <p className="mt-1.5 text-xs text-neutral-400">Duration: <span className="font-semibold text-neutral-700">{days} {days === 1 ? "day" : "days"}</span></p>}
+          </div>
+
+          {/* Car */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Car</p>
+            <VehicleSelect
+              value={form.vehicle_id}
+              onChange={(id) => setForm((p) => ({ ...p, vehicle_id: id }))}
+              vehicles={vehicles}
+              allBookings={allBookings}
+              startAt={form.start_at}
+              endAt={form.end_at}
+            />
+          </div>
+
+          {/* Extras */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Extras</p>
+            <div className="space-y-2">
+              {([
+                { name: "child_seat_infant",  label: "Infant seat (0–1 y)" },
+                { name: "child_seat_toddler", label: "Toddler seat (1–6 y)" },
+                { name: "child_seat_child",   label: "Child seat (6–12 y)" },
+              ] as const).map((s) => (
+                <label key={s.name} className="flex cursor-pointer items-center gap-2.5">
+                  <input type="checkbox" name={s.name} checked={form[s.name]} onChange={setField}
+                    className="h-4 w-4 rounded border-border text-brand-700" />
+                  <span className="text-sm text-neutral-700">{s.label}</span>
+                </label>
+              ))}
+              <div className="pt-1">
+                <label className="block text-xs font-medium text-neutral-600">Insurance</label>
+                <select name="insurance" value={form.insurance} onChange={setField} className={INP}>
+                  <option value="none">No insurance</option>
+                  <option value="partial">Partial</option>
+                  <option value="full">Full</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Payment</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Booking price (€)</label>
+                <input name="booking_price" type="number" min={0} step={0.01} value={form.booking_price}
+                  onChange={setField} placeholder="0.00" className={INP} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-600">Deposit (€)</label>
+                <input name="deposit_amount" type="number" min={0} step={0.01} value={form.deposit_amount}
+                  onChange={setField} placeholder="0.00" className={INP} />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+                <input type="checkbox" name="deposit_paid" checked={form.deposit_paid} onChange={setField}
+                  className="h-4 w-4 rounded border-border text-brand-700" />
+                Deposit received
+              </label>
+              <div className="flex-1">
+                <select name="payment_method" value={form.payment_method} onChange={setField} className={INP}>
+                  <option value="">Payment method…</option>
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Notes</p>
+            <textarea name="notes" rows={2} value={form.notes} onChange={setField}
+              placeholder="Anything the team should know…" className={INP} />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border px-5 py-4">
+          <button onClick={handleSave} disabled={saving}
+            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
+            {saving ? "Saving…" : "Create booking"}
+          </button>
+          <button onClick={onClose} className="text-sm text-neutral-500 hover:text-neutral-700">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit booking popup ───────────────────────────────────────────────────────
 
 interface BookingPopupProps {
   booking: Booking;
@@ -125,15 +513,9 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
     payment_method:     (booking.payment_method ?? "") as PaymentMethod | "",
     notes:              booking.notes ?? "",
   });
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]       = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [error, setError]  = useState("");
-
-  function setField(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
-  }
+  const [error, setError]         = useState("");
 
   const days = (() => {
     const s = new Date(form.start_at).getTime();
@@ -141,26 +523,15 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
     return (isNaN(s) || isNaN(e) || e <= s) ? null : Math.ceil((e - s) / (1000*60*60*24));
   })();
 
-  // Vehicles available for selected dates (excluding current booking)
-  const availableVehicles = vehicles.filter((v) => {
-    if (v.id === form.vehicle_id) return true;
-    const conflicts = allBookings.filter(
-      (b) => b.id !== booking.id &&
-             b.vehicle_id === v.id &&
-             b.status !== "cancelled" &&
-             b.start_at < new Date(form.end_at).toISOString() &&
-             b.end_at   > new Date(form.start_at).toISOString()
-    );
-    return conflicts.length === 0;
-  });
-  const unavailableVehicles = vehicles.filter((v) => !availableVehicles.find((a) => a.id === v.id));
+  function setField(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+  }
 
   async function handleSave() {
-    if (new Date(form.end_at) <= new Date(form.start_at)) {
-      setError("Return must be after pickup."); return;
-    }
+    if (new Date(form.end_at) <= new Date(form.start_at)) { setError("Return must be after pickup."); return; }
     setSaving(true); setError("");
-    const supabase = getAuthBrowserClient();
     const payload = {
       vehicle_id:         form.vehicle_id,
       start_at:           new Date(form.start_at).toISOString(),
@@ -178,7 +549,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
       notes:              form.notes.trim() || null,
       updated_at:         new Date().toISOString(),
     };
-    const { error: err } = await supabase.from("bookings").update(payload).eq("id", booking.id);
+    const { error: err } = await getAuthBrowserClient().from("bookings").update(payload).eq("id", booking.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
     onUpdated(booking.id, { ...payload, start_at: payload.start_at, end_at: payload.end_at });
@@ -188,12 +559,11 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
   async function handleCancel() {
     if (!confirm("Cancel this booking?")) return;
     setCancelling(true);
-    await getAuthBrowserClient().from("bookings").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", booking.id);
+    await getAuthBrowserClient().from("bookings")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", booking.id);
     onUpdated(booking.id, { status: "cancelled" });
     onClose();
   }
-
-  const inp = "mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -220,66 +590,53 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
           </div>
         </div>
 
-        {/* Scrollable body */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-          {/* Pickup */}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Pickup</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={inp} />
+                <input name="start_at" type="datetime-local" value={form.start_at} onChange={setField} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
                 <input name="pickup_location" value={form.pickup_location} onChange={setField}
-                  placeholder="e.g. Airport" className={inp} />
+                  placeholder="e.g. Airport" className={INP} />
               </div>
             </div>
           </div>
 
-          {/* Return */}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Return</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Date & time</label>
-                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={inp} />
+                <input name="end_at" type="datetime-local" value={form.end_at} onChange={setField} className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
                 <input name="return_location" value={form.return_location} onChange={setField}
-                  placeholder="e.g. Main office" className={inp} />
+                  placeholder="e.g. Main office" className={INP} />
               </div>
             </div>
             {days && <p className="mt-1.5 text-xs text-neutral-400">Duration: <span className="font-semibold text-neutral-700">{days} {days === 1 ? "day" : "days"}</span></p>}
           </div>
 
-          {/* Vehicle */}
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Vehicle</p>
-            <select name="vehicle_id" value={form.vehicle_id} onChange={setField} className={inp}>
-              <optgroup label="Available on these dates">
-                {availableVehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.make} {v.model} — {v.plate}{v.id === booking.vehicle_id ? " (current)" : ""}
-                  </option>
-                ))}
-              </optgroup>
-              {unavailableVehicles.length > 0 && (
-                <optgroup label="Booked (unavailable)">
-                  {unavailableVehicles.map((v) => (
-                    <option key={v.id} value={v.id} disabled>
-                      {v.make} {v.model} — {v.plate}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Car</p>
+            <VehicleSelect
+              value={form.vehicle_id}
+              onChange={(id) => setForm((p) => ({ ...p, vehicle_id: id }))}
+              vehicles={vehicles}
+              allBookings={allBookings}
+              excludeBookingId={booking.id}
+              startAt={form.start_at}
+              endAt={form.end_at}
+            />
           </div>
 
-          {/* Extras */}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Extras</p>
             <div className="space-y-2">
@@ -296,7 +653,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
               ))}
               <div className="pt-1">
                 <label className="block text-xs font-medium text-neutral-600">Insurance</label>
-                <select name="insurance" value={form.insurance} onChange={setField} className={inp}>
+                <select name="insurance" value={form.insurance} onChange={setField} className={INP}>
                   <option value="none">No insurance</option>
                   <option value="partial">Partial</option>
                   <option value="full">Full</option>
@@ -305,19 +662,18 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             </div>
           </div>
 
-          {/* Payment */}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Payment</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Booking price (€)</label>
                 <input name="booking_price" type="number" min={0} step={0.01} value={form.booking_price}
-                  onChange={setField} placeholder="0.00" className={inp} />
+                  onChange={setField} placeholder="0.00" className={INP} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Deposit (€)</label>
                 <input name="deposit_amount" type="number" min={0} step={0.01} value={form.deposit_amount}
-                  onChange={setField} placeholder="0.00" className={inp} />
+                  onChange={setField} placeholder="0.00" className={INP} />
               </div>
             </div>
             <div className="mt-2 flex items-center gap-4">
@@ -327,7 +683,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
                 Deposit received
               </label>
               <div className="flex-1">
-                <select name="payment_method" value={form.payment_method} onChange={setField} className={inp}>
+                <select name="payment_method" value={form.payment_method} onChange={setField} className={INP}>
                   <option value="">Payment method…</option>
                   <option value="cash">Cash</option>
                   <option value="card">Card</option>
@@ -338,11 +694,10 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Notes</p>
             <textarea name="notes" rows={2} value={form.notes} onChange={setField}
-              placeholder="Anything the team should know…" className={inp} />
+              placeholder="Anything the team should know…" className={INP} />
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -397,6 +752,18 @@ function SortableVehicleLabel({ vehicle, index, total }: { vehicle: Vehicle; ind
 
 // ── Main component ──────────────────────────────────────────────────────────
 
+interface Selection {
+  vehicleId: string;
+  startStr: string;
+  endStr: string;
+}
+
+interface NewBookingTarget {
+  vehicleId: string;
+  startStr: string;
+  endStr: string;
+}
+
 export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: initialBookings }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -404,7 +771,6 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
   today.setHours(0, 0, 0, 0);
   const todayStr = toStr(today);
 
-  // Vehicle order — persisted to localStorage
   const storageKey = `cal-vehicle-order-${companyId}`;
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
     if (typeof window === "undefined") return initialVehicles;
@@ -412,35 +778,50 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
       const saved = localStorage.getItem(storageKey);
       if (!saved) return initialVehicles;
       const savedIds: string[] = JSON.parse(saved);
-      const sorted = [...initialVehicles].sort(
-        (a, b) => savedIds.indexOf(a.id) - savedIds.indexOf(b.id)
-      );
-      return sorted;
+      return [...initialVehicles].sort((a, b) => savedIds.indexOf(a.id) - savedIds.indexOf(b.id));
     } catch { return initialVehicles; }
   });
 
-  // Bookings — mutable for reassignment
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
 
-  // Reassign popup
-  const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
+  // Popups
+  const [activeBooking,    setActiveBooking]    = useState<Booking | null>(null);
+  const [newBookingTarget, setNewBookingTarget] = useState<NewBookingTarget | null>(null);
+  const [showNewPopup,     setShowNewPopup]     = useState(false);
+
+  // Drag-to-select state
+  const [selection,   setSelection]   = useState<Selection | null>(null);
+  const isDraggingRef = useRef(false);
 
   const days = Array.from({ length: TOTAL_DAYS }, (_, i) => {
     const d = addDays(today, i - DAYS_PAST);
     return { date: d, str: toStr(d) };
   });
 
-  // Scroll to today − SCROLL_OFFSET on mount
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollLeft = (DAYS_PAST - SCROLL_OFFSET) * DAY_W;
   }, []);
 
+  // Global mouseup — finalize selection and open create popup
+  useEffect(() => {
+    function handleMouseUp() {
+      if (isDraggingRef.current && selection) {
+        const s = selection.startStr <= selection.endStr ? selection.startStr : selection.endStr;
+        const e = selection.startStr <= selection.endStr ? selection.endStr   : selection.startStr;
+        setNewBookingTarget({ vehicleId: selection.vehicleId, startStr: s, endStr: e });
+      }
+      isDraggingRef.current = false;
+      setSelection(null);
+    }
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, [selection]);
+
   function scrollToToday() {
     scrollRef.current?.scrollTo({ left: (DAYS_PAST - SCROLL_OFFSET) * DAY_W, behavior: "smooth" });
   }
 
-  // DnD sensors
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   function handleDragEnd(event: DragEndEvent) {
@@ -457,17 +838,20 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
   const handleUpdated = useCallback((bookingId: string, changes: Partial<Booking>) => {
     setBookings((prev) =>
-      prev
-        .map((b) => b.id === bookingId ? { ...b, ...changes } : b)
-        .filter((b) => b.status !== "cancelled")
+      prev.map((b) => b.id === bookingId ? { ...b, ...changes } : b)
+          .filter((b) => b.status !== "cancelled")
     );
+  }, []);
+
+  const handleCreated = useCallback((b: Booking) => {
+    setBookings((prev) => [...prev, b]);
   }, []);
 
   const totalWidth = TOTAL_DAYS * DAY_W;
 
   return (
     <>
-      {/* Reassign popup */}
+      {/* Edit booking popup */}
       {activeBooking && (
         <BookingPopup
           booking={activeBooking}
@@ -479,8 +863,39 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
         />
       )}
 
+      {/* Create booking popup — from drag selection */}
+      {newBookingTarget && (
+        <CreateBookingPopup
+          companyId={companyId}
+          vehicles={vehicles}
+          allBookings={bookings}
+          preVehicleId={newBookingTarget.vehicleId}
+          preStart={strToLocalDatetime(newBookingTarget.startStr, "10:00")}
+          preEnd={strToLocalDatetime(strAddDay(newBookingTarget.endStr), "10:00")}
+          onClose={() => setNewBookingTarget(null)}
+          onCreated={handleCreated}
+        />
+      )}
+
+      {/* Create booking popup — from button */}
+      {showNewPopup && (
+        <CreateBookingPopup
+          companyId={companyId}
+          vehicles={vehicles}
+          allBookings={bookings}
+          onClose={() => setShowNewPopup(false)}
+          onCreated={handleCreated}
+        />
+      )}
+
       {/* Controls */}
       <div className="mb-4 flex items-center gap-3">
+        <button
+          onClick={() => setShowNewPopup(true)}
+          className="rounded-lg bg-brand-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-800">
+          + New booking
+        </button>
+        <div className="mx-1 h-5 w-px bg-border" />
         <button onClick={() => scrollRef.current?.scrollBy({ left: -7 * DAY_W, behavior: "smooth" })}
           className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
           ← 1 week
@@ -493,14 +908,14 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
           1 week →
         </button>
-        <span className="ml-2 text-xs text-neutral-400">Drag ⠿ to reorder vehicles · Click a booking to move it</span>
+        <span className="ml-auto text-xs text-neutral-400">Drag on a row to create · Click a booking to edit</span>
       </div>
 
       {/* Grid */}
       <div className="overflow-hidden rounded-2xl border border-border bg-white">
         <div className="flex">
 
-          {/* Fixed vehicle column — sortable */}
+          {/* Fixed vehicle column */}
           <div className="shrink-0 border-r border-border" style={{ minWidth: 180 }}>
             <div className="h-14 border-b border-border" />
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -513,7 +928,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           </div>
 
           {/* Scrollable day grid */}
-          <div ref={scrollRef} className="flex-1 overflow-x-scroll"
+          <div ref={scrollRef} className="flex-1 overflow-x-scroll select-none"
             style={{ scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent" }}>
             <div style={{ width: totalWidth }}>
 
@@ -559,20 +974,42 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 const rangeStart = days[0]!.str;
                 const rangeEnd   = days[days.length - 1]!.str;
 
+                const selMin = selection && selection.vehicleId === v.id
+                  ? (selection.startStr <= selection.endStr ? selection.startStr : selection.endStr) : null;
+                const selMax = selection && selection.vehicleId === v.id
+                  ? (selection.startStr <= selection.endStr ? selection.endStr : selection.startStr) : null;
+
                 return (
                   <div key={v.id}
                     className={`relative flex h-14 ${vi < vehicles.length - 1 ? "border-b border-border" : ""}`}>
                     {days.map(({ date, str }) => {
-                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                      const isToday   = str === todayStr;
+                      const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
+                      const isToday    = str === todayStr;
+                      const isSelected = selMin && selMax && str >= selMin && str <= selMax;
+
                       return (
-                        <div key={str} style={{ width: DAY_W }}
-                          className={`shrink-0 h-full border-r border-border/30
-                            ${isToday ? "bg-brand-50/50" : isWeekend ? "bg-slate-50/70" : ""}`}
+                        <div key={str}
+                          style={{ width: DAY_W }}
+                          className={`shrink-0 h-full border-r border-border/30 cursor-crosshair
+                            ${isSelected   ? "bg-brand-100"        : ""}
+                            ${!isSelected && isToday   ? "bg-brand-50/50"    : ""}
+                            ${!isSelected && isWeekend ? "bg-slate-50/70"    : ""}
+                          `}
+                          onMouseDown={(e) => {
+                            if (e.button !== 0) return;
+                            e.preventDefault();
+                            isDraggingRef.current = true;
+                            setSelection({ vehicleId: v.id, startStr: str, endStr: str });
+                          }}
+                          onMouseEnter={() => {
+                            if (!isDraggingRef.current || selection?.vehicleId !== v.id) return;
+                            setSelection((prev) => prev ? { ...prev, endStr: str } : prev);
+                          }}
                         />
                       );
                     })}
 
+                    {/* Booking blocks */}
                     {vBookings.map((b) => {
                       const startStr = b.start_at.slice(0, 10);
                       const endStr   = b.end_at.slice(0, 10);
@@ -580,7 +1017,6 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
                       const visStart = startStr < rangeStart ? rangeStart : startStr;
                       const visEnd   = endStr   > rangeEnd   ? rangeEnd   : endStr;
-
                       const startIdx = days.findIndex((d) => d.str === visStart);
                       const endIdx   = days.findIndex((d) => d.str === visEnd);
                       if (startIdx === -1) return null;
@@ -594,15 +1030,16 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       return (
                         <button
                           key={b.id}
+                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => setActiveBooking(b)}
-                          title={`${b.customer_name} · Click to move to another vehicle`}
+                          title={`${b.customer_name} · Click to edit`}
                           style={{
                             left:  startIdx * DAY_W + 2,
                             width: span    * DAY_W - 4,
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
-                          className={`absolute flex h-8 items-center overflow-hidden px-2 text-xs font-medium transition-opacity hover:opacity-80 cursor-pointer
+                          className={`absolute flex h-8 items-center overflow-hidden px-2 text-xs font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
                             ${colorBg} ${colorText}
                             ${!clipsLeft  ? "rounded-l-md" : ""}
                             ${!clipsRight ? "rounded-r-md" : ""}
@@ -618,7 +1055,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
               {vehicles.length === 0 && (
                 <div className="px-6 py-10 text-center text-sm text-neutral-400">
-                  No vehicles in your fleet.{" "}
+                  No cars in your fleet.{" "}
                   <Link href={`/app/fleet/${companyId}/add`} className="text-brand-700 hover:underline">Add one →</Link>
                 </div>
               )}
