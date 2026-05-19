@@ -9,9 +9,6 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // Hide on operator portal — it has its own shell
-  if (pathname.startsWith("/app") || pathname.startsWith("/join")) return null;
-
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -23,6 +20,9 @@ export function SiteHeader() {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  // Hide on operator portal — must be after all hooks
+  if (pathname.startsWith("/app") || pathname.startsWith("/join")) return null;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
