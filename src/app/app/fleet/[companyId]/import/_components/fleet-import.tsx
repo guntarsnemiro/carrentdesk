@@ -203,7 +203,10 @@ export function FleetImport({ companyId }: { companyId: string }) {
       status:                "available" as const,
     }));
 
-    const { error } = await supabase.from("vehicles").insert(payload);
+    const { error } = await supabase.from("vehicles").upsert(payload, {
+      onConflict: "company_id,plate",
+      ignoreDuplicates: false,
+    });
     if (error) {
       alert("Import failed: " + error.message);
       setPhase("preview");
