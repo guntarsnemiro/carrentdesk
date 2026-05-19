@@ -36,10 +36,10 @@ export default function LoginPage({
         <p className="mt-6 text-center text-xs text-neutral-400">
           Don&apos;t have an account?{" "}
           <a
-            href="/for-rentals"
+            href="/join"
             className="text-brand-700 underline-offset-2 hover:underline"
           >
-            Request access
+            Start free trial
           </a>
         </p>
       </div>

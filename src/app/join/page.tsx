@@ -124,12 +124,19 @@ export default function JoinPage() {
 
             <JoinForm />
 
-            <p className="mt-6 text-center text-xs text-neutral-400 lg:hidden">
-              Already have an account?{" "}
-              <Link href="/app/login" className="font-medium text-brand-700 hover:underline">
-                Sign in
+            <div className="mt-6 lg:hidden">
+              <div className="relative flex items-center gap-3">
+                <div className="flex-1 border-t border-border" />
+                <span className="text-xs text-neutral-400">already have an account?</span>
+                <div className="flex-1 border-t border-border" />
+              </div>
+              <Link
+                href="/app/login"
+                className="mt-3 flex w-full items-center justify-center rounded-xl border border-border bg-white py-3 text-sm font-semibold text-brand-700 hover:bg-slate-50"
+              >
+                Sign in →
               </Link>
-            </p>
+            </div>
           </div>
         </div>
       </main>
