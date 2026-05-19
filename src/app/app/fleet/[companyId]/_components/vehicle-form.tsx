@@ -195,10 +195,10 @@ export function VehicleForm({ companyId, vehicle }: Props) {
       <Section title="Government technical inspection">
         <p className="mb-3 text-xs text-neutral-400">The mandatory state roadworthiness test (e.g. Latvian TA, Estonian ÜTV, Lithuanian TA).</p>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Last inspection date">
+          <Field label="Last inspection date" hint="DD.MM.YYYY">
             <input name="gov_inspection_date" type="date" value={form.gov_inspection_date} onChange={set} className={inp} />
           </Field>
-          <Field label="Next inspection due">
+          <Field label="Next inspection due" hint="DD.MM.YYYY">
             <input name="gov_inspection_next" type="date" value={form.gov_inspection_next} onChange={set} className={inp} />
           </Field>
         </div>
@@ -208,10 +208,10 @@ export function VehicleForm({ companyId, vehicle }: Props) {
       <Section title="Maintenance service">
         <p className="mb-3 text-xs text-neutral-400">Your internal full technical service (oil change, filters, brakes, etc.).</p>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Last service date">
+          <Field label="Last service date" hint="DD.MM.YYYY">
             <input name="service_date" type="date" value={form.service_date} onChange={set} className={inp} />
           </Field>
-          <Field label="Next service due">
+          <Field label="Next service due" hint="DD.MM.YYYY">
             <input name="service_next" type="date" value={form.service_next} onChange={set} className={inp} />
           </Field>
         </div>
@@ -223,7 +223,7 @@ export function VehicleForm({ companyId, vehicle }: Props) {
           <Field label="Policy number">
             <input name="insurance_number" value={form.insurance_number} onChange={set} placeholder="POL-12345678" className={inp} />
           </Field>
-          <Field label="Valid until">
+          <Field label="Valid until" hint="DD.MM.YYYY">
             <input name="insurance_valid_until" type="date" value={form.insurance_valid_until} onChange={set} className={inp} />
           </Field>
         </div>
@@ -269,11 +269,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm font-medium text-neutral-700">{label}</label>
       {children}
+      {hint && <p className="mt-1 text-xs text-neutral-400">{hint}</p>}
     </div>
   );
 }

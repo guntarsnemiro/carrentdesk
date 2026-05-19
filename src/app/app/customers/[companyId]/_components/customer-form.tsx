@@ -143,7 +143,7 @@ export function CustomerForm({ companyId, customer }: Props) {
           <input name="address" value={form.address} onChange={set}
             placeholder="Street, City, Country" className={inp} />
         </Field>
-        <Field label="Date of birth">
+        <Field label="Date of birth" hint="DD.MM.YYYY">
           <input name="date_of_birth" type="date" value={form.date_of_birth} onChange={set} className={inp} />
         </Field>
       </Section>
@@ -155,7 +155,7 @@ export function CustomerForm({ companyId, customer }: Props) {
             <input name="id_number" value={form.id_number} onChange={set}
               placeholder="PA1234567" className={`${inp} font-mono`} />
           </Field>
-          <Field label="ID expiry date">
+          <Field label="ID expiry date" hint="DD.MM.YYYY">
             <input name="id_expiry" type="date" value={form.id_expiry} onChange={set} className={inp} />
           </Field>
         </div>
@@ -164,7 +164,7 @@ export function CustomerForm({ companyId, customer }: Props) {
             <input name="driver_license_number" value={form.driver_license_number} onChange={set}
               placeholder="LV12345678" className={`${inp} font-mono`} />
           </Field>
-          <Field label="Driver license expiry">
+          <Field label="Driver license expiry" hint="DD.MM.YYYY">
             <input name="driver_license_expiry" type="date" value={form.driver_license_expiry} onChange={set} className={inp} />
           </Field>
         </div>
@@ -239,11 +239,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm font-medium text-neutral-700">{label}</label>
       {children}
+      {hint && <p className="mt-1 text-xs text-neutral-400">{hint}</p>}
     </div>
   );
 }
