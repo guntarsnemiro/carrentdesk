@@ -203,14 +203,17 @@ export function FleetImport({ companyId }: { companyId: string }) {
       status:                "available" as const,
     }));
 
-    const { error } = await supabase.from("vehicles").upsert(payload, {
-      onConflict: "company_id,plate",
-      ignoreDuplicates: false,
-    });
-    if (error) {
-      alert("Import failed: " + error.message);
-      setPhase("preview");
-      return;
+    const CHUNK = 500;
+    for (let i = 0; i < payload.length; i += CHUNK) {
+      const { error } = await supabase.from("vehicles").upsert(payload.slice(i, i + CHUNK), {
+        onConflict: "company_id,plate",
+        ignoreDuplicates: false,
+      });
+      if (error) {
+        alert(`Import failed on rows ${i + 1}–${Math.min(i + CHUNK, payload.length)}: ${error.message}`);
+        setPhase("preview");
+        return;
+      }
     }
     setImportCount(validRows.length);
     setPhase("done");

@@ -146,15 +146,17 @@ export function CustomerImport({ companyId }: { companyId: string }) {
       blacklisted:            r.blacklisted,
     }));
 
-    const { error } = await supabase.from("customers").upsert(payload, {
-      onConflict: "company_id,phone",
-      ignoreDuplicates: false,
-    });
-
-    if (error) {
-      alert("Import failed: " + error.message);
-      setIsImporting(false);
-      return;
+    const CHUNK = 500;
+    for (let i = 0; i < payload.length; i += CHUNK) {
+      const { error } = await supabase.from("customers").upsert(payload.slice(i, i + CHUNK), {
+        onConflict: "company_id,phone",
+        ignoreDuplicates: false,
+      });
+      if (error) {
+        alert(`Import failed on rows ${i + 1}–${Math.min(i + CHUNK, payload.length)}: ${error.message}`);
+        setIsImporting(false);
+        return;
+      }
     }
     setImportCount(uniqueRows.length);
     setPhase("done");
