@@ -1123,7 +1123,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                         ? "🔧 Maintenance"
                         : (b.customer_name ?? "—");
 
-                      const fmtDt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                      const fmtDt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
                       const tipLines = b.is_maintenance
                         ? ["🔧 Maintenance block", `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`, ...(b.notes ? [b.notes] : [])]
                         : [
