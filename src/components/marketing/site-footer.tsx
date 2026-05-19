@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CITIES } from "@/lib/cities";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/app") || pathname.startsWith("/join")) return null;
+
   return (
     <footer className="mt-16 border-t border-border bg-surface-soft">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">

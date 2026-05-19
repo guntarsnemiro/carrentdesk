@@ -79,11 +79,18 @@ const STATUS_TEXT: Record<string, string> = {
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAY_SHORT   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
-const DAY_W       = 44;
+const DAY_W_DESKTOP = 36;
+const DAY_W_MOBILE  = 28;
 const DAYS_PAST   = 60;
 const DAYS_FUTURE = 90;
 const TOTAL_DAYS  = DAYS_PAST + 1 + DAYS_FUTURE;
 const SCROLL_OFFSET = 7;
+
+// Returns the correct day width depending on viewport (called client-side only)
+function getDayW() {
+  if (typeof window === "undefined") return DAY_W_DESKTOP;
+  return window.innerWidth < 1024 ? DAY_W_MOBILE : DAY_W_DESKTOP;
+}
 
 function addDays(base: Date, n: number): Date {
   const d = new Date(base);
@@ -728,23 +735,23 @@ function SortableVehicleLabel({ vehicle, index, total }: { vehicle: Vehicle; ind
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, minWidth: 180 }}
-      className={`flex h-14 items-center gap-2 px-3 ${index < total - 1 ? "border-b border-border" : ""}`}
+      style={{ ...style, minWidth: 140 }}
+      className={`flex h-9 items-center gap-1.5 px-2 ${index < total - 1 ? "border-b border-border" : ""}`}
     >
       <button
         {...listeners} {...attributes}
-        className="cursor-grab touch-none p-1 text-neutral-300 hover:text-neutral-500 active:cursor-grabbing"
+        className="cursor-grab touch-none p-0.5 text-neutral-200 hover:text-neutral-400 active:cursor-grabbing"
         title="Drag to reorder"
       >
-        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-          <circle cx="4" cy="3"  r="1.5"/><circle cx="8" cy="3"  r="1.5"/>
-          <circle cx="4" cy="8"  r="1.5"/><circle cx="8" cy="8"  r="1.5"/>
-          <circle cx="4" cy="13" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+        <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+          <circle cx="3" cy="2.5" r="1.2"/><circle cx="7" cy="2.5" r="1.2"/>
+          <circle cx="3" cy="7"   r="1.2"/><circle cx="7" cy="7"   r="1.2"/>
+          <circle cx="3" cy="11.5" r="1.2"/><circle cx="7" cy="11.5" r="1.2"/>
         </svg>
       </button>
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-neutral-900 leading-tight">{vehicle.make} {vehicle.model}</p>
-        <p className="font-mono text-xs text-neutral-400">{vehicle.plate}</p>
+        <p className="truncate text-xs font-semibold text-neutral-900 leading-tight">{vehicle.make} {vehicle.model}</p>
+        <p className="font-mono text-[10px] text-neutral-400 leading-tight">{vehicle.plate}</p>
       </div>
     </div>
   );
@@ -770,6 +777,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
   const today    = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = toStr(today);
+
+  // Responsive day width
+  const [DAY_W, setDayW] = useState(DAY_W_DESKTOP);
+  useEffect(() => {
+    function update() { setDayW(getDayW()); }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const storageKey = `cal-vehicle-order-${companyId}`;
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
@@ -800,7 +816,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollLeft = (DAYS_PAST - SCROLL_OFFSET) * DAY_W;
+    scrollRef.current.scrollLeft = (DAYS_PAST - SCROLL_OFFSET) * getDayW();
   }, []);
 
   // Global mouseup — finalize selection and open create popup
@@ -821,6 +837,8 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
   function scrollToToday() {
     scrollRef.current?.scrollTo({ left: (DAYS_PAST - SCROLL_OFFSET) * DAY_W, behavior: "smooth" });
   }
+
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -916,8 +934,8 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
         <div className="flex">
 
           {/* Fixed vehicle column */}
-          <div className="shrink-0 border-r border-border" style={{ minWidth: 180 }}>
-            <div className="h-14 border-b border-border" />
+          <div className="shrink-0 border-r border-border" style={{ minWidth: 140 }}>
+            <div className="h-10 border-b border-border" />
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={vehicles.map((v) => v.id)} strategy={verticalListSortingStrategy}>
                 {vehicles.map((v, i) => (
@@ -933,31 +951,25 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
             <div style={{ width: totalWidth }}>
 
               {/* Header */}
-              <div className="sticky top-0 z-10 border-b border-border bg-white" style={{ height: 56 }}>
-                <div className="flex" style={{ height: 24 }}>
-                  {days.map(({ date, str }) => (
-                    <div key={str} style={{ width: DAY_W }}
-                      className={`shrink-0 border-r border-border/30 ${str === todayStr ? "bg-brand-50" : ""}`}>
-                      {date.getDate() === 1 && (
-                        <span className="block truncate pl-1.5 pt-1 text-[11px] font-semibold text-neutral-500">
-                          {MONTH_SHORT[date.getMonth()]} {date.getFullYear()}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex" style={{ height: 32 }}>
+              <div className="sticky top-0 z-10 border-b border-border bg-white" style={{ height: 40 }}>
+                <div className="flex h-full">
                   {days.map(({ date, str }) => {
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                     const isToday   = str === todayStr;
+                    const isFirst   = date.getDate() === 1;
                     return (
                       <div key={str} style={{ width: DAY_W }}
-                        className={`flex shrink-0 flex-col items-center justify-center border-r border-border/30
+                        className={`relative flex shrink-0 flex-col items-center justify-center border-r border-border/30
                           ${isToday ? "bg-brand-500" : isWeekend ? "bg-slate-50" : ""}`}>
-                        <span className={`text-[10px] font-medium leading-none ${isToday ? "text-white" : "text-neutral-400"}`}>
+                        {isFirst && (
+                          <span className="absolute -top-px left-0.5 text-[8px] font-bold uppercase text-neutral-400">
+                            {MONTH_SHORT[date.getMonth()]}
+                          </span>
+                        )}
+                        <span className={`text-[9px] font-medium leading-none ${isToday ? "text-white" : "text-neutral-400"}`}>
                           {DAY_SHORT[date.getDay()]}
                         </span>
-                        <span className={`mt-0.5 text-xs font-bold leading-none ${isToday ? "text-white" : isWeekend ? "text-neutral-400" : "text-neutral-700"}`}>
+                        <span className={`mt-0.5 text-[11px] font-bold leading-none ${isToday ? "text-white" : isWeekend ? "text-neutral-500" : "text-neutral-700"}`}>
                           {date.getDate()}
                         </span>
                       </div>
@@ -966,7 +978,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 </div>
               </div>
 
-              {/* Vehicle rows */}
+              {/* Vehicle rows — compact */}
               {vehicles.map((v, vi) => {
                 const vBookings = bookings.filter(
                   (b) => b.vehicle_id === v.id && b.status !== "cancelled"
@@ -981,7 +993,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
                 return (
                   <div key={v.id}
-                    className={`relative flex h-14 ${vi < vehicles.length - 1 ? "border-b border-border" : ""}`}>
+                    className={`relative flex h-9 ${vi < vehicles.length - 1 ? "border-b border-border" : ""}`}>
                     {days.map(({ date, str }) => {
                       const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
                       const isToday    = str === todayStr;
@@ -1039,7 +1051,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
-                          className={`absolute flex h-8 items-center overflow-hidden px-2 text-xs font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
+                          className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
                             ${colorBg} ${colorText}
                             ${!clipsLeft  ? "rounded-l-md" : ""}
                             ${!clipsRight ? "rounded-r-md" : ""}

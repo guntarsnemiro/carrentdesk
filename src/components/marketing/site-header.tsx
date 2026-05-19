@@ -9,6 +9,9 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  // Hide on operator portal — it has its own shell
+  if (pathname.startsWith("/app") || pathname.startsWith("/join")) return null;
+
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
