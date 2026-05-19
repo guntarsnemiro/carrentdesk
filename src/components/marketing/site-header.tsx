@@ -116,6 +116,12 @@ export function SiteHeader() {
             </Link>
             <div className="my-2 h-px bg-border" />
             <Link
+              href="/app/login"
+              className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
+            >
+              Sign in
+            </Link>
+            <Link
               href="/join"
               className="rounded-lg px-3 py-2 text-base font-medium text-neutral-500 hover:bg-surface-soft"
             >
