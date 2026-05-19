@@ -11,9 +11,9 @@ const headers = [
   "Color", "Category",
   "VIN", "Registration Number",
   "Odometer (km)",
-  "Gov Inspection Last (DD/MM/YYYY)", "Gov Inspection Next (DD/MM/YYYY)",
-  "Service Last (DD/MM/YYYY)", "Service Next (DD/MM/YYYY)",
-  "Insurance Number", "Insurance Valid Until (DD/MM/YYYY)",
+  "Gov Inspection Last (date)", "Gov Inspection Next (date)",
+  "Service Last (date)", "Service Next (date)",
+  "Insurance Number", "Insurance Valid Until (date)",
   "Notes",
 ];
 
@@ -22,9 +22,9 @@ const example = [
   "White", "compact",
   "JTDBL40E309123456", "LV-123456",
   85000,
-  "15/03/2024", "15/03/2026",
-  "10/01/2024", "10/01/2025",
-  "POL-12345678", "31/12/2025",
+  "15.03.2024", "15.03.2026",
+  "10.01.2024", "10.01.2025",
+  "POL-12345678", "31.12.2025",
   "Airport delivery key in glove box",
 ];
 
@@ -33,7 +33,7 @@ const example2 = [
   "Silver", "midsize",
   "", "",
   120000,
-  "", "01/06/2026",
+  "", "01.06.2026",
   "", "",
   "", "",
   "",
@@ -70,12 +70,12 @@ const notesData = [
   ["VIN", "no", "Free text"],
   ["Registration Number", "no", "Free text"],
   ["Odometer (km)", "no", "Number"],
-  ["Gov Inspection Last", "no", "DD/MM/YYYY"],
-  ["Gov Inspection Next", "no", "DD/MM/YYYY"],
-  ["Service Last", "no", "DD/MM/YYYY"],
-  ["Service Next", "no", "DD/MM/YYYY"],
+  ["Gov Inspection Last", "no", "Date: DD.MM.YYYY or DD/MM/YYYY or YYYY-MM-DD  (e.g. 20.05.2027 or 20/05/2027)"],
+  ["Gov Inspection Next", "no", "Date: DD.MM.YYYY or DD/MM/YYYY or YYYY-MM-DD  (e.g. 20.05.2027 or 20/05/2027)"],
+  ["Service Last", "no", "Date: DD.MM.YYYY or DD/MM/YYYY or YYYY-MM-DD  (e.g. 20.05.2027 or 20/05/2027)"],
+  ["Service Next", "no", "Date: DD.MM.YYYY or DD/MM/YYYY or YYYY-MM-DD  (e.g. 20.05.2027 or 20/05/2027)"],
   ["Insurance Number", "no", "Free text"],
-  ["Insurance Valid Until", "no", "DD/MM/YYYY"],
+  ["Insurance Valid Until", "no", "Date: DD.MM.YYYY or DD/MM/YYYY or YYYY-MM-DD  (e.g. 20.05.2027 or 20/05/2027)"],
   ["Notes", "no", "Free text"],
 ];
 const wsNotes = XLSX.utils.aoa_to_sheet(notesData);
