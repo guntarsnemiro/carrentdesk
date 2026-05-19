@@ -6,6 +6,19 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Cars" };
 
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function alertClass(iso: string | null) {
+  if (!iso) return "";
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  if (days < 0)  return "text-red-600 font-semibold";
+  if (days <= 30) return "text-amber-600 font-semibold";
+  return "text-neutral-600";
+}
+
 const STATUS_STYLES: Record<string, string> = {
   available:   "bg-emerald-50 text-emerald-700",
   rented:      "bg-blue-50 text-blue-700",
@@ -53,7 +66,7 @@ export default async function FleetPage({
 
   const { data: vehicles } = await db
     .from("vehicles")
-    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin")
+    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin, registration_number, gov_inspection_next, insurance_valid_until")
     .eq("company_id", companyId)
     .order("make")
     .order("model");
@@ -107,16 +120,19 @@ export default async function FleetPage({
       {/* Cars table */}
       {vehicles && vehicles.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-border bg-white">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1200px] text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50 text-left text-xs">
                 <th className="px-4 py-3 font-medium text-neutral-500">Car</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Plate</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Reg. No.</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Fuel</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Color</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Seats</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Category</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Odometer</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Gov. Inspection</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Insurance until</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">VIN</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
                 <th className="px-4 py-3 font-medium text-neutral-500"></th>
@@ -130,12 +146,19 @@ export default async function FleetPage({
                     <p className="mt-0.5 text-xs text-neutral-400">{v.year}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-sm text-neutral-700">{v.plate}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-neutral-500">{v.registration_number ?? "—"}</td>
                   <td className="px-4 py-3 text-sm capitalize text-neutral-600">{v.fuel ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-neutral-500">{v.color ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-neutral-500">{v.seats ?? "—"}</td>
                   <td className="px-4 py-3 text-sm capitalize text-neutral-500">{v.category ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-neutral-500">
                     {v.odometer_km != null ? `${v.odometer_km.toLocaleString()} km` : "—"}
+                  </td>
+                  <td className={`px-4 py-3 text-sm ${alertClass(v.gov_inspection_next)}`}>
+                    {fmtDate(v.gov_inspection_next)}
+                  </td>
+                  <td className={`px-4 py-3 text-sm ${alertClass(v.insurance_valid_until)}`}>
+                    {fmtDate(v.insurance_valid_until)}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-neutral-400">{v.vin ?? "—"}</td>
                   <td className="px-4 py-3">
