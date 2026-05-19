@@ -25,98 +25,53 @@ interface NavItem {
   requiresCompany?: boolean;
 }
 
-const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
+const NAV_ITEMS: NavItem[] = [
   {
-    items: [
-      {
-        label: "Dashboard",
-        href: () => "/app/dashboard",
-        icon: <GridIcon />,
-      },
-    ],
+    label: "Dashboard",
+    href: () => "/app/dashboard",
+    icon: <GridIcon />,
   },
   {
-    heading: "Fleet",
-    items: [
-      {
-        label: "Vehicles",
-        href: (id) => `/app/fleet/${id}`,
-        icon: <CarIcon />,
-        requiresCompany: true,
-      },
-      {
-        label: "Calendar",
-        href: (id) => `/app/calendar/${id}`,
-        icon: <CalendarIcon />,
-        soon: false,
-        requiresCompany: true,
-      },
-    ],
+    label: "Cars",
+    href: (id) => `/app/fleet/${id}`,
+    icon: <CarIcon />,
+    requiresCompany: true,
   },
   {
-    heading: "Rentals",
-    items: [
-      {
-        label: "Pickup & Return",
-        href: (id) => `/app/inspections/${id}`,
-        icon: <ClipboardIcon />,
-        soon: true,
-        requiresCompany: true,
-      },
-      {
-        label: "Bookings",
-        href: (id) => `/app/rentals/${id}`,
-        icon: <BookingIcon />,
-        soon: false,
-        requiresCompany: true,
-      },
-    ],
+    label: "Calendar",
+    href: (id) => `/app/calendar/${id}`,
+    icon: <CalendarIcon />,
+    requiresCompany: true,
   },
   {
-    heading: "Customers",
-    items: [
-      {
-        label: "Customers",
-        href: (id) => `/app/customers/${id}`,
-        icon: <UsersIcon />,
-        soon: false,
-        requiresCompany: true,
-      },
-    ],
+    label: "Bookings",
+    href: (id) => `/app/rentals/${id}`,
+    icon: <BookingIcon />,
+    requiresCompany: true,
   },
   {
-    heading: "Finance",
-    items: [
-      {
-        label: "Revenue",
-        href: (id) => `/app/finance/${id}`,
-        icon: <ChartIcon />,
-        soon: false,
-        requiresCompany: true,
-      },
-    ],
+    label: "Customers",
+    href: (id) => `/app/customers/${id}`,
+    icon: <UsersIcon />,
+    requiresCompany: true,
   },
   {
-    heading: "Marketplace",
-    items: [
-      {
-        label: "My listing",
-        href: (id) => `/app/profile/${id}`,
-        icon: <GlobeIcon />,
-        requiresCompany: true,
-      },
-    ],
+    label: "Revenue",
+    href: (id) => `/app/finance/${id}`,
+    icon: <ChartIcon />,
+    requiresCompany: true,
   },
   {
-    heading: "Account",
-    items: [
-      {
-        label: "Settings",
-        href: () => "/app/settings",
-        icon: <SettingsIcon />,
-        soon: true,
-      },
-    ],
+    label: "My listing",
+    href: (id) => `/app/profile/${id}`,
+    icon: <GlobeIcon />,
+    requiresCompany: true,
+  },
+  {
+    label: "Settings",
+    href: () => "/app/settings",
+    icon: <SettingsIcon />,
+    soon: true,
   },
 ];
 
@@ -183,52 +138,43 @@ export function Sidebar({ user, companies, activeCompanyId }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {NAV_SECTIONS.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-5" : ""}>
-            {section.heading && (
-              <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                {section.heading}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {section.items.map((item) => {
-                const href = item.requiresCompany && !companyId ? "#" : item.href(companyId);
-                const isActive = pathname === href || (href !== "/app/dashboard" && pathname.startsWith(href));
-                const disabled = item.soon || (item.requiresCompany && !companyId);
+        <ul className="space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const href = item.requiresCompany && !companyId ? "#" : item.href(companyId);
+            const isActive = pathname === href || (href !== "/app/dashboard" && pathname.startsWith(href));
+            const disabled = item.soon || (item.requiresCompany && !companyId);
 
-                return (
-                  <li key={item.label}>
-                    {disabled ? (
-                      <span className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-neutral-400 opacity-60">
-                        <span className="h-4 w-4 shrink-0">{item.icon}</span>
-                        {item.label}
-                        {item.soon && (
-                          <span className="ml-auto rounded bg-neutral-100 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-400">
-                            Soon
-                          </span>
-                        )}
+            return (
+              <li key={item.label}>
+                {disabled ? (
+                  <span className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-neutral-400 opacity-60">
+                    <span className="h-4 w-4 shrink-0">{item.icon}</span>
+                    {item.label}
+                    {item.soon && (
+                      <span className="ml-auto rounded bg-neutral-100 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-400">
+                        Soon
                       </span>
-                    ) : (
-                      <Link
-                        href={href}
-                        className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors ${
-                          isActive
-                            ? "bg-brand-50 font-medium text-brand-900"
-                            : "text-neutral-600 hover:bg-slate-50 hover:text-neutral-900"
-                        }`}
-                      >
-                        <span className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-700" : "text-neutral-400"}`}>
-                          {item.icon}
-                        </span>
-                        {item.label}
-                      </Link>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+                  </span>
+                ) : (
+                  <Link
+                    href={href}
+                    className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                      isActive
+                        ? "bg-brand-50 font-medium text-brand-900"
+                        : "text-neutral-600 hover:bg-slate-50 hover:text-neutral-900"
+                    }`}
+                  >
+                    <span className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-700" : "text-neutral-400"}`}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       {/* User footer */}

@@ -238,7 +238,7 @@ export function VehicleForm({ companyId, vehicle }: Props) {
         <div className="flex items-center gap-3">
           <button type="submit" disabled={status === "saving" || status === "deleting"}
             className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-            {status === "saving" ? "Saving…" : isEdit ? "Save changes" : "Add vehicle"}
+            {status === "saving" ? "Saving…" : isEdit ? "Save changes" : "Add car"}
           </button>
           <a href={`/app/fleet/${companyId}`} className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
             Cancel

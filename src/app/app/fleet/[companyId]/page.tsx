@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Vehicles" };
+export const metadata: Metadata = { title: "Cars" };
 
 const STATUS_STYLES: Record<string, string> = {
   available:   "bg-emerald-50 text-emerald-700",
@@ -70,7 +70,7 @@ export default async function FleetPage({
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Vehicles</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">Cars</h1>
           <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default async function FleetPage({
             href={`/app/fleet/${companyId}/add`}
             className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
-            + Add vehicle
+            + Add car
           </Link>
         </div>
       </div>
@@ -104,13 +104,13 @@ export default async function FleetPage({
         ))}
       </div>
 
-      {/* Vehicle table */}
+      {/* Cars table */}
       {vehicles && vehicles.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-border bg-white">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50 text-left text-xs">
-                <th className="px-4 py-3 font-medium text-neutral-500">Vehicle</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Car</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Plate</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Fuel</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Color</th>
@@ -153,13 +153,13 @@ export default async function FleetPage({
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-white px-8 py-14 text-center">
-          <p className="text-sm font-medium text-neutral-600">No vehicles yet.</p>
-          <p className="mt-1 text-sm text-neutral-400">Add your first vehicle to get started.</p>
+          <p className="text-sm font-medium text-neutral-600">No cars yet.</p>
+          <p className="mt-1 text-sm text-neutral-400">Add your first car to get started.</p>
           <Link
             href={`/app/fleet/${companyId}/add`}
             className="mt-4 inline-block rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
-            + Add vehicle
+            + Add car
           </Link>
         </div>
       )}

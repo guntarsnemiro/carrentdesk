@@ -4,7 +4,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { VehicleForm } from "../_components/vehicle-form";
 
-export const metadata: Metadata = { title: "Edit vehicle" };
+export const metadata: Metadata = { title: "Edit car" };
 
 export default async function EditVehiclePage({
   params,
@@ -33,7 +33,7 @@ export default async function EditVehiclePage({
       <div className="mb-6">
         <a href={`/app/fleet/${companyId}`}
           className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
-          ← Vehicles
+          ← Cars
         </a>
         <h1 className="mt-3 text-2xl font-bold text-neutral-900">
           {vehicle.year} {vehicle.make} {vehicle.model}
