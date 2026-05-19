@@ -72,6 +72,12 @@ export default async function CustomersPage({
             <CustomerSearch defaultValue={q} />
           </Suspense>
           <Link
+            href={`/app/customers/${companyId}/import`}
+            className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-slate-50"
+          >
+            ↑ Import from Excel
+          </Link>
+          <Link
             href={`/app/customers/${companyId}/add`}
             className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >

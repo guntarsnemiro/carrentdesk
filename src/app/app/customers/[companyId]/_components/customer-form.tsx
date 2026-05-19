@@ -31,7 +31,7 @@ export function CustomerForm({ companyId, customer }: Props) {
 
   const [form, setForm] = useState({
     full_name:              customer?.full_name ?? "",
-    phone:                  customer?.phone ?? "+",
+    phone:                  customer?.phone ?? "",
     email:                  customer?.email ?? "",
     language:               (customer?.language ?? "") as Language | "",
     address:                customer?.address ?? "",
@@ -56,7 +56,6 @@ export function CustomerForm({ companyId, customer }: Props) {
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     let val = e.target.value;
-    if (!val.startsWith("+")) val = "+" + val.replace(/^\+*/, "");
     setForm((p) => ({ ...p, phone: val }));
   }
 
@@ -67,8 +66,8 @@ export function CustomerForm({ companyId, customer }: Props) {
 
     const phone = form.phone.trim();
     const digitsOnly = phone.replace(/\D/g, "");
-    if (!phone.startsWith("+") || digitsOnly.length < 7) {
-      setErrorMsg("Phone must start with + and include a country code (e.g. +371 12345678).");
+    if (digitsOnly.length > 0 && digitsOnly.length < 7) {
+      setErrorMsg("Phone number seems too short — please check it.");
       setStatus("error");
       return;
     }
@@ -121,7 +120,7 @@ export function CustomerForm({ companyId, customer }: Props) {
           </Field>
           <Field label="Phone * (with country code)">
             <input name="phone" required value={form.phone} onChange={handlePhoneChange}
-              placeholder="+371 12345678" className={inp} />
+              placeholder="e.g. +371 12345678" className={inp} />
           </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
