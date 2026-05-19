@@ -61,21 +61,21 @@ function Hero() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="#demo"
+                href="/join"
                 className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
               >
-                Book a 30-min demo
+                Start free trial →
               </Link>
               <Link
-                href="#claim"
+                href="#demo"
                 className="inline-flex items-center justify-center rounded-full border border-brand-700 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-900"
               >
-                Claim your listing
+                Book a demo
               </Link>
             </div>
 
             <p className="mt-5 text-xs text-brand-200">
-              Founding-partner spots are limited — design partners come first.
+              Free during beta — no credit card, no contract, 30-second setup.
             </p>
           </div>
 
@@ -87,61 +87,34 @@ function Hero() {
 }
 
 function WhatsInsideCard() {
-  const items: Array<{ label: string; tag: string; live?: boolean }> = [
-    { label: "Pickup & return inspections", tag: "Live", live: true },
-    { label: "Fleet & utilization", tag: "Q3 2026" },
-    { label: "Bookings & pricing", tag: "Q4 2026" },
-    { label: "Customer & document records", tag: "Q1 2027" },
-    { label: "Workflow automation", tag: "Q2 2027" },
-    { label: "Financial dashboards", tag: "Q2 2027" },
+  const items: Array<{ label: string; live: boolean }> = [
+    { label: "Fleet & car management", live: true },
+    { label: "Bookings & availability calendar", live: true },
+    { label: "Customer database & risk tracking", live: true },
+    { label: "Dashboard — today's pickups & returns", live: true },
+    { label: "Revenue & finance overview", live: true },
+    { label: "Excel import for cars & customers", live: true },
+    { label: "Marketplace listing — 0% commission", live: true },
   ];
 
   return (
     <div className="rounded-2xl bg-white/[0.06] p-6 ring-1 ring-white/15 backdrop-blur sm:p-7">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-200">
-        What&apos;s inside
+        What&apos;s live today
       </p>
       <ul className="mt-5 space-y-3">
         {items.map((item) => (
-          <li
-            key={item.label}
-            className="flex items-center justify-between gap-3 text-sm text-brand-100"
-          >
-            <span className="flex items-center gap-2.5">
-              <span
-                aria-hidden
-                className={`grid size-5 place-items-center rounded-full text-[10px] ${
-                  item.live
-                    ? "bg-success/20 text-success"
-                    : "bg-white/10 text-brand-200"
-                }`}
-              >
-                ✓
-              </span>
-              {item.label}
+          <li key={item.label} className="flex items-center gap-2.5 text-sm text-brand-100">
+            <span aria-hidden className="grid size-5 place-items-center rounded-full bg-success/20 text-[10px] text-success">
+              ✓
             </span>
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-wider ${
-                item.live ? "text-success" : "text-brand-200/80"
-              }`}
-            >
-              {item.tag}
-            </span>
+            {item.label}
           </li>
         ))}
-        <li className="flex items-center gap-2.5 pt-1 text-sm text-brand-100">
-          <span
-            aria-hidden
-            className="grid size-5 place-items-center rounded-full bg-accent-500/20 text-[10px] text-accent-500"
-          >
-            +
-          </span>
-          Free marketplace listing
-        </li>
       </ul>
       <div className="mt-6 border-t border-white/10 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-200">
-          9 modules · 1 platform · 0% commission
+          Free during beta · No credit card · 30-second setup
         </p>
       </div>
     </div>
@@ -155,8 +128,10 @@ function TrustBar() {
   const items = [
     "Baltic-built",
     "Founder-owned rental",
-    "GDPR · EU-only data",
-    "Free during MVP",
+    "GDPR · EU-hosted data",
+    "Free during beta",
+    "0% commission",
+    "30-second setup",
   ];
   return (
     <section className="mx-auto w-full max-w-7xl px-6 pt-6 lg:px-8">
@@ -281,16 +256,15 @@ function ModulesSection() {
     <section className="mx-auto w-full max-w-7xl px-6 py-14 lg:px-8 lg:py-20">
       <div className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-          The full operations OS
+          Everything you need — live today
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-          Nine modules. One platform. Built in the order rentals actually need.
+          One platform. All the tools independent rentals actually use.
         </h2>
         <p className="mt-4 text-base leading-7 text-neutral-700">
-          Inspections are live today. Every other module ships in a known
-          quarter on the public roadmap. Design partners get the new modules
-          months before the rest of the platform — and shape what they look
-          like along the way.
+          Fleet records, booking calendar, customer database, daily dashboard, revenue overview —
+          all built and live. Sign up in 30 seconds and start using it today.
+          No demo call required.
         </p>
       </div>
 
@@ -299,9 +273,8 @@ function ModulesSection() {
       </div>
 
       <p className="mt-8 max-w-3xl text-sm leading-6 text-neutral-600">
-        Modules ship sequentially, not all at once. That&apos;s deliberate — we
-        build with three rental companies in Riga, fix what breaks under real
-        operator load, then roll out to the rest of the platform.
+        Built with and tested by real rental companies in Riga. Every feature
+        comes from an actual operator problem — not a product manager's guess.
       </p>
     </section>
   );
@@ -332,17 +305,17 @@ function DualValueBlock() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/riga"
+              href="/join"
               className="inline-flex items-center justify-center rounded-full bg-brand-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-800"
             >
-              See the Riga marketplace →
+              Start free trial →
             </Link>
-            <a
-              href="mailto:info@carrentdesk.com?subject=Claim my CarRentDesk listing"
+            <Link
+              href="/riga"
               className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-brand-900 transition-colors hover:bg-surface-soft"
             >
-              Already on CarRentDesk? Claim your listing
-            </a>
+              See the Riga marketplace
+            </Link>
           </div>
         </div>
 
@@ -453,11 +426,12 @@ function FounderPhotoPlaceholder() {
  * ------------------------------------------------------------------------- */
 function FoundingOffer() {
   const benefits = [
-    "Free for the entirety of MVP — no card, no contract, no fine print",
-    "Founding-partner pricing locked forever — even after public prices rise",
-    "Money-back guarantee: if it doesn't pay for itself, you get a full refund",
-    "Direct line to the founder — weekly 30-min check-ins for product feedback",
-    "First access to every new module before it ships to the public platform",
+    "Free during beta — no credit card, no contract, cancel anytime",
+    "Early-adopter pricing locked in forever once billing goes live",
+    "All modules included — fleet, bookings, customers, calendar, finance",
+    "Excel import — bring your existing cars and customer list in minutes",
+    "Marketplace listing included — 0% commission, direct customer contact",
+    "Direct line to the founder — your feedback shapes what ships next",
   ];
 
   return (
@@ -466,31 +440,30 @@ function FoundingOffer() {
         <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-500">
-              Founding-partner program
+              Early adopter offer
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              The first ten rentals to commit get the best deal we&apos;ll ever
-              offer.
+              Get on now while it&apos;s free.
+              Lock in the best price forever.
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-brand-100">
-              We&apos;re not building this in a vacuum — we&apos;re building it
-              with you. Concrete pricing, contract terms, and onboarding
-              timeline are walked through in the demo, tailored to your fleet
-              size and city.
+              The platform is free during beta. When pricing goes live,
+              early adopters keep a permanently lower rate. Sign up takes
+              30 seconds — no demo call, no sales process, no waiting.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
-                href="#demo"
+                href="/join"
                 className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
               >
-                Book a demo
+                Start free trial →
               </Link>
-              <a
-                href="mailto:info@carrentdesk.com"
+              <Link
+                href="#demo"
                 className="inline-flex items-center justify-center rounded-full border border-brand-700 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-900"
               >
-                Email us directly
-              </a>
+                Book a demo first
+              </Link>
             </div>
           </div>
 
@@ -522,16 +495,16 @@ function FoundingOffer() {
 function Onboarding() {
   const steps = [
     {
-      title: "30-min demo",
-      body: "Book a call. We walk through the product together and answer every question — pricing, data, timing, fit.",
+      title: "Sign up in 30 seconds",
+      body: "Enter your company name and email at carrentdesk.com/join. You get a magic link — click it and you're in your dashboard instantly. No sales call, no waiting.",
     },
     {
-      title: "Setup, one day",
-      body: "We add your fleet, import your existing records where possible, and configure the workflows for how your rental actually runs.",
+      title: "Import your fleet and customers",
+      body: "Upload your existing cars and customers from an Excel file. Our template makes it straightforward — most companies are fully set up in under an hour.",
     },
     {
-      title: "First week running",
-      body: "We sit with your team during the first real pickups, returns, and customer flows. After the first week, you fly solo.",
+      title: "Run your rental from day one",
+      body: "Add bookings, check the availability calendar, track inspection dates, see your revenue. Everything is ready to use the moment you log in.",
     },
   ];
 
@@ -541,7 +514,7 @@ function Onboarding() {
         Onboarding
       </p>
       <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-        From first call to running on the platform in under a week.
+        From sign-up to fully running in under an hour.
       </h2>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-3">
@@ -599,12 +572,13 @@ function FinalCTA() {
             Ready when you are
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-            Book a 30-min demo. No prep needed.
+            Start free in 30 seconds — or book a demo if you prefer.
           </h2>
           <p className="mt-4 max-w-xl text-base leading-7 text-neutral-700">
-            Tell us about your rental — fleet size, biggest pain point, what
-            you&apos;d want fixed first. We&apos;ll reply within 24 hours to
-            schedule the walkthrough.
+            You can sign up and explore the full platform right now at{" "}
+            <Link href="/join" className="font-medium text-brand-700 hover:underline">carrentdesk.com/join</Link>.
+            Or if you&apos;d rather see it live with someone walking you through —
+            fill in the form and we&apos;ll reply the same day.
           </p>
           <ul className="mt-6 space-y-2 text-sm text-neutral-700">
             <li>
