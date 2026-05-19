@@ -88,8 +88,9 @@ function parseRow(raw: Record<string, unknown>): ParsedRow {
 }
 
 export function CustomerImport({ companyId }: { companyId: string }) {
-  const [phase, setPhase]           = useState<"idle" | "preview" | "importing" | "done">("idle");
-  const [rows, setRows]             = useState<ParsedRow[]>([]);
+  const [phase, setPhase]             = useState<"idle" | "preview" | "done">("idle");
+  const [isImporting, setIsImporting] = useState(false);
+  const [rows, setRows]               = useState<ParsedRow[]>([]);
   const [importCount, setImportCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +114,7 @@ export function CustomerImport({ companyId }: { companyId: string }) {
 
   async function handleImport() {
     if (!validRows.length) return;
-    setPhase("importing");
+    setIsImporting(true);
 
     const supabase = getAuthBrowserClient();
     const payload  = validRows.map((r) => ({
@@ -139,7 +140,7 @@ export function CustomerImport({ companyId }: { companyId: string }) {
 
     if (error) {
       alert("Import failed: " + error.message);
-      setPhase("preview");
+      setIsImporting(false);
       return;
     }
     setImportCount(validRows.length);
@@ -198,9 +199,9 @@ export function CustomerImport({ companyId }: { companyId: string }) {
                 )}
               </p>
             </div>
-            <button onClick={handleImport} disabled={!validRows.length || phase === "importing"}
+            <button onClick={handleImport} disabled={!validRows.length || isImporting}
               className="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-              {phase === "importing" ? "Importing…" : `Import ${validRows.length} customer${validRows.length !== 1 ? "s" : ""}`}
+              {isImporting ? "Importing…" : `Import ${validRows.length} customer${validRows.length !== 1 ? "s" : ""}`}
             </button>
           </div>
 
