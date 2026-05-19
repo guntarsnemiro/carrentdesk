@@ -114,9 +114,13 @@ export function VehicleForm({ companyId, vehicle }: Props) {
   async function handleDelete() {
     if (!vehicle || !confirm(`Delete ${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.plate})?`)) return;
     setStatus("deleting");
-    await getAuthBrowserClient().from("vehicles").delete().eq("id", vehicle.id);
-    router.push(`/app/fleet/${companyId}`);
-    router.refresh();
+    const { error } = await getAuthBrowserClient().from("vehicles").delete().eq("id", vehicle.id);
+    if (error) {
+      alert("Delete failed: " + error.message);
+      setStatus("idle");
+      return;
+    }
+    window.location.href = `/app/fleet/${companyId}`;
   }
 
   return (
