@@ -5,13 +5,15 @@ import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 
 type ExpenseCategory = "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other";
 
+export interface Payee { id: string; name: string; }
+
 interface Expense {
   id: string; date: string; category: ExpenseCategory; description: string;
   amount: number; supplier: string | null; invoice_number: string | null;
   quantity: number | null; unit: string | null; is_recurring: boolean; notes: string | null;
 }
 
-interface Props { companyId: string; expense?: Expense; }
+interface Props { companyId: string; expense?: Expense; payees?: Payee[]; }
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   salary:            "Salary",
@@ -47,7 +49,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-export function ExpenseForm({ companyId, expense }: Props) {
+export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
   const isEdit = Boolean(expense);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -158,10 +160,28 @@ export function ExpenseForm({ companyId, expense }: Props) {
             </Field>
           </div>
         ) : (
-          <Field label="Supplier / Payee">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700">
+              {form.category === "salary" ? "Employee" : "Supplier / Payee"}
+            </label>
+            {payees.length > 0 && (
+              <div className="mt-1.5 mb-1.5 flex flex-wrap gap-1.5">
+                {payees.map((p) => (
+                  <button key={p.id} type="button" onClick={() => setForm((f) => ({ ...f, supplier: p.name }))}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors
+                      ${form.supplier === p.name
+                        ? "border-brand-600 bg-brand-600 text-white"
+                        : "border-border bg-slate-50 text-neutral-600 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+                      }`}>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
             <input name="supplier" value={form.supplier} onChange={set}
-              placeholder={form.category === "salary" ? "Employee name" : "Company name"} className={inp} />
-          </Field>
+              placeholder={payees.length > 0 ? "Or type a custom name…" : form.category === "salary" ? "Employee name" : "Company / payee name"}
+              className={inp} />
+          </div>
         )}
       </div>
 

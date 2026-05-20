@@ -140,6 +140,12 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_payees: {
+        Row: { company_id: string; created_at: string; id: string; name: string; notes: string | null }
+        Insert: { company_id: string; created_at?: string; id?: string; name: string; notes?: string | null }
+        Update: { company_id?: string; created_at?: string; id?: string; name?: string; notes?: string | null }
+        Relationships: [{ foreignKeyName: "expense_payees_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
+      }
       company_expenses: {
         Row: { amount: number; category: Database["public"]["Enums"]["expense_category"]; company_id: string; created_at: string; date: string; description: string; id: string; invoice_number: string | null; is_recurring: boolean; notes: string | null; quantity: number | null; supplier: string | null; unit: string | null }
         Insert: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id: string; created_at?: string; date: string; description: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }

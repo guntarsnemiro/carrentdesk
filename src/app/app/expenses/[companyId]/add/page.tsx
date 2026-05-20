@@ -23,6 +23,10 @@ export default async function AddExpensePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
+  const { data: payees } = await db
+    .from("expense_payees").select("id, name")
+    .eq("company_id", companyId).order("created_at");
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6">
@@ -33,7 +37,7 @@ export default async function AddExpensePage({
         <h1 className="mt-3 text-2xl font-bold text-neutral-900">Add expense</h1>
       </div>
       <div className="rounded-2xl border border-border bg-white p-6">
-        <ExpenseForm companyId={companyId} />
+        <ExpenseForm companyId={companyId} payees={payees ?? []} />
       </div>
     </div>
   );

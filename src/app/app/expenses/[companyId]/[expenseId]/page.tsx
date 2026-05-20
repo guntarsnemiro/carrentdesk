@@ -23,9 +23,10 @@ export default async function EditExpensePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const { data: expense } = await db
-    .from("company_expenses").select("*")
-    .eq("id", expenseId).eq("company_id", companyId).maybeSingle();
+  const [{ data: expense }, { data: payees }] = await Promise.all([
+    db.from("company_expenses").select("*").eq("id", expenseId).eq("company_id", companyId).maybeSingle(),
+    db.from("expense_payees").select("id, name").eq("company_id", companyId).order("created_at"),
+  ]);
   if (!expense) notFound();
 
   return (
@@ -38,7 +39,7 @@ export default async function EditExpensePage({
         <h1 className="mt-3 text-2xl font-bold text-neutral-900">Edit expense</h1>
       </div>
       <div className="rounded-2xl border border-border bg-white p-6">
-        <ExpenseForm companyId={companyId} expense={expense} />
+        <ExpenseForm companyId={companyId} expense={expense} payees={payees ?? []} />
       </div>
     </div>
   );

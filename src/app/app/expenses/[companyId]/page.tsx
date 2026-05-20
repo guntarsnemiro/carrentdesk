@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { CATEGORY_LABELS, CATEGORY_COLOR } from "./_components/expense-form";
+import { PayeeManager } from "./_components/payee-manager";
 
 export const metadata: Metadata = { title: "Business Expenses" };
 
@@ -35,12 +36,17 @@ export default async function ExpensesPage({
     .from("companies").select("id, name").eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
-  const { data: expenses } = await db
-    .from("company_expenses")
-    .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring")
-    .eq("company_id", companyId)
-    .order("date", { ascending: false })
-    .limit(500);
+  const [{ data: expenses }, { data: payees }] = await Promise.all([
+    db.from("company_expenses")
+      .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring")
+      .eq("company_id", companyId)
+      .order("date", { ascending: false })
+      .limit(500),
+    db.from("expense_payees")
+      .select("id, name, notes")
+      .eq("company_id", companyId)
+      .order("created_at"),
+  ]);
 
   const now = new Date();
   const allExpenses = expenses ?? [];
@@ -108,6 +114,16 @@ export default async function ExpensesPage({
         </div>
       )}
 
+      {/* Payee quick note */}
+      {(payees ?? []).length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          <span className="text-xs text-neutral-400 self-center mr-1">Saved payees:</span>
+          {(payees ?? []).map((p) => (
+            <span key={p.id} className="rounded-full border border-border bg-slate-50 px-2.5 py-0.5 text-xs text-neutral-600">{p.name}</span>
+          ))}
+        </div>
+      )}
+
       {/* Expense list */}
       {allExpenses.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-border bg-white">
@@ -170,6 +186,16 @@ export default async function ExpensesPage({
           </Link>
         </div>
       )}
+      {/* ── Payee manager ── */}
+      <div className="mt-10 rounded-2xl border border-border bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Saved payees</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Save frequent payees — government agencies, utilities, landlord, phone company — for one-click selection when adding expenses.
+        </p>
+        <div className="mt-4">
+          <PayeeManager companyId={companyId} initial={payees ?? []} />
+        </div>
+      </div>
     </div>
   );
 }
