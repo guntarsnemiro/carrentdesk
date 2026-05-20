@@ -1,12 +1,3 @@
-// =============================================================================
-// Generated types from the live `carrentdesk-dev` Supabase project.
-// Re-generate with:
-//   npx supabase gen types typescript --project-id ivvqapgwrqndmiwiwyzg
-// or via the Supabase MCP.
-//
-// Do not edit by hand. If the schema changes, re-run the generator.
-// =============================================================================
-
 export type Json =
   | string
   | number
@@ -23,6 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          booking_price: number | null
+          child_seat_child: boolean
+          child_seat_infant: boolean
+          child_seat_toddler: boolean
+          company_id: string
+          created_at: string
+          customer_id: string | null
+          deposit_amount: number | null
+          deposit_paid: boolean
+          end_at: string
+          id: string
+          insurance: Database["public"]["Enums"]["booking_insurance"]
+          is_maintenance: boolean
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          pickup_location: string | null
+          return_location: string | null
+          start_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          booking_price?: number | null
+          child_seat_child?: boolean
+          child_seat_infant?: boolean
+          child_seat_toddler?: boolean
+          company_id: string
+          created_at?: string
+          customer_id?: string | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          end_at: string
+          id?: string
+          insurance?: Database["public"]["Enums"]["booking_insurance"]
+          is_maintenance?: boolean
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          pickup_location?: string | null
+          return_location?: string | null
+          start_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          booking_price?: number | null
+          child_seat_child?: boolean
+          child_seat_infant?: boolean
+          child_seat_toddler?: boolean
+          company_id?: string
+          created_at?: string
+          customer_id?: string | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          end_at?: string
+          id?: string
+          insurance?: Database["public"]["Enums"]["booking_insurance"]
+          is_maintenance?: boolean
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          pickup_location?: string | null
+          return_location?: string | null
+          start_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_tokens: {
         Row: {
           company_id: string
@@ -133,168 +218,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bookings: {
-        Row: {
-          id: string
-          company_id: string
-          vehicle_id: string
-          customer_id: string | null
-          status: "confirmed" | "active" | "returned" | "cancelled"
-          start_at: string
-          end_at: string
-          insurance: "none" | "partial" | "full"
-          child_seat_infant: boolean
-          child_seat_toddler: boolean
-          child_seat_child: boolean
-          booking_price: number | null
-          deposit_amount: number | null
-          deposit_paid: boolean
-          payment_method: "cash" | "card" | "bank_transfer" | "other" | null
-          pickup_location: string | null
-          return_location: string | null
-          is_maintenance: boolean
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          company_id: string
-          vehicle_id: string
-          customer_id?: string | null
-          status?: "confirmed" | "active" | "returned" | "cancelled"
-          start_at: string
-          end_at: string
-          insurance?: "none" | "partial" | "full"
-          child_seat_infant?: boolean
-          child_seat_toddler?: boolean
-          child_seat_child?: boolean
-          booking_price?: number | null
-          deposit_amount?: number | null
-          deposit_paid?: boolean
-          payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
-          pickup_location?: string | null
-          return_location?: string | null
-          is_maintenance?: boolean
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          company_id?: string
-          vehicle_id?: string
-          customer_id?: string | null
-          status?: "confirmed" | "active" | "returned" | "cancelled"
-          start_at?: string
-          end_at?: string
-          insurance?: "none" | "partial" | "full"
-          child_seat_infant?: boolean
-          child_seat_toddler?: boolean
-          child_seat_child?: boolean
-          booking_price?: number | null
-          deposit_amount?: number | null
-          deposit_paid?: boolean
-          payment_method?: "cash" | "card" | "bank_transfer" | "other" | null
-          pickup_location?: string | null
-          return_location?: string | null
-          is_maintenance?: boolean
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bookings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      customers: {
-        Row: {
-          id: string
-          company_id: string
-          full_name: string
-          phone: string
-          email: string | null
-          language: "en" | "lv" | "ru" | "other" | null
-          address: string | null
-          date_of_birth: string | null
-          id_number: string | null
-          id_expiry: string | null
-          driver_license_number: string | null
-          driver_license_expiry: string | null
-          blacklisted: boolean
-          blacklist_reason: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          company_id: string
-          full_name: string
-          phone: string
-          email?: string | null
-          language?: "en" | "lv" | "ru" | "other" | null
-          address?: string | null
-          date_of_birth?: string | null
-          id_number?: string | null
-          id_expiry?: string | null
-          driver_license_number?: string | null
-          driver_license_expiry?: string | null
-          blacklisted?: boolean
-          blacklist_reason?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          company_id?: string
-          full_name?: string
-          phone?: string
-          email?: string | null
-          language?: "en" | "lv" | "ru" | "other" | null
-          address?: string | null
-          date_of_birth?: string | null
-          id_number?: string | null
-          id_expiry?: string | null
-          driver_license_number?: string | null
-          driver_license_expiry?: string | null
-          blacklisted?: boolean
-          blacklist_reason?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       company_amenities: {
         Row: {
           amenity_key: string
@@ -391,6 +314,74 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: string | null
+          blacklist_reason: string | null
+          blacklisted: boolean
+          company_id: string
+          created_at: string
+          date_of_birth: string | null
+          driver_license_expiry: string | null
+          driver_license_number: string | null
+          email: string | null
+          full_name: string
+          id: string
+          id_expiry: string | null
+          id_number: string | null
+          language: string | null
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          blacklist_reason?: string | null
+          blacklisted?: boolean
+          company_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          id_expiry?: string | null
+          id_number?: string | null
+          language?: string | null
+          notes?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          blacklist_reason?: string | null
+          blacklisted?: boolean
+          company_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          id_expiry?: string | null
+          id_number?: string | null
+          language?: string | null
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_requests: {
         Row: {
           city: string | null
@@ -398,9 +389,7 @@ export type Database = {
           contacted_at: string | null
           created_at: string
           email: string
-          fleet_bucket:
-            | Database["public"]["Enums"]["demo_request_fleet_bucket"]
-            | null
+          fleet_bucket: Database["public"]["Enums"]["demo_request_fleet_bucket"] | null
           id: string
           ip_hash: string | null
           message: string | null
@@ -417,9 +406,7 @@ export type Database = {
           contacted_at?: string | null
           created_at?: string
           email: string
-          fleet_bucket?:
-            | Database["public"]["Enums"]["demo_request_fleet_bucket"]
-            | null
+          fleet_bucket?: Database["public"]["Enums"]["demo_request_fleet_bucket"] | null
           id?: string
           ip_hash?: string | null
           message?: string | null
@@ -436,9 +423,7 @@ export type Database = {
           contacted_at?: string | null
           created_at?: string
           email?: string
-          fleet_bucket?:
-            | Database["public"]["Enums"]["demo_request_fleet_bucket"]
-            | null
+          fleet_bucket?: Database["public"]["Enums"]["demo_request_fleet_bucket"] | null
           id?: string
           ip_hash?: string | null
           message?: string | null
@@ -450,6 +435,104 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      locations: {
+        Row: {
+          address: string
+          company_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          lat: number | null
+          lng: number | null
+        }
+        Insert: {
+          address: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lat?: number | null
+          lng?: number | null
+        }
+        Update: {
+          address?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lat?: number | null
+          lng?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_logs: {
+        Row: {
+          company_id: string
+          cost: number
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          odometer_km: number | null
+          supplier: string | null
+          type: Database["public"]["Enums"]["maintenance_type"]
+          vehicle_id: string
+        }
+        Insert: {
+          company_id: string
+          cost?: number
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          supplier?: string | null
+          type?: Database["public"]["Enums"]["maintenance_type"]
+          vehicle_id: string
+        }
+        Update: {
+          company_id?: string
+          cost?: number
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          supplier?: string | null
+          type?: Database["public"]["Enums"]["maintenance_type"]
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicles: {
         Row: {
@@ -537,44 +620,6 @@ export type Database = {
           },
         ]
       }
-      locations: {
-        Row: {
-          address: string
-          company_id: string
-          created_at: string
-          id: string
-          is_primary: boolean
-          lat: number | null
-          lng: number | null
-        }
-        Insert: {
-          address: string
-          company_id: string
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          lat?: number | null
-          lng?: number | null
-        }
-        Update: {
-          address?: string
-          company_id?: string
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          lat?: number | null
-          lng?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "locations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -583,32 +628,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      booking_insurance: "none" | "partial" | "full"
+      booking_status: "confirmed" | "active" | "returned" | "cancelled"
       city_slug: "riga" | "tallinn" | "vilnius"
       company_status: "unclaimed" | "claimed" | "verified"
       country_code: "LV" | "EE" | "LT"
-      demo_request_fleet_bucket:
-        | "fleet_1_10"
-        | "fleet_11_30"
-        | "fleet_31_100"
-        | "fleet_100_plus"
-      demo_request_status:
-        | "new"
-        | "contacted"
-        | "qualified"
-        | "converted"
-        | "rejected"
-      vehicle_category:
-        | "economy"
-        | "compact"
-        | "midsize"
-        | "suv"
-        | "van"
-        | "luxury"
-        | "other"
-      vehicle_fuel: "diesel" | "petrol" | "electric" | "hybrid" | "lpg"
-      booking_status: "confirmed" | "active" | "returned" | "cancelled"
-      booking_insurance: "none" | "partial" | "full"
+      demo_request_fleet_bucket: "fleet_1_10" | "fleet_11_30" | "fleet_31_100" | "fleet_100_plus"
+      demo_request_status: "new" | "contacted" | "qualified" | "converted" | "rejected"
+      maintenance_type: "oil_change" | "tires" | "brakes" | "gov_inspection_fee" | "insurance_payment" | "bodywork" | "cleaning" | "other"
       payment_method: "cash" | "card" | "bank_transfer" | "other"
+      vehicle_category: "economy" | "compact" | "midsize" | "suv" | "van" | "luxury" | "other"
+      vehicle_fuel: "diesel" | "petrol" | "electric" | "hybrid" | "lpg"
       vehicle_status: "available" | "rented" | "maintenance" | "retired"
     }
     CompositeTypes: {
@@ -618,117 +648,58 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"]) | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends { Row: infer R } ? R : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends { Row: infer R } ? R : never
     : never
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Insert: infer I } ? I : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends { Insert: infer I } ? I : never
     : never
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Update: infer U } ? U : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends { Update: infer U } ? U : never
     : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
+  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
+  PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
@@ -737,22 +708,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      booking_insurance: ["none", "partial", "full"],
+      booking_status: ["confirmed", "active", "returned", "cancelled"],
       city_slug: ["riga", "tallinn", "vilnius"],
       company_status: ["unclaimed", "claimed", "verified"],
       country_code: ["LV", "EE", "LT"],
-      demo_request_fleet_bucket: [
-        "fleet_1_10",
-        "fleet_11_30",
-        "fleet_31_100",
-        "fleet_100_plus",
-      ],
-      demo_request_status: [
-        "new",
-        "contacted",
-        "qualified",
-        "converted",
-        "rejected",
-      ],
+      demo_request_fleet_bucket: ["fleet_1_10", "fleet_11_30", "fleet_31_100", "fleet_100_plus"],
+      demo_request_status: ["new", "contacted", "qualified", "converted", "rejected"],
+      maintenance_type: ["oil_change", "tires", "brakes", "gov_inspection_fee", "insurance_payment", "bodywork", "cleaning", "other"],
+      payment_method: ["cash", "card", "bank_transfer", "other"],
+      vehicle_category: ["economy", "compact", "midsize", "suv", "van", "luxury", "other"],
+      vehicle_fuel: ["diesel", "petrol", "electric", "hybrid", "lpg"],
+      vehicle_status: ["available", "rented", "maintenance", "retired"],
     },
   },
 } as const

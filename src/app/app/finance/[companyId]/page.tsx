@@ -55,6 +55,12 @@ export default async function FinancePage({
     .neq("status", "cancelled")
     .order("start_at", { ascending: false });
 
+  // Fetch maintenance costs
+  const { data: maintLogs } = await db
+    .from("maintenance_logs")
+    .select("id, date, cost, vehicle_id, type")
+    .eq("company_id", companyId);
+
   const all = (bookings ?? []) as {
     id: string;
     start_at: string;
@@ -88,6 +94,16 @@ export default async function FinancePage({
   const revenueThisYear   = thisYearBookings.reduce((s, b) => s + priceOf(b), 0);
   const avgBookingValue   = all.length ? all.reduce((s, b) => s + priceOf(b), 0) / all.length : 0;
 
+  // Maintenance costs
+  const maint = (maintLogs ?? []) as { id: string; date: string; cost: number; vehicle_id: string; type: string }[];
+  const costOf = (m: typeof maint[0]) => Number(m.cost);
+  const maintThisMonth = maint.filter((m) => inMonth(m.date, thisYear, thisMonth));
+  const maintThisYear  = maint.filter((m) => new Date(m.date).getFullYear() === thisYear);
+  const costsThisMonth = maintThisMonth.reduce((s, m) => s + costOf(m), 0);
+  const costsThisYear  = maintThisYear.reduce((s, m) => s + costOf(m), 0);
+  const profitThisMonth = revenueThisMonth - costsThisMonth;
+  const profitThisYear  = revenueThisYear  - costsThisYear;
+
   // Last 12 months bars
   const chartMonths = Array.from({ length: 12 }, (_, i) => {
     const offset = 11 - i;
@@ -98,9 +114,11 @@ export default async function FinancePage({
     const yr   = date.getFullYear();
     const mo   = date.getMonth();
     const mBookings = all.filter((b) => inMonth(b.start_at, yr, mo));
+    const mMaint    = maint.filter((m) => inMonth(m.date, yr, mo));
     return {
       label:     MONTH_SHORT[mo]!,
       revenue:   mBookings.reduce((s, b) => s + priceOf(b), 0),
+      costs:     mMaint.reduce((s, m) => s + costOf(m), 0),
       bookings:  mBookings.length,
       isCurrent: mo === thisMonth && yr === thisYear,
     };
@@ -141,6 +159,26 @@ export default async function FinancePage({
   // Recent bookings (last 10 with a price)
   const recentWithPrice = all.filter((b) => (b.booking_price ?? 0) > 0).slice(0, 10);
 
+  // Cost breakdown by maintenance type
+  const TYPE_LABELS: Record<string, string> = {
+    oil_change:         "Oil change",
+    tires:              "Tires",
+    brakes:             "Brakes",
+    gov_inspection_fee: "Gov. inspection fee",
+    insurance_payment:  "Insurance payment",
+    bodywork:           "Bodywork / paint",
+    cleaning:           "Cleaning / detailing",
+    other:              "Other",
+  };
+  const costByType = new Map<string, number>();
+  for (const m of maint) {
+    costByType.set(m.type, (costByType.get(m.type) ?? 0) + costOf(m));
+  }
+  const costBreakdown = Array.from(costByType.entries())
+    .map(([type, total]) => ({ type, label: TYPE_LABELS[type] ?? type, total }))
+    .sort((a, b) => b.total - a.total);
+  const totalCostAll = maint.reduce((s, m) => s + costOf(m), 0);
+
   return (
     <div className="px-8 py-8">
       <div className="mb-6">
@@ -151,7 +189,7 @@ export default async function FinancePage({
       {/* ── Top stats ── */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="This month"
+          label="Revenue this month"
           value={fmt(revenueThisMonth)}
           sub={`${thisMonthBookings.length} bookings`}
           badge={pct(revenueThisMonth, revenueLastMonth)}
@@ -159,19 +197,32 @@ export default async function FinancePage({
           footnote="vs last month"
         />
         <StatCard
-          label="Last month"
-          value={fmt(revenueLastMonth)}
-          sub={`${lastMonthBookings.length} bookings`}
+          label="Costs this month"
+          value={fmt(costsThisMonth)}
+          sub={`${maintThisMonth.length} entries`}
         />
         <StatCard
-          label="This year"
-          value={fmt(revenueThisYear)}
-          sub={`${thisYearBookings.length} bookings`}
+          label="Profit this month"
+          value={fmt(profitThisMonth)}
+          sub={profitThisMonth >= 0 ? "positive" : "negative"}
+          badgeColor={profitThisMonth >= 0 ? "text-emerald-600" : "text-red-500"}
         />
         <StatCard
           label="Avg booking value"
           value={fmt(avgBookingValue)}
           sub={`across ${all.length} total`}
+        />
+      </div>
+
+      {/* ── Year stats ── */}
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatCard label="Revenue this year" value={fmt(revenueThisYear)} sub={`${thisYearBookings.length} bookings`} />
+        <StatCard label="Costs this year"   value={fmt(costsThisYear)}   sub={`${maintThisYear.length} entries`} />
+        <StatCard
+          label="Profit this year"
+          value={fmt(profitThisYear)}
+          sub={profitThisYear >= 0 ? "positive" : "negative"}
+          badgeColor={profitThisYear >= 0 ? "text-emerald-600" : "text-red-500"}
         />
       </div>
 
@@ -231,6 +282,37 @@ export default async function FinancePage({
           </table>
         )}
       </div>
+
+      {/* ── Cost breakdown by type ── */}
+      {costBreakdown.length > 0 && (
+        <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
+          <div className="border-b border-border px-6 py-4">
+            <h2 className="text-base font-semibold text-neutral-900">Cost breakdown by category</h2>
+            <p className="text-xs text-neutral-400 mt-0.5">All time · from maintenance log</p>
+          </div>
+          <div className="divide-y divide-border">
+            {costBreakdown.map(({ type, label, total }) => {
+              const barW = totalCostAll > 0 ? (total / totalCostAll) * 100 : 0;
+              return (
+                <div key={type} className="flex items-center gap-4 px-6 py-3">
+                  <span className="w-40 shrink-0 text-sm text-neutral-700">{label}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-red-300" style={{ width: `${barW}%` }} />
+                  </div>
+                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-neutral-900">{fmt(total)}</span>
+                  <span className="w-10 shrink-0 text-right text-xs text-neutral-400">{barW.toFixed(0)}%</span>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-4 px-6 py-3 bg-slate-50">
+              <span className="w-40 shrink-0 text-sm font-semibold text-neutral-700">Total</span>
+              <div className="flex-1" />
+              <span className="w-20 shrink-0 text-right text-sm font-bold text-neutral-900">{fmt(totalCostAll)}</span>
+              <span className="w-10 shrink-0" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Recent bookings with value ── */}
       {recentWithPrice.length > 0 && (

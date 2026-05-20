@@ -11,7 +11,7 @@ interface Customer {
   full_name: string;
   phone: string;
   email: string | null;
-  language: Language | null;
+  language: Language | string | null;
   address: string | null;
   date_of_birth: string | null;
   id_number: string | null;

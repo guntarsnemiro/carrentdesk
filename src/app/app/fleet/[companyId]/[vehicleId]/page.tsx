@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { VehicleForm } from "../_components/vehicle-form";
 
 export const metadata: Metadata = { title: "Edit car" };
+
+const TYPE_LABELS: Record<string, string> = {
+  oil_change:         "Oil change",
+  tires:              "Tires",
+  brakes:             "Brakes",
+  gov_inspection_fee: "Gov. inspection fee",
+  insurance_payment:  "Insurance payment",
+  bodywork:           "Bodywork / paint",
+  cleaning:           "Cleaning / detailing",
+  other:              "Other",
+};
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default async function EditVehiclePage({
   params,
@@ -28,6 +44,15 @@ export default async function EditVehiclePage({
     .eq("id", vehicleId).eq("company_id", companyId).maybeSingle();
   if (!vehicle) notFound();
 
+  const { data: maintLogs } = await db
+    .from("maintenance_logs")
+    .select("id, date, type, description, cost, supplier")
+    .eq("vehicle_id", vehicleId)
+    .order("date", { ascending: false })
+    .limit(20);
+
+  const totalMaintCost = (maintLogs ?? []).reduce((s, l) => s + Number(l.cost), 0);
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6">
@@ -41,6 +66,62 @@ export default async function EditVehiclePage({
         <p className="mt-1 font-mono text-sm text-neutral-500">{vehicle.plate}</p>
       </div>
       <VehicleForm companyId={companyId} vehicle={vehicle} />
+
+      {/* Service history */}
+      <div className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-900">Service history</h2>
+            {maintLogs && maintLogs.length > 0 && (
+              <p className="text-sm text-neutral-400">Total cost: <span className="font-semibold text-neutral-700">€{totalMaintCost.toFixed(2)}</span></p>
+            )}
+          </div>
+          <Link
+            href={`/app/maintenance/${companyId}/add?vehicle=${vehicleId}`}
+            className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
+          >
+            + Add entry
+          </Link>
+        </div>
+
+        {maintLogs && maintLogs.length > 0 ? (
+          <div className="rounded-xl border border-border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50 text-left text-xs">
+                  <th className="px-4 py-2.5 font-medium text-neutral-500">Date</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500">Type</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500">Description</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500 text-right">Cost</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {maintLogs.map((l) => (
+                  <tr key={l.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2.5 text-neutral-600 whitespace-nowrap">{fmtDate(l.date)}</td>
+                    <td className="px-4 py-2.5 text-neutral-700">{TYPE_LABELS[l.type] ?? l.type}</td>
+                    <td className="px-4 py-2.5 text-neutral-500 max-w-[180px] truncate">{l.description ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-neutral-900">€{Number(l.cost).toFixed(2)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Link href={`/app/maintenance/${companyId}/${l.id}`}
+                        className="text-xs text-brand-700 hover:underline">Edit</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border bg-white px-6 py-8 text-center">
+            <p className="text-sm text-neutral-400">No service entries for this car yet.</p>
+            <Link href={`/app/maintenance/${companyId}/add?vehicle=${vehicleId}`}
+              className="mt-3 inline-block text-sm text-brand-700 hover:underline">
+              Add first entry →
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
