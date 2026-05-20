@@ -470,24 +470,43 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINS  = ["00", "15", "30", "45"];
+
+function TimeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+  const [h = "08", m = "00"] = value ? value.split(":") : [];
+  const nearestMin = MINS.reduce((a, b) => Math.abs(parseInt(b) - parseInt(m)) < Math.abs(parseInt(a) - parseInt(m)) ? b : a);
+  return (
+    <div className={`flex items-center gap-0.5 ${className ?? ""}`}>
+      <select value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)}
+        className="rounded-l-lg border border-border bg-white px-2 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        {HOURS.map((hh) => <option key={hh} value={hh}>{hh}</option>)}
+      </select>
+      <span className="border-y border-border bg-white px-1 py-2 text-sm text-neutral-400">:</span>
+      <select value={nearestMin} onChange={(e) => onChange(`${h}:${e.target.value}`)}
+        className="rounded-r-lg border border-border bg-white px-2 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        {MINS.map((mm) => <option key={mm} value={mm}>{mm}</option>)}
+      </select>
+    </div>
+  );
+}
+
 function DateTimeField({ label, value, onChange, required }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
 }) {
-  const [datePart, timePart] = value ? value.split("T") : ["", ""];
-  const inp = "mt-1 rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500";
+  const [datePart = "", timePart = "08:00"] = value ? value.split("T") : [];
+  const inp = "rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500";
   return (
     <div>
       <label className="block text-sm font-medium text-neutral-700">{label}</label>
-      <div className="mt-1 flex gap-2">
-        <input type="date" required={required} value={datePart ?? ""}
-          onChange={(e) => onChange(`${e.target.value}T${timePart ?? "00:00"}`)}
-          className={`flex-1 ${inp}`} />
-        <input type="time" required={required} value={timePart ?? ""}
-          onChange={(e) => onChange(`${datePart ?? ""}T${e.target.value}`)}
-          className={`w-28 ${inp}`} />
+      <div className="mt-1 flex flex-wrap gap-2">
+        <input type="date" required={required} value={datePart}
+          onChange={(e) => onChange(`${e.target.value}T${timePart}`)}
+          className={`flex-1 min-w-[130px] ${inp}`} />
+        <TimeSelect value={timePart} onChange={(t) => onChange(`${datePart}T${t}`)} />
       </div>
     </div>
   );

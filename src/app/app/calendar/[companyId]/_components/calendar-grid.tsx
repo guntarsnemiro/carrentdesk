@@ -1208,20 +1208,38 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
   );
 }
 
+const CAL_HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const CAL_MINS  = ["00", "15", "30", "45"];
+
+function CalTimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [h = "08", m = "00"] = value ? value.split(":") : [];
+  const nearestMin = CAL_MINS.reduce((a, b) => Math.abs(parseInt(b) - parseInt(m)) < Math.abs(parseInt(a) - parseInt(m)) ? b : a);
+  const sel = "border border-border bg-white px-1.5 py-1.5 text-xs text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand-500";
+  return (
+    <div className="flex items-center gap-0.5 mt-1">
+      <select value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)} className={`rounded-l-lg ${sel}`}>
+        {CAL_HOURS.map((hh) => <option key={hh} value={hh}>{hh}</option>)}
+      </select>
+      <span className="border-y border-border bg-white px-0.5 py-1.5 text-xs text-neutral-400">:</span>
+      <select value={nearestMin} onChange={(e) => onChange(`${h}:${e.target.value}`)} className={`rounded-r-lg ${sel}`}>
+        {CAL_MINS.map((mm) => <option key={mm} value={mm}>{mm}</option>)}
+      </select>
+    </div>
+  );
+}
+
 function CalDateTimeInput({ value, onChange, className }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
 }) {
-  const [datePart, timePart] = value ? value.split("T") : ["", ""];
+  const [datePart = "", timePart = "08:00"] = value ? value.split("T") : [];
   return (
-    <div className="flex gap-1.5">
-      <input type="date" value={datePart ?? ""}
-        onChange={(e) => onChange(`${e.target.value}T${timePart ?? "00:00"}`)}
-        className={`flex-1 ${className ?? ""}`} />
-      <input type="time" value={timePart ?? ""}
-        onChange={(e) => onChange(`${datePart ?? ""}T${e.target.value}`)}
-        className={`w-24 ${className ?? ""}`} />
+    <div>
+      <input type="date" value={datePart}
+        onChange={(e) => onChange(`${e.target.value}T${timePart}`)}
+        className={`w-full ${className ?? ""}`} />
+      <CalTimeSelect value={timePart} onChange={(t) => onChange(`${datePart}T${t}`)} />
     </div>
   );
 }
