@@ -7,25 +7,24 @@ import { FAQ } from "@/app/for-rentals/_components/faq";
 export const metadata: Metadata = {
   title: "Car Rental Management Software for Independent Operators | CarRentDesk",
   description:
-    "Fleet management, bookings, customer records, maintenance tracking, and true P&L reporting — all in one platform. Built for independent car rental companies in the Baltics. Free during beta.",
+    "Fleet management, bookings, customer records, maintenance tracking, and true P&L with depreciation — all in one platform. Built for independent car rental companies across Europe. Free during beta.",
   keywords: [
     "car rental management software",
-    "car rental fleet management",
+    "car rental fleet management software",
     "car rental business software",
-    "fleet management system",
+    "fleet management system for rental companies",
     "car rental booking software",
     "independent car rental software",
-    "car rental software Latvia",
-    "car rental software Riga",
-    "car rental software Estonia",
-    "car rental software Lithuania",
-    "auto nomas programma",
-    "rental car management system",
     "small car rental business software",
+    "car rental CRM",
+    "car rental P&L software",
+    "vehicle fleet management software",
+    "car rental operations platform",
+    "rental fleet tracking software",
   ],
   openGraph: {
     title: "Car Rental Management Software for Independent Operators | CarRentDesk",
-    description: "Fleet, bookings, customers, maintenance and real P&L — one platform for independent car rental companies. Free during beta.",
+    description: "Fleet, bookings, customers, maintenance and real P&L with depreciation — one platform for independent car rental companies across Europe. Free during beta.",
     url: "https://carrentdesk.com/for-rentals",
     siteName: "CarRentDesk",
     type: "website",
@@ -154,9 +153,9 @@ function WhatsInsideCard() {
  * ------------------------------------------------------------------------- */
 function TrustBar() {
   const items = [
-    "Baltic-built",
+    "EU-hosted · GDPR",
     "Founder-owned rental",
-    "GDPR · EU-hosted data",
+    "Built for independent operators",
     "Free during beta",
     "0% commission",
     "30-second setup",
@@ -230,7 +229,7 @@ function BuiltFor() {
     },
     {
       title: "Get found, get booked",
-      body: "A free listing on the CarRentDesk marketplace puts you in front of local customers across the Baltics. Direct phone, WhatsApp, and email — no commission, no booking middleman.",
+      body: "A free listing on the CarRentDesk marketplace puts you in front of local customers searching for car rentals in your city. Direct phone, WhatsApp, and email — no commission, no booking middleman.",
     },
     {
       title: "Built like a real business",
@@ -301,8 +300,8 @@ function ModulesSection() {
       </div>
 
       <p className="mt-8 max-w-3xl text-sm leading-6 text-neutral-600">
-        Built with and tested by real rental companies in Riga. Every feature
-        comes from an actual operator problem — not a product manager's guess.
+        Every feature comes from an actual operator problem — not a product manager&apos;s guess.
+        Built and battle-tested inside a real rental company before it shipped.
       </p>
     </section>
   );
@@ -502,10 +501,10 @@ function DualValueBlock() {
             Operations on one side. A marketplace listing on the other.
           </h2>
           <p className="mt-3 max-w-xl text-base leading-7 text-neutral-700">
-            Customers searching for local rentals across the Baltics find you
-            directly on CarRentDesk.com. No commission, no markup, no booking
-            middleman. Operators using the platform actively earn a public
-            verified badge that small chains can&apos;t match.
+            Customers searching for car rentals in your city find you directly on
+            CarRentDesk.com. No commission, no markup, no booking middleman.
+            Operators using the platform earn a public verified badge that
+            small chains can&apos;t match.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
@@ -524,7 +523,7 @@ function DualValueBlock() {
         </div>
 
         <ul className="space-y-3 rounded-2xl bg-background p-6 text-sm ring-1 ring-border">
-          <BonusRow text="Discoverable to local customers across all three Baltic capitals" />
+          <BonusRow text="Discoverable to local customers searching for car rentals in your city" />
           <BonusRow text="Direct contact — phone, WhatsApp, email — never blocked behind a checkout" />
           <BonusRow text="Verified badge once you actively use the operations platform" />
           <BonusRow text="Anonymous click analytics on how many customers contacted you" />
@@ -795,8 +794,8 @@ function FinalCTA() {
               </a>
             </li>
             <li>
-              <span className="font-medium text-brand-950">Cities served:</span>{" "}
-              Riga · Tallinn · Vilnius (more on request)
+              <span className="font-medium text-brand-950">Coverage:</span>{" "}
+              Europe · More cities added continuously
             </li>
             <li>
               <span className="font-medium text-brand-950">Response time:</span>{" "}
