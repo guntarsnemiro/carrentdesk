@@ -77,7 +77,7 @@ export default async function EditVehiclePage({
         </h1>
         <p className="mt-1 font-mono text-sm text-neutral-500">{vehicle.plate}</p>
       </div>
-      <VehicleForm companyId={companyId} vehicle={vehicle} lastOdoReading={lastOdoReading} />
+      <VehicleForm companyId={companyId} vehicle={{ ...vehicle, depreciation_mode: vehicle.depreciation_mode as ("none" | "current_value" | "original" | null) }} lastOdoReading={lastOdoReading} />
 
       {/* Service history */}
       <div className="mt-10">

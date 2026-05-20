@@ -1,34 +1,44 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { RevenueChart } from "./_components/revenue-chart";
+import {
+  buildPLRows, depositsHeld, deferredRevenue, monthProRataRevenue,
+  monthAmortizedCosts, fleetMonthlyDepreciation, monthlyDepreciation,
+  amortizedCost,
+  type Booking, type PeriodCost, type VehicleAsset,
+} from "@/lib/finance";
 
 export const metadata: Metadata = { title: "Finance" };
-
-const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function fmt(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
 }
-
-function pct(current: number, prev: number) {
-  if (prev === 0) return current > 0 ? "+100%" : "—";
-  const d = ((current - prev) / prev) * 100;
+function pct(curr: number, prev: number) {
+  if (prev === 0) return curr > 0 ? "+100%" : "—";
+  const d = ((curr - prev) / prev) * 100;
   return (d >= 0 ? "+" : "") + d.toFixed(1) + "%";
 }
-
-function pctColor(current: number, prev: number) {
-  if (prev === 0) return current > 0 ? "text-emerald-600" : "text-neutral-400";
-  return current >= prev ? "text-emerald-600" : "text-red-500";
+function pctColor(curr: number, prev: number) {
+  if (prev === 0) return curr > 0 ? "text-emerald-600" : "text-neutral-400";
+  return curr >= prev ? "text-emerald-600" : "text-red-500";
 }
 
-export default async function FinancePage({
-  params,
-}: {
-  params: Promise<{ companyId: string }>;
+function StatCard({ label, value, sub, badge, badgeColor, footnote }: {
+  label: string; value: string; sub?: string; badge?: string; badgeColor?: string; footnote?: string;
 }) {
+  return (
+    <div className="rounded-2xl border border-border bg-white px-5 py-4">
+      <p className="text-xs text-neutral-400">{label}</p>
+      <p className="mt-1 text-xl font-bold text-neutral-900">{value}</p>
+      {sub && <p className="mt-1 text-xs text-neutral-400">{sub}</p>}
+      {badge && <p className={`mt-1 text-xs font-medium ${badgeColor}`}>{badge} {footnote}</p>}
+    </div>
+  );
+}
+
+export default async function FinancePage({ params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = await params;
 
   const authClient = await createAuthServerClient();
@@ -43,429 +53,400 @@ export default async function FinancePage({
   if (!membership) notFound();
 
   const { data: company } = await db
-    .from("companies").select("id, name")
+    .from("companies").select("id, name, default_depreciation_rate")
     .eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
-  // Fetch all non-cancelled bookings with price > 0
-  const { data: bookings } = await db
-    .from("bookings")
-    .select("id, start_at, end_at, booking_price, status, vehicle_id, vehicles(make, model, plate)")
-    .eq("company_id", companyId)
-    .neq("status", "cancelled")
-    .order("start_at", { ascending: false });
+  const companyRate = company.default_depreciation_rate ?? 20;
 
-  // Fetch maintenance costs
-  const [{ data: maintLogs }, { data: bizExpenses }] = await Promise.all([
-    db.from("maintenance_logs").select("id, date, cost, vehicle_id, type").eq("company_id", companyId),
-    db.from("company_expenses").select("id, date, category, amount").eq("company_id", companyId),
+  // ── Fetch all data ──────────────────────────────────────────────────────────
+  const [
+    { data: bookingsRaw },
+    { data: maintRaw },
+    { data: bizRaw },
+    { data: vehiclesRaw },
+  ] = await Promise.all([
+    db.from("bookings")
+      .select("id, start_at, end_at, booking_price, paid_at, deposit_amount, deposit_returned_at, status, vehicle_id, vehicles(make, model, plate)")
+      .eq("company_id", companyId)
+      .neq("status", "cancelled"),
+    db.from("maintenance_logs")
+      .select("id, date, cost, covers_from, covers_until, vehicle_id, type")
+      .eq("company_id", companyId),
+    db.from("company_expenses")
+      .select("id, date, amount, covers_from, covers_until, category")
+      .eq("company_id", companyId),
+    db.from("vehicles")
+      .select("id, make, model, plate, purchase_price, purchase_date, depreciation_rate, residual_value, depreciation_mode, disposed_at, disposal_price")
+      .eq("company_id", companyId),
   ]);
 
-  const all = (bookings ?? []) as {
-    id: string;
-    start_at: string;
-    end_at: string;
-    booking_price: number | null;
-    status: string;
-    vehicle_id: string;
-    vehicles: { make: string; model: string; plate: string } | null;
-  }[];
+  const bookings = (bookingsRaw ?? []) as unknown as (Booking & { vehicles: { make: string; model: string; plate: string } | null })[];
+  const costs: PeriodCost[] = [
+    ...(maintRaw ?? []).map((m) => ({ id: m.id, date: m.date, amount: 0, cost: Number(m.cost), covers_from: m.covers_from, covers_until: m.covers_until, vehicle_id: m.vehicle_id })),
+    ...(bizRaw   ?? []).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount),        covers_from: e.covers_from, covers_until: e.covers_until })),
+  ];
+  const vehicles = (vehiclesRaw ?? []) as VehicleAsset[];
+  const maintCosts: PeriodCost[] = (maintRaw ?? []).map((m) => ({ id: m.id, date: m.date, amount: 0, cost: Number(m.cost), covers_from: m.covers_from, covers_until: m.covers_until, vehicle_id: m.vehicle_id }));
+  const bizCosts:  PeriodCost[] = (bizRaw   ?? []).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount), covers_from: e.covers_from, covers_until: e.covers_until }));
 
-  const now        = new Date();
-  const thisYear   = now.getFullYear();
-  const thisMonth  = now.getMonth();
+  // ── P&L rows (12 months) ────────────────────────────────────────────────────
+  const plRows = buildPLRows(bookings, costs, vehicles, companyRate, 12);
+  const currentRow  = plRows[plRows.length - 1];
+  const prevRow     = plRows[plRows.length - 2];
 
-  function inMonth(iso: string, year: number, month: number) {
-    const d = new Date(iso);
-    return d.getFullYear() === year && d.getMonth() === month;
-  }
+  // ── Cash position (as of today) ─────────────────────────────────────────────
+  const now     = new Date();
+  const deferred = deferredRevenue(bookings, now);
+  const deposits = depositsHeld(bookings);
+  const cashThisMonth = bookings.reduce((s, b) => {
+    if (!b.paid_at || !b.booking_price) return s;
+    const d = new Date(b.paid_at);
+    return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth()
+      ? s + b.booking_price : s;
+  }, 0);
 
-  const lastMonthYear  = thisMonth === 0 ? thisYear - 1 : thisYear;
-  const lastMonthIndex = thisMonth === 0 ? 11 : thisMonth - 1;
+  // ── Chart data (12 months, pro-rata) ────────────────────────────────────────
+  const chartData = plRows.map((r) => ({
+    label:     r.label,
+    revenue:   Math.round(r.revenue),
+    costs:     Math.round(r.cashCosts + r.depreciation),
+    bookings:  bookings.filter((b) => {
+      const d = new Date(b.start_at);
+      return d.getUTCFullYear() === r.year && d.getUTCMonth() === r.month;
+    }).length,
+    isCurrent: r.month === now.getUTCMonth() && r.year === now.getUTCFullYear(),
+  }));
 
-  const priceOf = (b: typeof all[0]) => b.booking_price ?? 0;
-
-  const thisMonthBookings  = all.filter((b) => inMonth(b.start_at, thisYear, thisMonth));
-  const lastMonthBookings  = all.filter((b) => inMonth(b.start_at, lastMonthYear, lastMonthIndex));
-  const thisYearBookings   = all.filter((b) => new Date(b.start_at).getFullYear() === thisYear);
-
-  const revenueThisMonth  = thisMonthBookings.reduce((s, b) => s + priceOf(b), 0);
-  const revenueLastMonth  = lastMonthBookings.reduce((s, b) => s + priceOf(b), 0);
-  const revenueThisYear   = thisYearBookings.reduce((s, b) => s + priceOf(b), 0);
-  const avgBookingValue   = all.length ? all.reduce((s, b) => s + priceOf(b), 0) / all.length : 0;
-
-  // Maintenance costs
-  const maint = (maintLogs ?? []) as { id: string; date: string; cost: number; vehicle_id: string; type: string }[];
-  const biz   = (bizExpenses ?? []) as { id: string; date: string; category: string; amount: number }[];
-  const costOf = (m: { cost: number }) => Number(m.cost);
-  const amtOf  = (e: { amount: number }) => Number(e.amount);
-
-  const maintThisMonth  = maint.filter((m) => inMonth(m.date, thisYear, thisMonth));
-  const maintThisYear   = maint.filter((m) => new Date(m.date).getFullYear() === thisYear);
-  const bizThisMonth    = biz.filter((e) => inMonth(e.date, thisYear, thisMonth));
-  const bizThisYear     = biz.filter((e) => new Date(e.date).getFullYear() === thisYear);
-
-  const maintCostMonth  = maintThisMonth.reduce((s, m) => s + costOf(m), 0);
-  const maintCostYear   = maintThisYear.reduce((s, m) => s + costOf(m), 0);
-  const bizCostMonth    = bizThisMonth.reduce((s, e) => s + amtOf(e), 0);
-  const bizCostYear     = bizThisYear.reduce((s, e) => s + amtOf(e), 0);
-  const costsThisMonth  = maintCostMonth + bizCostMonth;
-  const costsThisYear   = maintCostYear  + bizCostYear;
-  const profitThisMonth = revenueThisMonth - costsThisMonth;
-  const profitThisYear  = revenueThisYear  - costsThisYear;
-
-  // Last 12 months bars
-  const chartMonths = Array.from({ length: 12 }, (_, i) => {
-    const offset = 11 - i;
-    const mIdx   = ((thisMonth - offset) % 12 + 12) % 12;
-    const mYear  = thisYear - Math.floor((offset - thisMonth + 12) / 12 + (thisMonth >= offset ? 0 : 1));
-    // Recalculate correctly
-    const date = new Date(thisYear, thisMonth - offset, 1);
-    const yr   = date.getFullYear();
-    const mo   = date.getMonth();
-    const mBookings = all.filter((b) => inMonth(b.start_at, yr, mo));
-    const mMaint    = maint.filter((m) => inMonth(m.date, yr, mo));
-    const mBiz      = biz.filter((e) => inMonth(e.date, yr, mo));
-    return {
-      label:     MONTH_SHORT[mo]!,
-      revenue:   mBookings.reduce((s, b) => s + priceOf(b), 0),
-      costs:     mMaint.reduce((s, m) => s + costOf(m), 0) + mBiz.reduce((s, e) => s + amtOf(e), 0),
-      bookings:  mBookings.length,
-      isCurrent: mo === thisMonth && yr === thisYear,
-    };
-  });
-
-  // Revenue by vehicle
+  // ── Fleet profitability (per vehicle, last 12 months) ───────────────────────
   type VehicleStat = {
     id: string; make: string; model: string; plate: string;
-    bookings: number; revenue: number; avgDays: number;
+    revenue: number; directCosts: number; depreciation: number; netContrib: number;
+    bookingCount: number; depMode: string | null;
   };
-  const vehicleMap = new Map<string, VehicleStat>();
-  for (const b of all) {
-    if (!b.vehicles) continue;
-    const key = b.vehicle_id;
-    if (!vehicleMap.has(key)) {
-      vehicleMap.set(key, {
-        id: key,
-        make: b.vehicles.make,
-        model: b.vehicles.model,
-        plate: b.vehicles.plate,
-        bookings: 0,
-        revenue: 0,
-        avgDays: 0,
-      });
+  const vehicleStatMap = new Map<string, VehicleStat>();
+  for (const v of vehicles) {
+    vehicleStatMap.set(v.id, {
+      id: v.id, make: "", model: "", plate: "",
+      revenue: 0, directCosts: 0, depreciation: 0, netContrib: 0,
+      bookingCount: 0, depMode: v.depreciation_mode,
+    });
+  }
+  for (const b of bookings) {
+    if (!vehicleStatMap.has(b.vehicle_id)) continue;
+    const s = vehicleStatMap.get(b.vehicle_id)!;
+    if (!s.make && b.vehicles) { s.make = b.vehicles.make; s.model = b.vehicles.model; s.plate = b.vehicles.plate; }
+    for (const r of plRows) {
+      s.revenue += (() => {
+        // Only count if booking falls in this 12-month window
+        const start = new Date(b.start_at);
+        return start.getUTCFullYear() >= plRows[0].year ? (function() {
+          const { proRataRevenue } = require("@/lib/finance");
+          return proRataRevenue(b, r.year, r.month);
+        })() : 0;
+      })();
     }
-    const stat = vehicleMap.get(key)!;
-    stat.bookings += 1;
-    stat.revenue  += priceOf(b);
-    const days = Math.max(1, Math.ceil(
-      (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / (1000 * 60 * 60 * 24)
-    ));
-    stat.avgDays += days;
+    s.bookingCount += 1;
   }
-  const vehicleStats = Array.from(vehicleMap.values())
-    .map((v) => ({ ...v, avgDays: v.bookings ? v.avgDays / v.bookings : 0 }))
-    .sort((a, b) => b.revenue - a.revenue);
 
-  // Recent bookings (last 10 with a price)
-  const recentWithPrice = all.filter((b) => (b.booking_price ?? 0) > 0).slice(0, 10);
+  // Simpler: compute per-vehicle revenue as all-time bookings pro-rata for 12 months
+  const vStatsFinal: VehicleStat[] = [];
+  for (const v of vehicles) {
+    const vBookings = bookings.filter((b) => b.vehicle_id === v.id);
+    const vMaint    = maintCosts.filter((c) => c.vehicle_id === v.id);
+    let revenue = 0;
+    let directCosts = 0;
+    let depreciation = 0;
+    for (const r of plRows) {
+      revenue      += vBookings.reduce((s, b) => {
+        const { proRataRevenue: prr } = require("@/lib/finance");
+        return s + prr(b, r.year, r.month);
+      }, 0);
+      directCosts  += monthAmortizedCosts(vMaint, r.year, r.month);
+      depreciation += monthlyDepreciation(v, companyRate, r.year, r.month);
+    }
+    const veh = bookings.find((b) => b.vehicle_id === v.id)?.vehicles;
+    vStatsFinal.push({
+      id: v.id,
+      make: veh?.make ?? "", model: veh?.model ?? "", plate: veh?.plate ?? "",
+      revenue, directCosts, depreciation,
+      netContrib: revenue - directCosts - depreciation,
+      bookingCount: vBookings.length,
+      depMode: v.depreciation_mode,
+    });
+  }
+  const vehicleStats = vStatsFinal.filter((v) => v.make).sort((a, b) => b.revenue - a.revenue);
 
-  // Business expense breakdown by category
-  const EXP_LABELS: Record<string, string> = {
-    salary: "Salary", tax: "Tax", rent: "Rent / Office",
-    phone_internet: "Phone / Internet", accounting_legal: "Accounting / Legal",
-    supplies_stock: "Supplies / Stock", company_insurance: "Company insurance", other: "Other",
-  };
-  const bizByCategory = new Map<string, number>();
-  for (const e of biz) { bizByCategory.set(e.category, (bizByCategory.get(e.category) ?? 0) + amtOf(e)); }
-  const bizBreakdown = Array.from(bizByCategory.entries())
-    .map(([cat, total]) => ({ cat, label: EXP_LABELS[cat] ?? cat, total }))
-    .sort((a, b) => b.total - a.total);
-  const totalBizAll = biz.reduce((s, e) => s + amtOf(e), 0);
+  // ── Depreciation summary ─────────────────────────────────────────────────────
+  const depConfigured   = vehicles.filter((v) => v.depreciation_mode && v.depreciation_mode !== "none" && v.purchase_price);
+  const depNotConfigured = vehicles.filter((v) => !v.depreciation_mode || v.depreciation_mode === "none" || !v.purchase_price);
 
-  // Cost breakdown by maintenance type
+  // ── Maintenance cost breakdown ────────────────────────────────────────────────
   const TYPE_LABELS: Record<string, string> = {
-    oil_change:         "Oil change",
-    tires:              "Tires",
-    brakes:             "Brakes",
-    gov_inspection_fee: "Gov. inspection fee",
-    insurance_payment:  "Insurance payment",
-    bodywork:           "Bodywork / paint",
-    cleaning:           "Cleaning / detailing",
-    other:              "Other",
+    oil_change: "Oil change", tires: "Tires", brakes: "Brakes",
+    gov_inspection_fee: "Gov. inspection fee", insurance_payment: "Insurance payment",
+    bodywork: "Bodywork / paint", cleaning: "Cleaning / detailing", other: "Other",
   };
-  const costByType = new Map<string, number>();
-  for (const m of maint) {
-    costByType.set(m.type, (costByType.get(m.type) ?? 0) + costOf(m));
+  const maintByType = new Map<string, number>();
+  for (const m of maintRaw ?? []) {
+    let cost = 0;
+    for (const r of plRows) cost += amortizedCost({ id: m.id, date: m.date, amount: 0, cost: Number(m.cost), covers_from: m.covers_from, covers_until: m.covers_until }, r.year, r.month);
+    maintByType.set(m.type, (maintByType.get(m.type) ?? 0) + cost);
   }
-  const costBreakdown = Array.from(costByType.entries())
+  const maintBreakdown = Array.from(maintByType.entries())
     .map(([type, total]) => ({ type, label: TYPE_LABELS[type] ?? type, total }))
     .sort((a, b) => b.total - a.total);
-  const totalCostAll = maint.reduce((s, m) => s + costOf(m), 0);
+  const maintBreakdownTotal = maintBreakdown.reduce((s, m) => s + m.total, 0);
+
+  // Recent bookings
+  const recentBookings = bookings.filter((b) => (b.booking_price ?? 0) > 0).slice(0, 8);
 
   return (
-    <div className="px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Finance</h1>
-        <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
+    <div className="px-4 py-6 lg:px-8 lg:py-8 space-y-6">
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Finance</h1>
+          <p className="mt-1 text-sm text-neutral-500">{company.name} · Pro-rata P&amp;L</p>
+        </div>
       </div>
 
-      {/* ── Top stats ── */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* ── Current month stats ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
-          label="Revenue this month"
-          value={fmt(revenueThisMonth)}
-          sub={`${thisMonthBookings.length} bookings`}
-          badge={pct(revenueThisMonth, revenueLastMonth)}
-          badgeColor={pctColor(revenueThisMonth, revenueLastMonth)}
+          label="Earned this month"
+          value={fmt(currentRow?.revenue ?? 0)}
+          sub="pro-rata (days rented)"
+          badge={prevRow ? pct(currentRow?.revenue ?? 0, prevRow.revenue) : undefined}
+          badgeColor={prevRow ? pctColor(currentRow?.revenue ?? 0, prevRow.revenue) : undefined}
           footnote="vs last month"
         />
         <StatCard
-          label="Costs this month"
-          value={fmt(costsThisMonth)}
-          sub={`maint. ${fmt(maintCostMonth)} · biz ${fmt(bizCostMonth)}`}
+          label="EBITDA this month"
+          value={fmt(currentRow?.ebitda ?? 0)}
+          sub="earned − cash costs"
+          badgeColor={(currentRow?.ebitda ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}
         />
         <StatCard
-          label="Profit this month"
-          value={fmt(profitThisMonth)}
-          sub={profitThisMonth >= 0 ? "positive" : "negative"}
-          badgeColor={profitThisMonth >= 0 ? "text-emerald-600" : "text-red-500"}
+          label="Net profit this month"
+          value={fmt(currentRow?.netProfit ?? 0)}
+          sub="EBITDA − depreciation"
+          badgeColor={(currentRow?.netProfit ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}
         />
         <StatCard
-          label="Avg booking value"
-          value={fmt(avgBookingValue)}
-          sub={`across ${all.length} total`}
+          label="Cash collected this month"
+          value={fmt(cashThisMonth)}
+          sub="based on payment dates"
         />
       </div>
 
-      {/* ── Year stats ── */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Revenue this year" value={fmt(revenueThisYear)} sub={`${thisYearBookings.length} bookings`} />
-        <StatCard label="Costs this year" value={fmt(costsThisYear)} sub={`maint. ${fmt(maintCostYear)} · biz ${fmt(bizCostYear)}`} />
-        <StatCard
-          label="Profit this year"
-          value={fmt(profitThisYear)}
-          sub={profitThisYear >= 0 ? "positive" : "negative"}
-          badgeColor={profitThisYear >= 0 ? "text-emerald-600" : "text-red-500"}
-        />
-      </div>
-
-      {/* ── Revenue chart ── */}
-      <div className="mb-6 rounded-2xl border border-border bg-white p-6">
-        <h2 className="mb-5 text-base font-semibold text-neutral-900">Revenue — last 12 months</h2>
-        <RevenueChart months={chartMonths} />
-      </div>
-
-      {/* ── Revenue by vehicle ── */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold text-neutral-900">Revenue by vehicle</h2>
+      {/* ── Cash position widget ── */}
+      <div className="rounded-2xl border border-border bg-white p-6">
+        <h2 className="mb-4 text-base font-semibold text-neutral-900">Cash position — right now</h2>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="rounded-xl bg-emerald-50 px-4 py-4">
+            <p className="text-xs text-emerald-600 font-medium">Earned (mine)</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-700">
+              {fmt(plRows.reduce((s, r) => s + r.revenue, 0) - plRows.reduce((s, r) => s + r.cashCosts + r.depreciation, 0))}
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-500">net profit, last 12 months</p>
+          </div>
+          <div className="rounded-xl bg-amber-50 px-4 py-4">
+            <p className="text-xs text-amber-600 font-medium">Deferred (not yet earned)</p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">{fmt(deferred)}</p>
+            <p className="mt-0.5 text-xs text-amber-500">paid, but rental days ahead</p>
+          </div>
+          <div className="rounded-xl bg-sky-50 px-4 py-4">
+            <p className="text-xs text-sky-600 font-medium">Deposits held</p>
+            <p className="mt-1 text-2xl font-bold text-sky-700">{fmt(deposits)}</p>
+            <p className="mt-0.5 text-xs text-sky-500">must return to customers</p>
+          </div>
         </div>
-        {vehicleStats.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-neutral-400">No bookings with a price recorded yet.</p>
-        ) : (
-          <table className="w-full text-sm">
+      </div>
+
+      {/* ── 12-month P&L table ── */}
+      <div className="rounded-2xl border border-border bg-white p-6">
+        <h2 className="mb-4 text-base font-semibold text-neutral-900">12-month P&amp;L</h2>
+        <p className="mb-4 text-xs text-neutral-400">Revenue = pro-rata earned (days rented). Costs = amortized. Depreciation = straight-line per car.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-sm">
             <thead>
-              <tr className="border-b border-border bg-slate-50 text-left text-xs">
-                <th className="px-6 py-3 font-medium text-neutral-500">Vehicle</th>
-                <th className="px-6 py-3 font-medium text-neutral-500 text-right">Bookings</th>
-                <th className="px-6 py-3 font-medium text-neutral-500 text-right">Avg days</th>
-                <th className="px-6 py-3 font-medium text-neutral-500 text-right">Total revenue</th>
-                <th className="px-6 py-3 font-medium text-neutral-500 text-right">Avg / booking</th>
+              <tr className="border-b border-border text-left text-xs text-neutral-500">
+                <th className="pb-2 font-medium">Month</th>
+                <th className="pb-2 text-right font-medium">Revenue</th>
+                <th className="pb-2 text-right font-medium">Cash costs</th>
+                <th className="pb-2 text-right font-medium">EBITDA</th>
+                <th className="pb-2 text-right font-medium">Depreciation</th>
+                <th className="pb-2 text-right font-medium">Net profit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {vehicleStats.map((v) => (
-                <tr key={v.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-3">
-                    <Link href={`/app/fleet/${companyId}/${v.id}`} className="hover:underline">
-                      <span className="font-medium text-neutral-900">{v.make} {v.model}</span>
-                      <span className="ml-2 font-mono text-xs text-neutral-400">{v.plate}</span>
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3 text-right text-neutral-700">{v.bookings}</td>
-                  <td className="px-6 py-3 text-right text-neutral-500">{v.avgDays.toFixed(1)}</td>
-                  <td className="px-6 py-3 text-right font-semibold text-neutral-900">{fmt(v.revenue)}</td>
-                  <td className="px-6 py-3 text-right text-neutral-600">{fmt(v.revenue / v.bookings)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-border bg-slate-50">
-                <td className="px-6 py-3 text-sm font-semibold text-neutral-700">Total</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold text-neutral-700">
-                  {vehicleStats.reduce((s, v) => s + v.bookings, 0)}
-                </td>
-                <td />
-                <td className="px-6 py-3 text-right text-sm font-bold text-neutral-900">
-                  {fmt(vehicleStats.reduce((s, v) => s + v.revenue, 0))}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
-
-      {/* ── Cost breakdown by type ── */}
-      {costBreakdown.length > 0 && (
-        <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-base font-semibold text-neutral-900">Cost breakdown by category</h2>
-            <p className="text-xs text-neutral-400 mt-0.5">All time · from maintenance log</p>
-          </div>
-          <div className="divide-y divide-border">
-            {costBreakdown.map(({ type, label, total }) => {
-              const barW = totalCostAll > 0 ? (total / totalCostAll) * 100 : 0;
-              return (
-                <div key={type} className="flex items-center gap-4 px-6 py-3">
-                  <span className="w-40 shrink-0 text-sm text-neutral-700">{label}</span>
-                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-red-300" style={{ width: `${barW}%` }} />
-                  </div>
-                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-neutral-900">{fmt(total)}</span>
-                  <span className="w-10 shrink-0 text-right text-xs text-neutral-400">{barW.toFixed(0)}%</span>
-                </div>
-              );
-            })}
-            <div className="flex items-center gap-4 px-6 py-3 bg-slate-50">
-              <span className="w-40 shrink-0 text-sm font-semibold text-neutral-700">Total</span>
-              <div className="flex-1" />
-              <span className="w-20 shrink-0 text-right text-sm font-bold text-neutral-900">{fmt(totalCostAll)}</span>
-              <span className="w-10 shrink-0" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Business expense breakdown ── */}
-      {bizBreakdown.length > 0 && (
-        <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
-          <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-neutral-900">Business expense breakdown</h2>
-              <p className="text-xs text-neutral-400 mt-0.5">All time · overhead &amp; general costs</p>
-            </div>
-            <Link href={`/app/expenses/${companyId}`} className="text-sm text-brand-700 hover:underline">View all →</Link>
-          </div>
-          <div className="divide-y divide-border">
-            {bizBreakdown.map(({ cat, label, total }) => {
-              const barW = totalBizAll > 0 ? (total / totalBizAll) * 100 : 0;
-              return (
-                <div key={cat} className="flex items-center gap-4 px-6 py-3">
-                  <span className="w-44 shrink-0 text-sm text-neutral-700">{label}</span>
-                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-violet-400" style={{ width: `${barW}%` }} />
-                  </div>
-                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-neutral-900">{fmt(total)}</span>
-                  <span className="w-10 shrink-0 text-right text-xs text-neutral-400">{barW.toFixed(0)}%</span>
-                </div>
-              );
-            })}
-            <div className="flex items-center gap-4 px-6 py-3 bg-slate-50">
-              <span className="w-44 shrink-0 text-sm font-semibold text-neutral-700">Total</span>
-              <div className="flex-1" />
-              <span className="w-20 shrink-0 text-right text-sm font-bold text-neutral-900">{fmt(totalBizAll)}</span>
-              <span className="w-10 shrink-0" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Recent bookings with value ── */}
-      {recentWithPrice.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-white">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-base font-semibold text-neutral-900">Recent bookings</h2>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-slate-50 text-left text-xs">
-                <th className="px-6 py-3 font-medium text-neutral-500">Date</th>
-                <th className="px-6 py-3 font-medium text-neutral-500">Vehicle</th>
-                <th className="px-6 py-3 font-medium text-neutral-500">Days</th>
-                <th className="px-6 py-3 font-medium text-neutral-500">Status</th>
-                <th className="px-6 py-3 font-medium text-neutral-500 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {recentWithPrice.map((b) => {
-                const days = Math.max(1, Math.ceil(
-                  (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / (1000 * 60 * 60 * 24)
-                ));
+              {plRows.map((r) => {
+                const isCurrent = r.month === now.getUTCMonth() && r.year === now.getUTCFullYear();
                 return (
-                  <tr key={b.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-3 text-neutral-600">
-                      {new Date(b.start_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  <tr key={`${r.year}-${r.month}`}
+                    className={isCurrent ? "bg-brand-50 font-semibold" : "hover:bg-slate-50"}>
+                    <td className="py-2 pr-4 text-sm text-neutral-700">{r.label}{isCurrent && <span className="ml-1.5 text-xs text-brand-600">← now</span>}</td>
+                    <td className="py-2 text-right tabular-nums">{fmt(r.revenue)}</td>
+                    <td className="py-2 text-right tabular-nums text-red-600">{r.cashCosts > 0 ? `−${fmt(r.cashCosts)}` : "—"}</td>
+                    <td className={`py-2 text-right tabular-nums font-medium ${r.ebitda >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                      {fmt(r.ebitda)}
                     </td>
-                    <td className="px-6 py-3">
-                      {b.vehicles
-                        ? <Link href={`/app/rentals/${companyId}/${b.id}`} className="font-medium text-neutral-900 hover:underline">
-                            {b.vehicles.make} {b.vehicles.model}
-                            <span className="ml-1.5 font-mono text-xs text-neutral-400">{b.vehicles.plate}</span>
-                          </Link>
-                        : "—"
-                      }
-                    </td>
-                    <td className="px-6 py-3 text-neutral-500">{days}d</td>
-                    <td className="px-6 py-3">
-                      <StatusBadge status={b.status} />
-                    </td>
-                    <td className="px-6 py-3 text-right font-semibold text-neutral-900">
-                      {fmt(b.booking_price ?? 0)}
+                    <td className="py-2 text-right tabular-nums text-neutral-400">{r.depreciation > 0 ? `−${fmt(r.depreciation)}` : "—"}</td>
+                    <td className={`py-2 text-right tabular-nums font-bold ${r.netProfit >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                      {fmt(r.netProfit)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-slate-50 text-sm font-bold">
+                <td className="py-2 pr-4 text-neutral-700">12-month total</td>
+                <td className="py-2 text-right tabular-nums">{fmt(plRows.reduce((s, r) => s + r.revenue, 0))}</td>
+                <td className="py-2 text-right tabular-nums text-red-600">−{fmt(plRows.reduce((s, r) => s + r.cashCosts, 0))}</td>
+                <td className={`py-2 text-right tabular-nums ${plRows.reduce((s, r) => s + r.ebitda, 0) >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                  {fmt(plRows.reduce((s, r) => s + r.ebitda, 0))}
+                </td>
+                <td className="py-2 text-right tabular-nums text-neutral-400">−{fmt(plRows.reduce((s, r) => s + r.depreciation, 0))}</td>
+                <td className={`py-2 text-right tabular-nums ${plRows.reduce((s, r) => s + r.netProfit, 0) >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                  {fmt(plRows.reduce((s, r) => s + r.netProfit, 0))}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
-      )}
+      </div>
 
-      {all.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border bg-white px-8 py-14 text-center">
-          <p className="text-sm font-medium text-neutral-600">No bookings recorded yet.</p>
-          <p className="mt-1 text-sm text-neutral-400">Create your first booking to start tracking revenue.</p>
-          <Link href={`/app/rentals/${companyId}/add`}
-            className="mt-4 inline-block rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
-            + New booking
-          </Link>
+      {/* ── Revenue chart ── */}
+      <div className="rounded-2xl border border-border bg-white p-6">
+        <h2 className="mb-4 text-base font-semibold text-neutral-900">Revenue vs costs — 12 months</h2>
+        <RevenueChart months={chartData} />
+      </div>
+
+      {/* ── Depreciation summary ── */}
+      {(depConfigured.length > 0 || depNotConfigured.length > 0) && (
+        <div className="rounded-2xl border border-border bg-white p-6">
+          <h2 className="mb-1 text-base font-semibold text-neutral-900">Depreciation</h2>
+          <p className="mb-4 text-xs text-neutral-400">
+            {depConfigured.length} of {vehicles.length} cars configured · monthly total {fmt(fleetMonthlyDepreciation(vehicles, companyRate, now.getUTCFullYear(), now.getUTCMonth()))}
+          </p>
+          {depNotConfigured.length > 0 && (
+            <p className="mb-3 text-xs text-amber-600">
+              ⚠ {depNotConfigured.length} car{depNotConfigured.length > 1 ? "s" : ""} without depreciation setup — open the car and add purchase/value data for full P&amp;L accuracy.
+            </p>
+          )}
+          <div className="text-xs text-neutral-400">Company default rate: <span className="font-semibold text-neutral-700">{companyRate}%/year</span></div>
         </div>
       )}
-    </div>
-  );
-}
 
-function StatCard({ label, value, sub, badge, badgeColor, footnote }: {
-  label: string; value: string; sub: string;
-  badge?: string; badgeColor?: string; footnote?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-white p-5">
-      <p className="text-xs font-medium text-neutral-400">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-neutral-900">{value}</p>
-      <p className="mt-1 text-xs text-neutral-400">{sub}</p>
-      {badge && (
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className={`text-sm font-semibold ${badgeColor}`}>{badge}</span>
-          {footnote && <span className="text-xs text-neutral-400">{footnote}</span>}
+      {/* ── Fleet profitability ── */}
+      {vehicleStats.length > 0 && (
+        <div className="rounded-2xl border border-border bg-white p-6">
+          <h2 className="mb-1 text-base font-semibold text-neutral-900">Fleet profitability</h2>
+          <p className="mb-4 text-xs text-neutral-400">Last 12 months. Revenue = pro-rata earned. Direct costs = vehicle-specific maintenance (amortized).</p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-neutral-500">
+                  <th className="pb-2 font-medium">Car</th>
+                  <th className="pb-2 text-right font-medium">Bookings</th>
+                  <th className="pb-2 text-right font-medium">Revenue</th>
+                  <th className="pb-2 text-right font-medium">Direct costs</th>
+                  <th className="pb-2 text-right font-medium">Depreciation</th>
+                  <th className="pb-2 text-right font-medium">Net contribution</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {vehicleStats.map((v) => (
+                  <tr key={v.id} className="hover:bg-slate-50">
+                    <td className="py-2 pr-4">
+                      <p className="font-medium text-neutral-900">{v.make} {v.model}</p>
+                      <p className="text-xs text-neutral-400">{v.plate}{!v.depMode || v.depMode === "none" ? " · no depreciation" : ""}</p>
+                    </td>
+                    <td className="py-2 text-right text-neutral-500">{v.bookingCount}</td>
+                    <td className="py-2 text-right tabular-nums font-medium">{fmt(v.revenue)}</td>
+                    <td className="py-2 text-right tabular-nums text-red-600">{v.directCosts > 0 ? `−${fmt(v.directCosts)}` : "—"}</td>
+                    <td className="py-2 text-right tabular-nums text-neutral-400">{v.depreciation > 0 ? `−${fmt(v.depreciation)}` : "—"}</td>
+                    <td className={`py-2 text-right tabular-nums font-bold ${v.netContrib >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                      {fmt(v.netContrib)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+
+      {/* ── Maintenance breakdown ── */}
+      {maintBreakdown.length > 0 && (
+        <div className="rounded-2xl border border-border bg-white p-6">
+          <h2 className="mb-4 text-base font-semibold text-neutral-900">Maintenance costs — 12 months (amortized)</h2>
+          <div className="space-y-2">
+            {maintBreakdown.map(({ label, total }) => {
+              const pctVal = maintBreakdownTotal > 0 ? (total / maintBreakdownTotal) * 100 : 0;
+              return (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="w-36 shrink-0 text-xs text-neutral-600">{label}</span>
+                  <div className="flex-1 rounded-full bg-slate-100 h-2 overflow-hidden">
+                    <div className="h-full rounded-full bg-red-400" style={{ width: `${pctVal}%` }} />
+                  </div>
+                  <span className="w-24 text-right text-sm font-semibold text-neutral-700">{fmt(total)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Recent bookings ── */}
+      {recentBookings.length > 0 && (
+        <div className="rounded-2xl border border-border bg-white p-6">
+          <h2 className="mb-4 text-base font-semibold text-neutral-900">Recent bookings</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-neutral-500">
+                  <th className="pb-2 font-medium">Car</th>
+                  <th className="pb-2 font-medium">Period</th>
+                  <th className="pb-2 text-right font-medium">Price</th>
+                  <th className="pb-2 text-right font-medium">Paid</th>
+                  <th className="pb-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {recentBookings.map((b) => (
+                  <tr key={b.id} className="hover:bg-slate-50">
+                    <td className="py-2 pr-4">
+                      <p className="font-medium text-neutral-800">{b.vehicles?.make} {b.vehicles?.model}</p>
+                      <p className="text-xs text-neutral-400">{b.vehicles?.plate}</p>
+                    </td>
+                    <td className="py-2 text-xs text-neutral-500">
+                      {new Date(b.start_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      {" → "}
+                      {new Date(b.end_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="py-2 text-right font-semibold">{fmt(b.booking_price ?? 0)}</td>
+                    <td className="py-2 text-right text-xs text-neutral-500">
+                      {b.paid_at ? new Date(b.paid_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—"}
+                    </td>
+                    <td className="py-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium
+                        ${b.status === "returned"  ? "bg-slate-100 text-slate-600" :
+                          b.status === "active"    ? "bg-emerald-50 text-emerald-700" :
+                          b.status === "confirmed" ? "bg-blue-50 text-blue-700" : "bg-neutral-100 text-neutral-500"}`}>
+                        {b.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
     </div>
-  );
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  confirmed: "bg-amber-50 text-amber-700",
-  active:    "bg-emerald-50 text-emerald-700",
-  returned:  "bg-neutral-100 text-neutral-500",
-  cancelled: "bg-red-50 text-red-400",
-};
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status] ?? ""}`}>
-      {status}
-    </span>
   );
 }

@@ -11,6 +11,7 @@ interface Expense {
   id: string; date: string; category: ExpenseCategory; description: string;
   amount: number; supplier: string | null; invoice_number: string | null;
   quantity: number | null; unit: string | null; is_recurring: boolean; notes: string | null;
+  covers_from: string | null; covers_until: string | null;
 }
 
 interface Props { companyId: string; expense?: Expense; payees?: Payee[]; }
@@ -66,6 +67,10 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
     notes:          expense?.notes          ?? "",
   });
 
+  const [amortizeOn,  setAmortizeOn]  = useState(!!(expense?.covers_from || expense?.covers_until));
+  const [coversFrom,  setCoversFrom]  = useState(expense?.covers_from  ?? "");
+  const [coversUntil, setCoversUntil] = useState(expense?.covers_until ?? "");
+
   const [status,   setStatus]   = useState<"idle" | "saving" | "deleting">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -97,6 +102,8 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
       unit:           isSupplies && form.unit.trim() ? form.unit.trim() : null,
       is_recurring:   form.is_recurring,
       notes:          form.notes.trim() || null,
+      covers_from:    amortizeOn && coversFrom  ? coversFrom  : null,
+      covers_until:   amortizeOn && coversUntil ? coversUntil : null,
     };
 
     const { error } = isEdit
@@ -195,14 +202,39 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
         <input name="invoice_number" value={form.invoice_number} onChange={set} placeholder="INV-2026-001" className={inp} />
       </Field>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
-        <input type="checkbox" name="is_recurring" checked={form.is_recurring} onChange={set}
-          className="h-4 w-4 rounded border-border text-brand-700" />
-        <div>
-          <p className="text-sm font-medium text-neutral-800">Recurring expense</p>
-          <p className="text-xs text-neutral-400">Mark if this repeats monthly (rent, salary, phone, etc.)</p>
+      <div className="space-y-3">
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
+          <input type="checkbox" name="is_recurring" checked={form.is_recurring} onChange={set}
+            className="h-4 w-4 rounded border-border text-brand-700" />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Recurring expense</p>
+            <p className="text-xs text-neutral-400">Mark if this repeats monthly (rent, salary, phone, etc.)</p>
+          </div>
+        </label>
+
+        <div className="rounded-xl border border-border bg-slate-50 px-4 py-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input type="checkbox" checked={amortizeOn} onChange={(e) => setAmortizeOn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand-700" />
+            <div>
+              <p className="text-sm font-medium text-neutral-800">Spread cost across a period (amortize)</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Use for annual insurance, memberships — allocates daily portion to each month in P&amp;L</p>
+            </div>
+          </label>
+          {amortizeOn && (
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700">Covers from</label>
+                <input type="date" value={coversFrom} onChange={(e) => setCoversFrom(e.target.value)} className={inp} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700">Covers until</label>
+                <input type="date" value={coversUntil} onChange={(e) => setCoversUntil(e.target.value)} className={inp} />
+              </div>
+            </div>
+          )}
         </div>
-      </label>
+      </div>
 
       <Field label="Notes">
         <textarea name="notes" rows={2} value={form.notes} onChange={set}

@@ -13,6 +13,7 @@ interface Company {
   website: string | null;
   email: string | null;
   founded_year: number | null;
+  default_depreciation_rate: number | null;
 }
 
 interface Location {
@@ -60,7 +61,8 @@ export function ProfileEditForm({ company, location, fleet, amenities: initialAm
     whatsapp:       company.whatsapp ?? "",
     website:        company.website ?? "",
     email:          company.email ?? "",
-    founded_year:   company.founded_year ? String(company.founded_year) : "",
+    founded_year:             company.founded_year ? String(company.founded_year) : "",
+    default_depreciation_rate: company.default_depreciation_rate != null ? String(company.default_depreciation_rate) : "20",
     address:        location?.address ?? "",
     fleet_count_min: fleet?.fleet_count_min != null ? String(fleet.fleet_count_min) : "",
     fleet_count_max: fleet?.fleet_count_max != null ? String(fleet.fleet_count_max) : "",
@@ -101,6 +103,7 @@ export function ProfileEditForm({ company, location, fleet, amenities: initialAm
         website:      form.website || null,
         email:        form.email || null,
         founded_year: form.founded_year ? parseInt(form.founded_year, 10) : null,
+        default_depreciation_rate: form.default_depreciation_rate ? parseFloat(form.default_depreciation_rate) : 20,
         updated_at:   new Date().toISOString(),
       })
       .eq("id", company.id);
@@ -163,10 +166,16 @@ export function ProfileEditForm({ company, location, fleet, amenities: initialAm
             className={inputCls}
           />
         </Field>
-        <Field label="Founded year" hint="e.g. 2008">
-          <input type="number" name="founded_year" min={1900} max={new Date().getFullYear()}
-            value={form.founded_year} onChange={handleChange} placeholder="2008" className={inputCls} />
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Founded year" hint="e.g. 2008">
+            <input type="number" name="founded_year" min={1900} max={new Date().getFullYear()}
+              value={form.founded_year} onChange={handleChange} placeholder="2008" className={inputCls} />
+          </Field>
+          <Field label="Default depreciation rate (%/year)" hint="Applied to cars without a custom rate. Standard: 20%">
+            <input type="number" name="default_depreciation_rate" min={0} max={100} step={0.1}
+              value={form.default_depreciation_rate} onChange={handleChange} placeholder="20" className={inputCls} />
+          </Field>
+        </div>
       </Section>
 
       {/* Fleet */}

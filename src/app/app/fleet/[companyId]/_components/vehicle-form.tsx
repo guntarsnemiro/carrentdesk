@@ -11,6 +11,8 @@ type VehicleStatus   = "available" | "rented" | "maintenance" | "retired";
 type VehicleCategory = "economy" | "compact" | "midsize" | "suv" | "van" | "luxury" | "other";
 type VehicleFuel     = "diesel" | "petrol" | "electric" | "hybrid" | "lpg";
 
+type DepreciationMode = "none" | "current_value" | "original";
+
 interface Vehicle {
   id: string;
   make: string; model: string; year: number; plate: string; color: string | null;
@@ -22,6 +24,10 @@ interface Vehicle {
   service_date: string | null; service_next: string | null;
   insurance_number: string | null; insurance_valid_until: string | null;
   notes: string | null;
+  // Asset & depreciation
+  purchase_price: number | null; purchase_date: string | null;
+  depreciation_mode: DepreciationMode | null; depreciation_rate: number | null;
+  residual_value: number | null; disposed_at: string | null; disposal_price: number | null;
 }
 
 interface Props { companyId: string; vehicle?: Vehicle; lastOdoReading?: OdometerReading; }
@@ -66,6 +72,14 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
     insurance_number:       vehicle?.insurance_number ?? "",
     insurance_valid_until:  vehicle?.insurance_valid_until ?? "",
     notes:    vehicle?.notes ?? "",
+    // Asset & depreciation
+    depreciation_mode:  (vehicle?.depreciation_mode ?? "none") as DepreciationMode,
+    purchase_price:     vehicle?.purchase_price != null ? String(vehicle.purchase_price) : "",
+    purchase_date:      vehicle?.purchase_date ?? "",
+    depreciation_rate:  vehicle?.depreciation_rate != null ? String(vehicle.depreciation_rate) : "",
+    residual_value:     vehicle?.residual_value != null ? String(vehicle.residual_value) : "",
+    disposed_at:        vehicle?.disposed_at ?? "",
+    disposal_price:     vehicle?.disposal_price != null ? String(vehicle.disposal_price) : "",
   });
 
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
@@ -102,7 +116,15 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
       insurance_number:       form.insurance_number.trim()     || null,
       insurance_valid_until:  form.insurance_valid_until  || null,
       notes:                  form.notes.trim()           || null,
-      updated_at:             new Date().toISOString(),
+      // Asset & depreciation
+      depreciation_mode:  form.depreciation_mode !== "none" ? form.depreciation_mode : "none",
+      purchase_price:     form.purchase_price ? parseFloat(form.purchase_price) : null,
+      purchase_date:      form.purchase_date  || null,
+      depreciation_rate:  form.depreciation_rate ? parseFloat(form.depreciation_rate) : null,
+      residual_value:     form.residual_value ? parseFloat(form.residual_value) : null,
+      disposed_at:        form.disposed_at    || null,
+      disposal_price:     form.disposal_price ? parseFloat(form.disposal_price) : null,
+      updated_at:         new Date().toISOString(),
     };
 
     let vehicleId = vehicle?.id;
@@ -254,6 +276,82 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
             <input name="insurance_valid_until" type="date" value={form.insurance_valid_until} onChange={set} className={inp} />
           </Field>
         </div>
+      </Section>
+
+      {/* ── Asset & Depreciation ── */}
+      <Section title="Asset & depreciation">
+        <p className="text-xs text-neutral-400">
+          Used for true P&amp;L reporting — monthly depreciation is calculated and shown in the Finance dashboard.
+        </p>
+        <div className="mt-3 space-y-3">
+          {/* Mode selection */}
+          {(["none","current_value","original"] as DepreciationMode[]).map((mode) => (
+            <label key={mode} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors
+              ${form.depreciation_mode === mode ? "border-brand-500 bg-brand-50" : "border-border bg-white hover:bg-slate-50"}`}>
+              <input type="radio" name="depreciation_mode" value={mode}
+                checked={form.depreciation_mode === mode}
+                onChange={() => setForm((f) => ({ ...f, depreciation_mode: mode }))}
+                className="mt-0.5 text-brand-600" />
+              <div>
+                <p className="text-sm font-medium text-neutral-800">
+                  {mode === "none"          && "Skip — no depreciation for this car"}
+                  {mode === "current_value" && "Use current market value (recommended for existing cars)"}
+                  {mode === "original"      && "I know the original purchase price and date"}
+                </p>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  {mode === "none"          && "Car excluded from depreciation calculations."}
+                  {mode === "current_value" && "Enter what the car is worth today. Depreciation runs forward from now."}
+                  {mode === "original"      && "Enter exact purchase price + date. Full historical depreciation from day 1."}
+                </p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {form.depreciation_mode !== "none" && (
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label={form.depreciation_mode === "current_value" ? "Current market value (€) *" : "Original purchase price (€) *"}>
+                <input name="purchase_price" type="number" min={0} step={0.01}
+                  value={form.purchase_price} onChange={set} placeholder="10000" className={inp} />
+              </Field>
+              <Field label={form.depreciation_mode === "current_value" ? "Date of valuation *" : "Purchase date *"} hint="DD.MM.YYYY">
+                <input name="purchase_date" type="date" value={form.purchase_date} onChange={set} className={inp} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Depreciation rate (%/year)" hint="Leave blank to use company default (20%)">
+                <input name="depreciation_rate" type="number" min={0} max={100} step={0.1}
+                  value={form.depreciation_rate} onChange={set} placeholder="20" className={inp} />
+              </Field>
+              <Field label="Expected residual value (€)" hint="Optional — what you expect to sell it for">
+                <input name="residual_value" type="number" min={0} step={0.01}
+                  value={form.residual_value} onChange={set} placeholder="4000" className={inp} />
+              </Field>
+            </div>
+
+            {/* Disposal — only for edit */}
+            {isEdit && (
+              <div className="rounded-xl border border-dashed border-neutral-200 p-4">
+                <p className="mb-3 text-xs font-medium text-neutral-500 uppercase tracking-wide">Vehicle disposal (sold / written off)</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Disposal date" hint="Date car left the fleet">
+                    <input name="disposed_at" type="date" value={form.disposed_at} onChange={set} className={inp} />
+                  </Field>
+                  <Field label="Sale / payout price (€)" hint="Insurance payout or actual sale price">
+                    <input name="disposal_price" type="number" min={0} step={0.01}
+                      value={form.disposal_price} onChange={set} placeholder="4200" className={inp} />
+                  </Field>
+                </div>
+                {form.disposed_at && (
+                  <p className="mt-2 text-xs text-amber-600">
+                    ⚠ Set car status to "Retired" to remove it from active fleet views.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </Section>
 
       {/* ── Notes ── */}

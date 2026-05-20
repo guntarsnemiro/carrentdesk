@@ -26,6 +26,8 @@ interface Booking {
   booking_price: number | null;
   deposit_amount: number | null;
   deposit_paid: boolean;
+  deposit_returned_at: string | null;
+  paid_at: string | null;
   payment_method: PaymentMethod | null;
   pickup_location: string | null;
   return_location: string | null;
@@ -74,8 +76,10 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     child_seat_child:   booking?.child_seat_child   ?? false,
     booking_price:      booking?.booking_price  != null ? String(booking.booking_price)  : "",
     deposit_amount:     booking?.deposit_amount != null ? String(booking.deposit_amount) : "",
-    deposit_paid:       booking?.deposit_paid ?? false,
-    payment_method:     (booking?.payment_method ?? "") as PaymentMethod | "",
+    deposit_paid:           booking?.deposit_paid ?? false,
+    deposit_returned_at:    booking?.deposit_returned_at ?? "",
+    paid_at:                booking?.paid_at ?? "",
+    payment_method:         (booking?.payment_method ?? "") as PaymentMethod | "",
     pickup_location:    booking?.pickup_location ?? "",
     return_location:    booking?.return_location ?? "",
     notes:              booking?.notes ?? "",
@@ -195,8 +199,10 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
       child_seat_child:   form.child_seat_child,
       booking_price:      form.booking_price  ? parseFloat(form.booking_price)  : null,
       deposit_amount:     form.deposit_amount ? parseFloat(form.deposit_amount) : null,
-      deposit_paid:       form.deposit_paid,
-      payment_method:     (form.payment_method || null) as PaymentMethod | null,
+      deposit_paid:           form.deposit_paid,
+      deposit_returned_at:    form.deposit_returned_at  || null,
+      paid_at:                form.paid_at              || null,
+      payment_method:         (form.payment_method || null) as PaymentMethod | null,
       pickup_location:    form.pickup_location.trim() || null,
       return_location:    form.return_location.trim() || null,
       notes:              form.notes.trim() || null,
@@ -405,20 +411,32 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
               placeholder="0.00" className={inp} />
           </Field>
         </div>
-        <label className="flex cursor-pointer items-center gap-3">
-          <input type="checkbox" name="deposit_paid" checked={form.deposit_paid} onChange={set}
-            className="h-4 w-4 rounded border-border text-brand-700 focus:ring-brand-500" />
-          <span className="text-sm text-neutral-700">Deposit received</span>
-        </label>
-        <Field label="Payment method">
-          <select name="payment_method" value={form.payment_method} onChange={set} className={inp}>
-            <option value="">Not specified</option>
-            <option value="cash">Cash</option>
-            <option value="card">Card</option>
-            <option value="bank_transfer">Bank transfer</option>
-            <option value="other">Other</option>
-          </select>
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Payment received date">
+            <p className="mb-1 text-xs text-neutral-400">DD.MM.YYYY — when money arrived</p>
+            <input name="paid_at" type="date" value={form.paid_at} onChange={set} className={inp} />
+          </Field>
+          <Field label="Payment method">
+            <select name="payment_method" value={form.payment_method} onChange={set} className={inp}>
+              <option value="">Not specified</option>
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="bank_transfer">Bank transfer</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-4 items-center">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input type="checkbox" name="deposit_paid" checked={form.deposit_paid} onChange={set}
+              className="h-4 w-4 rounded border-border text-brand-700 focus:ring-brand-500" />
+            <span className="text-sm text-neutral-700">Deposit received</span>
+          </label>
+          <Field label="Deposit returned date">
+            <p className="mb-1 text-xs text-neutral-400">Leave blank if still held</p>
+            <input name="deposit_returned_at" type="date" value={form.deposit_returned_at} onChange={set} className={inp} />
+          </Field>
+        </div>
       </Section>
 
       {/* ── Status & notes ── */}

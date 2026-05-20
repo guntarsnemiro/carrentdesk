@@ -14,8 +14,10 @@ export type Database = {
         Row: {
           booking_price: number | null; child_seat_child: boolean; child_seat_infant: boolean
           child_seat_toddler: boolean; company_id: string; created_at: string; customer_id: string | null
-          deposit_amount: number | null; deposit_paid: boolean; end_at: string; id: string
+          deposit_amount: number | null; deposit_paid: boolean; deposit_returned_at: string | null
+          end_at: string; id: string
           insurance: Database["public"]["Enums"]["booking_insurance"]; is_maintenance: boolean; notes: string | null
+          paid_at: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null; pickup_location: string | null
           return_location: string | null; start_at: string; status: Database["public"]["Enums"]["booking_status"]
           updated_at: string; vehicle_id: string
@@ -23,8 +25,10 @@ export type Database = {
         Insert: {
           booking_price?: number | null; child_seat_child?: boolean; child_seat_infant?: boolean
           child_seat_toddler?: boolean; company_id: string; created_at?: string; customer_id?: string | null
-          deposit_amount?: number | null; deposit_paid?: boolean; end_at: string; id?: string
+          deposit_amount?: number | null; deposit_paid?: boolean; deposit_returned_at?: string | null
+          end_at: string; id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]; is_maintenance?: boolean; notes?: string | null
+          paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null; pickup_location?: string | null
           return_location?: string | null; start_at: string; status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string; vehicle_id: string
@@ -32,8 +36,10 @@ export type Database = {
         Update: {
           booking_price?: number | null; child_seat_child?: boolean; child_seat_infant?: boolean
           child_seat_toddler?: boolean; company_id?: string; created_at?: string; customer_id?: string | null
-          deposit_amount?: number | null; deposit_paid?: boolean; end_at?: string; id?: string
+          deposit_amount?: number | null; deposit_paid?: boolean; deposit_returned_at?: string | null
+          end_at?: string; id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]; is_maintenance?: boolean; notes?: string | null
+          paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null; pickup_location?: string | null
           return_location?: string | null; start_at?: string; status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string; vehicle_id?: string
@@ -53,22 +59,23 @@ export type Database = {
       companies: {
         Row: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at: string | null; claimed_by_user_id: string | null
-          country: Database["public"]["Enums"]["country_code"]; created_at: string; description: string | null
-          email: string | null; founded_year: number | null; id: string; last_active_at: string | null
+          country: Database["public"]["Enums"]["country_code"]; created_at: string; default_depreciation_rate: number | null
+          description: string | null; email: string | null; founded_year: number | null; id: string; last_active_at: string | null
           logo_url: string | null; name: string; phone: string | null; slug: string
           status: Database["public"]["Enums"]["company_status"]; updated_at: string; vehicle_types: string[]
           verified_at: string | null; website: string | null; whatsapp: string | null
         }
         Insert: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
-          country: Database["public"]["Enums"]["country_code"]; created_at?: string; description?: string | null
-          email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
+          country: Database["public"]["Enums"]["country_code"]; created_at?: string; default_depreciation_rate?: number | null
+          description?: string | null; email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
           logo_url?: string | null; name: string; phone?: string | null; slug: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
         }
         Update: {
           city?: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
+          default_depreciation_rate?: number | null;
           country?: Database["public"]["Enums"]["country_code"]; created_at?: string; description?: string | null
           email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
           logo_url?: string | null; name?: string; phone?: string | null; slug?: string
@@ -147,9 +154,9 @@ export type Database = {
         Relationships: [{ foreignKeyName: "expense_payees_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
       company_expenses: {
-        Row: { amount: number; category: Database["public"]["Enums"]["expense_category"]; company_id: string; created_at: string; date: string; description: string; id: string; invoice_number: string | null; is_recurring: boolean; notes: string | null; quantity: number | null; supplier: string | null; unit: string | null }
-        Insert: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id: string; created_at?: string; date: string; description: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
-        Update: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id?: string; created_at?: string; date?: string; description?: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
+        Row: { amount: number; category: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from: string | null; covers_until: string | null; created_at: string; date: string; description: string; id: string; invoice_number: string | null; is_recurring: boolean; notes: string | null; quantity: number | null; supplier: string | null; unit: string | null }
+        Insert: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date: string; description: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
+        Update: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id?: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date?: string; description?: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
         Relationships: [{ foreignKeyName: "company_expenses_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
       garage_presets: {
@@ -175,19 +182,22 @@ export type Database = {
       }
       maintenance_logs: {
         Row: {
-          company_id: string; cost: number; created_at: string; date: string; description: string | null; id: string
+          company_id: string; cost: number; covers_from: string | null; covers_until: string | null
+          created_at: string; date: string; description: string | null; id: string
           invoice_number: string | null; next_due_date: string | null; next_due_km: number | null
           next_due_label: string | null; notes: string | null; odometer_km: number | null; supplier: string | null
           type: Database["public"]["Enums"]["maintenance_type"]; vehicle_id: string
         }
         Insert: {
-          company_id: string; cost?: number; created_at?: string; date: string; description?: string | null; id?: string
+          company_id: string; cost?: number; covers_from?: string | null; covers_until?: string | null
+          created_at?: string; date: string; description?: string | null; id?: string
           invoice_number?: string | null; next_due_date?: string | null; next_due_km?: number | null
           next_due_label?: string | null; notes?: string | null; odometer_km?: number | null; supplier?: string | null
           type?: Database["public"]["Enums"]["maintenance_type"]; vehicle_id: string
         }
         Update: {
-          company_id?: string; cost?: number; created_at?: string; date?: string; description?: string | null; id?: string
+          company_id?: string; cost?: number; covers_from?: string | null; covers_until?: string | null
+          created_at?: string; date?: string; description?: string | null; id?: string
           invoice_number?: string | null; next_due_date?: string | null; next_due_km?: number | null
           next_due_label?: string | null; notes?: string | null; odometer_km?: number | null; supplier?: string | null
           type?: Database["public"]["Enums"]["maintenance_type"]; vehicle_id?: string
@@ -200,26 +210,35 @@ export type Database = {
       vehicles: {
         Row: {
           category: Database["public"]["Enums"]["vehicle_category"]; color: string | null; company_id: string
-          created_at: string; fuel: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date: string | null
+          created_at: string; depreciation_mode: string | null; depreciation_rate: number | null
+          disposal_price: number | null; disposed_at: string | null
+          fuel: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date: string | null
           gov_inspection_next: string | null; id: string; insurance_number: string | null; insurance_valid_until: string | null
           make: string; model: string; notes: string | null; odometer_km: number | null; plate: string
-          registration_number: string | null; seats: number | null; service_date: string | null; service_next: string | null
+          purchase_date: string | null; purchase_price: number | null; registration_number: string | null
+          residual_value: number | null; seats: number | null; service_date: string | null; service_next: string | null
           status: Database["public"]["Enums"]["vehicle_status"]; updated_at: string; vin: string | null; year: number
         }
         Insert: {
           category?: Database["public"]["Enums"]["vehicle_category"]; color?: string | null; company_id: string
-          created_at?: string; fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date?: string | null
+          created_at?: string; depreciation_mode?: string | null; depreciation_rate?: number | null
+          disposal_price?: number | null; disposed_at?: string | null
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date?: string | null
           gov_inspection_next?: string | null; id?: string; insurance_number?: string | null; insurance_valid_until?: string | null
           make: string; model: string; notes?: string | null; odometer_km?: number | null; plate: string
-          registration_number?: string | null; seats?: number | null; service_date?: string | null; service_next?: string | null
+          purchase_date?: string | null; purchase_price?: number | null; registration_number?: string | null
+          residual_value?: number | null; seats?: number | null; service_date?: string | null; service_next?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]; updated_at?: string; vin?: string | null; year: number
         }
         Update: {
           category?: Database["public"]["Enums"]["vehicle_category"]; color?: string | null; company_id?: string
-          created_at?: string; fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date?: string | null
+          created_at?: string; depreciation_mode?: string | null; depreciation_rate?: number | null
+          disposal_price?: number | null; disposed_at?: string | null
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null; gov_inspection_date?: string | null
           gov_inspection_next?: string | null; id?: string; insurance_number?: string | null; insurance_valid_until?: string | null
           make?: string; model?: string; notes?: string | null; odometer_km?: number | null; plate?: string
-          registration_number?: string | null; seats?: number | null; service_date?: string | null; service_next?: string | null
+          purchase_date?: string | null; purchase_price?: number | null; registration_number?: string | null
+          residual_value?: number | null; seats?: number | null; service_date?: string | null; service_next?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]; updated_at?: string; vin?: string | null; year?: number
         }
         Relationships: [{ foreignKeyName: "vehicles_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]

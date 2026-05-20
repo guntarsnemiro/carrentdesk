@@ -34,7 +34,7 @@ export default async function ProfileEditPage({ params }: Props) {
   // Load company + primary location
   const { data: company } = await db
     .from("companies")
-    .select("id, name, slug, city, country, status, description, phone, whatsapp, website, email, founded_year")
+    .select("id, name, slug, city, country, status, description, phone, whatsapp, website, email, founded_year, default_depreciation_rate")
     .eq("id", companyId)
     .maybeSingle();
 

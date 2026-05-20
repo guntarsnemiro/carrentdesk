@@ -14,6 +14,7 @@ interface Log {
   id: string; vehicle_id: string; date: string; type: MaintenanceType; description: string | null;
   cost: number; odometer_km: number | null; supplier: string | null; invoice_number: string | null; notes: string | null;
   next_due_km: number | null; next_due_date: string | null; next_due_label: string | null;
+  covers_from: string | null; covers_until: string | null;
 }
 
 interface Props {
@@ -58,6 +59,10 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
     invoice_number: log?.invoice_number ?? "",
     notes:          log?.notes          ?? "",
   });
+
+  const [amortizeOn,    setAmortizeOn]    = useState(!!(log?.covers_from || log?.covers_until));
+  const [coversFrom,    setCoversFrom]    = useState(log?.covers_from ?? "");
+  const [coversUntil,   setCoversUntil]   = useState(log?.covers_until ?? "");
 
   const [reminderOn,    setReminderOn]    = useState(!!(log?.next_due_km || log?.next_due_date));
   const [nextDueLabel,  setNextDueLabel]  = useState(log?.next_due_label ?? "");
@@ -118,6 +123,8 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
       next_due_km:    reminderOn && nextDueKmAbsolute ? nextDueKmAbsolute : null,
       next_due_date:  reminderOn && nextDueDate ? nextDueDate : null,
       next_due_label: label,
+      covers_from:    amortizeOn && coversFrom  ? coversFrom  : null,
+      covers_until:   amortizeOn && coversUntil ? coversUntil : null,
     };
 
     if (isEdit && log) {
@@ -235,6 +242,28 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
       <Field label="Notes">
         <textarea name="notes" rows={2} value={form.notes} onChange={set} placeholder="Any additional internal notes…" className={inp} />
       </Field>
+
+      {/* ── Amortization (spread cost across period) ── */}
+      <div className="rounded-xl border border-border bg-slate-50 p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input type="checkbox" checked={amortizeOn} onChange={(e) => setAmortizeOn(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand-700" />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Spread cost across a period (amortize)</p>
+            <p className="text-xs text-neutral-400 mt-0.5">Use for insurance, annual fees — allocates daily portion to each month in P&amp;L</p>
+          </div>
+        </label>
+        {amortizeOn && (
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <Field label="Covers from" hint="DD.MM.YYYY">
+              <input type="date" value={coversFrom} onChange={(e) => setCoversFrom(e.target.value)} className={inp} />
+            </Field>
+            <Field label="Covers until" hint="DD.MM.YYYY">
+              <input type="date" value={coversUntil} onChange={(e) => setCoversUntil(e.target.value)} className={inp} />
+            </Field>
+          </div>
+        )}
+      </div>
 
       {/* ── Service reminder ── */}
       <div className="rounded-xl border border-border bg-slate-50 p-4">
