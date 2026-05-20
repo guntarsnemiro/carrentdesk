@@ -24,11 +24,14 @@ export default async function EditBookingPage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const [{ data: booking }, { data: vehicles }] = await Promise.all([
+  const [{ data: booking }, { data: vehicles }, { data: locs }] = await Promise.all([
     db.from("bookings").select("*").eq("id", bookingId).eq("company_id", companyId).maybeSingle(),
     db.from("vehicles").select("id, make, model, year, plate").eq("company_id", companyId).neq("status", "retired").order("make").order("model"),
+    db.from("locations").select("address, is_primary").eq("company_id", companyId).order("created_at"),
   ]);
   if (!booking) notFound();
+
+  const locationPresets = (locs ?? []).map((l) => l.address);
 
   const { data: customer } = booking.customer_id ? await db
     .from("customers")
@@ -47,6 +50,7 @@ export default async function EditBookingPage({
         vehicles={vehicles ?? []}
         booking={booking}
         initialCustomer={customer ?? undefined}
+        locationPresets={locationPresets}
       />
     </div>
   );

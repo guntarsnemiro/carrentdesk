@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "./_components/profile-edit-form";
+import { LocationsManager } from "./_components/locations-manager";
 
 export const metadata: Metadata = { title: "Edit profile" };
 
@@ -46,6 +47,12 @@ export default async function ProfileEditPage({ params }: Props) {
     .eq("is_primary", true)
     .maybeSingle();
 
+  const { data: allLocations } = await db
+    .from("locations")
+    .select("id, address, is_primary")
+    .eq("company_id", companyId)
+    .order("created_at");
+
   const { data: fleet } = await db
     .from("company_fleet_summary")
     .select("fleet_count_min, fleet_count_max, fleet_description, transmission_mix, fuel_mix, age_range")
@@ -80,6 +87,20 @@ export default async function ProfileEditPage({ params }: Props) {
         fleet={fleet ?? null}
         amenities={amenities}
       />
+
+      {/* Preset pickup/return locations */}
+      <div className="mt-10 rounded-2xl border border-border bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Pickup &amp; return locations</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Save frequently used locations so you can select them quickly when creating bookings.
+        </p>
+        <div className="mt-4">
+          <LocationsManager
+            companyId={companyId}
+            initial={(allLocations ?? []).filter((l) => !l.is_primary)}
+          />
+        </div>
+      </div>
     </div>
   );
 }

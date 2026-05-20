@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { LocationInput } from "@/components/operator/location-input";
 
 type BookingStatus   = "confirmed" | "active" | "returned" | "cancelled";
 type Insurance       = "none" | "partial" | "full";
@@ -36,6 +37,7 @@ interface Props {
   vehicles: Vehicle[];
   booking?: Booking;
   initialCustomer?: Customer;
+  locationPresets?: string[];
 }
 
 function toLocalDatetimeValue(iso: string) {
@@ -57,7 +59,7 @@ function defaultEnd() {
   return toLocalDatetimeValue(d.toISOString());
 }
 
-export function BookingForm({ companyId, vehicles, booking, initialCustomer }: Props) {
+export function BookingForm({ companyId, vehicles, booking, initialCustomer, locationPresets = [] }: Props) {
   const router = useRouter();
   const isEdit = Boolean(booking);
 
@@ -341,12 +343,24 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer }: P
         )}
         <div className="grid grid-cols-2 gap-4">
           <Field label="Pickup location">
-            <input name="pickup_location" value={form.pickup_location} onChange={set}
-              placeholder="e.g. Airport Terminal 1" className={inp} />
+            <LocationInput
+              name="pickup_location"
+              value={form.pickup_location}
+              onChange={(v) => setForm((p) => ({ ...p, pickup_location: v }))}
+              presets={locationPresets}
+              placeholder="e.g. Airport Terminal 1"
+              className={inp}
+            />
           </Field>
           <Field label="Return location">
-            <input name="return_location" value={form.return_location} onChange={set}
-              placeholder="e.g. Main office" className={inp} />
+            <LocationInput
+              name="return_location"
+              value={form.return_location}
+              onChange={(v) => setForm((p) => ({ ...p, return_location: v }))}
+              presets={locationPresets}
+              placeholder="e.g. Main office"
+              className={inp}
+            />
           </Field>
         </div>
       </Section>

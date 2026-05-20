@@ -29,6 +29,14 @@ export default async function CalendarPage({
     .eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
+  // Fetch location presets
+  const { data: locs } = await db
+    .from("locations")
+    .select("address")
+    .eq("company_id", companyId)
+    .order("created_at");
+  const locationPresets = (locs ?? []).map((l) => l.address);
+
   // Fetch vehicles including inspection/insurance dates for calendar markers
   const { data: rawVehicles } = await db
     .from("vehicles")
@@ -95,6 +103,7 @@ export default async function CalendarPage({
         companyId={companyId}
         vehicles={vehicles}
         bookings={bookings}
+        locationPresets={locationPresets}
       />
     </div>
   );

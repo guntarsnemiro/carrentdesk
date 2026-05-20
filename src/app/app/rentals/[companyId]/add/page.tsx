@@ -24,12 +24,11 @@ export default async function AddBookingPage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const { data: vehicles } = await db
-    .from("vehicles")
-    .select("id, make, model, year, plate")
-    .eq("company_id", companyId)
-    .neq("status", "retired")
-    .order("make").order("model");
+  const [{ data: vehicles }, { data: locs }] = await Promise.all([
+    db.from("vehicles").select("id, make, model, year, plate").eq("company_id", companyId).neq("status", "retired").order("make").order("model"),
+    db.from("locations").select("address").eq("company_id", companyId).order("created_at"),
+  ]);
+  const locationPresets = (locs ?? []).map((l) => l.address);
 
   if (!vehicles || vehicles.length === 0) {
     return (
@@ -53,7 +52,7 @@ export default async function AddBookingPage({
         <Link href={`/app/rentals/${companyId}`} className="text-sm text-neutral-500 hover:text-neutral-700">← Rentals</Link>
         <h1 className="mt-2 text-2xl font-bold text-neutral-900">New booking</h1>
       </div>
-      <BookingForm companyId={companyId} vehicles={vehicles} />
+      <BookingForm companyId={companyId} vehicles={vehicles} locationPresets={locationPresets} />
     </div>
   );
 }

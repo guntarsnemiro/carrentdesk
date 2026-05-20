@@ -67,6 +67,7 @@ interface Props {
   companyId: string;
   vehicles: Vehicle[];
   bookings: Booking[];
+  locationPresets?: string[];
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -272,10 +273,11 @@ interface CreatePopupProps {
   preEnd?: string;
   onClose: () => void;
   onCreated: (b: Booking) => void;
+  locationPresets?: string[];
 }
 
 function CreateBookingPopup({
-  companyId, vehicles, allBookings, preVehicleId, preStart, preEnd, onClose, onCreated,
+  companyId, vehicles, allBookings, preVehicleId, preStart, preEnd, onClose, onCreated, locationPresets = [],
 }: CreatePopupProps) {
   const [customer, setCustomer]         = useState<Customer | null>(null);
   const [isMaintenance, setMaintenance] = useState(false);
@@ -401,7 +403,9 @@ function CreateBookingPopup({
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
+                {locationPresets.length > 0 && <datalist id="cal-loc-presets-new">{locationPresets.map((p) => <option key={p} value={p} />)}</datalist>}
                 <input name="pickup_location" value={form.pickup_location} onChange={setField}
+                  list={locationPresets.length > 0 ? "cal-loc-presets-new" : undefined}
                   placeholder="e.g. Airport" className={INP} />
               </div>
             </div>
@@ -419,6 +423,7 @@ function CreateBookingPopup({
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
                 <input name="return_location" value={form.return_location} onChange={setField}
+                  list={locationPresets.length > 0 ? "cal-loc-presets-new" : undefined}
                   placeholder="e.g. Main office" className={INP} />
               </div>
             </div>
@@ -531,9 +536,10 @@ interface BookingPopupProps {
   companyId: string;
   onClose: () => void;
   onUpdated: (bookingId: string, changes: Partial<Booking>) => void;
+  locationPresets?: string[];
 }
 
-function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUpdated }: BookingPopupProps) {
+function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUpdated, locationPresets = [] }: BookingPopupProps) {
   const [isMaintenance] = useState(booking.is_maintenance);
   const [form, setForm] = useState({
     vehicle_id:         booking.vehicle_id,
@@ -646,7 +652,9 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
+                {locationPresets.length > 0 && <datalist id="cal-loc-presets-edit">{locationPresets.map((p) => <option key={p} value={p} />)}</datalist>}
                 <input name="pickup_location" value={form.pickup_location} onChange={setField}
+                  list={locationPresets.length > 0 ? "cal-loc-presets-edit" : undefined}
                   placeholder="e.g. Airport" className={INP} />
               </div>
             </div>
@@ -663,6 +671,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
               <div>
                 <label className="block text-xs font-medium text-neutral-600">Location</label>
                 <input name="return_location" value={form.return_location} onChange={setField}
+                  list={locationPresets.length > 0 ? "cal-loc-presets-edit" : undefined}
                   placeholder="e.g. Main office" className={INP} />
               </div>
             </div>
@@ -815,7 +824,7 @@ interface TooltipState {
   y: number;
 }
 
-export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: initialBookings }: Props) {
+export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: initialBookings, locationPresets = [] }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const today    = new Date();
@@ -936,6 +945,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           companyId={companyId}
           onClose={() => setActiveBooking(null)}
           onUpdated={handleUpdated}
+          locationPresets={locationPresets}
         />
       )}
 
@@ -950,6 +960,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           preEnd={strToLocalDatetime(strAddDay(newBookingTarget.endStr), "10:00")}
           onClose={() => setNewBookingTarget(null)}
           onCreated={handleCreated}
+          locationPresets={locationPresets}
         />
       )}
 
@@ -961,6 +972,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           allBookings={bookings}
           onClose={() => setShowNewPopup(false)}
           onCreated={handleCreated}
+          locationPresets={locationPresets}
         />
       )}
 
