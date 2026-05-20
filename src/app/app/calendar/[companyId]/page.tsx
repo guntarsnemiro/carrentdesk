@@ -40,20 +40,18 @@ export default async function CalendarPage({
   // Fetch vehicles including inspection/insurance dates for calendar markers
   const { data: rawVehicles } = await db
     .from("vehicles")
-    .select("id, make, model, plate, status, gov_inspection_next, service_next, insurance_valid_until")
+    .select("id, make, model, plate, status, gov_inspection_next")
     .eq("company_id", companyId)
     .neq("status", "retired")
     .order("make").order("model");
 
   const vehicles = (rawVehicles ?? []).map((v) => ({
-    id:                   v.id,
-    make:                 v.make,
-    model:                v.model,
-    plate:                v.plate,
-    status:               v.status,
-    gov_inspection_next:  v.gov_inspection_next ?? null,
-    service_next:         v.service_next ?? null,
-    insurance_valid_until: v.insurance_valid_until ?? null,
+    id:                  v.id,
+    make:                v.make,
+    model:               v.model,
+    plate:               v.plate,
+    status:              v.status,
+    gov_inspection_next: v.gov_inspection_next ?? null,
   }));
 
   // 60 days back, 365 days forward

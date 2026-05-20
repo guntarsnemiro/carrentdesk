@@ -116,6 +116,24 @@ export default async function DashboardPage({
     ? await db.from("customers").select("company_id").in("company_id", companyIds)
     : { data: [] };
 
+  // Maintenance reminders — fetch logs that have a next_due set, joined with vehicle info
+  const { data: maintLogsRaw } = companyIds.length
+    ? await db.from("maintenance_logs")
+        .select("id, company_id, vehicle_id, type, next_due_km, next_due_date, next_due_label, odometer_km, date, vehicle:vehicles(make, model, plate, odometer_km)")
+        .in("company_id", companyIds)
+        .or("next_due_km.not.is.null,next_due_date.not.is.null")
+        .order("date", { ascending: false })
+    : { data: [] };
+
+  // Per vehicle+type keep only the latest log with a reminder
+  type MaintLog = { id: string; company_id: string; vehicle_id: string; type: string; next_due_km: number | null; next_due_date: string | null; next_due_label: string | null; odometer_km: number | null; date: string; vehicle: { make: string; model: string; plate: string; odometer_km: number | null } | null; };
+  const latestMaintMap = new Map<string, MaintLog>();
+  for (const l of (maintLogsRaw ?? []) as MaintLog[]) {
+    const key = `${l.vehicle_id}::${l.type}`;
+    const existing = latestMaintMap.get(key);
+    if (!existing || l.date > existing.date) latestMaintMap.set(key, l);
+  }
+
   const allBookings = (bookingRows ?? []) as BookingFull[];
   const allVehicles = (vehicleRows ?? []) as (VehicleAlert & { status: string })[];
 
@@ -170,7 +188,32 @@ export default async function DashboardPage({
             const insuranceExpiring  = vehicles.filter((v) => isThisMonth(v.insurance_valid_until, now));
             const govInspectionDue   = vehicles.filter((v) => isThisMonth(v.gov_inspection_next,   now));
             const serviceDue         = vehicles.filter((v) => isThisMonth(v.service_next,          now));
-            const hasAlerts = insuranceExpiring.length > 0 || govInspectionDue.length > 0 || serviceDue.length > 0;
+
+            // Maintenance reminders — overdue or due within 30 days
+            type MaintReminder = { logId: string; vehicleName: string; plate: string; label: string; daysLeft: number | null; kmLeft: number | null; href: string };
+            const maintReminders: MaintReminder[] = [];
+            for (const l of latestMaintMap.values()) {
+              if (l.company_id !== company.id) continue;
+              const v = l.vehicle as { make: string; model: string; plate: string; odometer_km: number | null } | null;
+              if (!v) continue;
+              const currentOdo = v.odometer_km;
+              const daysLeft = l.next_due_date
+                ? Math.ceil((new Date(l.next_due_date).getTime() - today.getTime()) / 86400000)
+                : null;
+              const kmLeft = l.next_due_km != null && currentOdo != null ? l.next_due_km - currentOdo : null;
+              const isOverdue = (daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0);
+              const isSoon    = !isOverdue && ((daysLeft != null && daysLeft <= 30) || (kmLeft != null && kmLeft <= 2000));
+              if (isOverdue || isSoon) {
+                maintReminders.push({
+                  logId: l.id, vehicleName: `${v.make} ${v.model}`, plate: v.plate,
+                  label: l.next_due_label ?? l.type, daysLeft, kmLeft,
+                  href: `/app/maintenance/${company.id}/${l.id}`,
+                });
+              }
+            }
+            maintReminders.sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+
+            const hasAlerts = insuranceExpiring.length > 0 || govInspectionDue.length > 0 || serviceDue.length > 0 || maintReminders.length > 0;
 
             const total       = vehicles.length;
             const available   = vehicles.filter((v) => v.status === "available").length;
@@ -323,6 +366,30 @@ export default async function DashboardPage({
                               href: `/app/fleet/${company.id}/${v.id}`,
                             }))}
                           />
+                        )}
+                        {maintReminders.length > 0 && (
+                          <div>
+                            <p className="mb-1.5 text-sm font-medium text-amber-900">🔧 Service reminders ({maintReminders.length})</p>
+                            <div className="space-y-1">
+                              {maintReminders.map((r) => (
+                                <a key={r.logId} href={r.href} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm hover:opacity-75">
+                                  <span className="font-medium text-amber-900">{r.vehicleName}</span>
+                                  <span className="font-mono text-xs text-amber-700">{r.plate}</span>
+                                  <span className="text-xs text-amber-700">{r.label}</span>
+                                  {r.daysLeft != null && (
+                                    <span className="text-xs text-amber-600">
+                                      {r.daysLeft < 0 ? `${Math.abs(r.daysLeft)}d overdue` : r.daysLeft === 0 ? "due today" : `${r.daysLeft}d left`}
+                                    </span>
+                                  )}
+                                  {r.kmLeft != null && (
+                                    <span className="text-xs text-amber-600">
+                                      {r.kmLeft < 0 ? `${Math.abs(r.kmLeft).toLocaleString()} km overdue` : `${r.kmLeft.toLocaleString()} km left`}
+                                    </span>
+                                  )}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

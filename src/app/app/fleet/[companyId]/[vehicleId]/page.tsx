@@ -46,7 +46,7 @@ export default async function EditVehiclePage({
 
   const { data: maintLogs } = await db
     .from("maintenance_logs")
-    .select("id, date, type, description, cost, supplier")
+    .select("id, date, type, description, cost, supplier, next_due_km, next_due_date, next_due_label, odometer_km")
     .eq("vehicle_id", vehicleId)
     .order("date", { ascending: false })
     .limit(20);
@@ -92,23 +92,43 @@ export default async function EditVehiclePage({
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Date</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Type</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Description</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500">Next due</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500 text-right">Cost</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {maintLogs.map((l) => (
+                {maintLogs.map((l) => {
+                  const hasReminder = l.next_due_km || l.next_due_date;
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const daysLeft = l.next_due_date
+                    ? Math.ceil((new Date(l.next_due_date).getTime() - today.getTime()) / 86400000)
+                    : null;
+                  const kmLeft = l.next_due_km != null && vehicle.odometer_km != null
+                    ? l.next_due_km - vehicle.odometer_km : null;
+                  const isOverdue = (daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0);
+                  const isSoon = !isOverdue && ((daysLeft != null && daysLeft <= 30) || (kmLeft != null && kmLeft <= 2000));
+                  return (
                   <tr key={l.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2.5 text-neutral-600 whitespace-nowrap">{fmtDate(l.date)}</td>
                     <td className="px-4 py-2.5 text-neutral-700">{TYPE_LABELS[l.type] ?? l.type}</td>
-                    <td className="px-4 py-2.5 text-neutral-500 max-w-[180px] truncate">{l.description ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-neutral-500 max-w-[140px] truncate">{l.description ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {hasReminder ? (
+                        <div className={isOverdue ? "text-red-600 font-semibold" : isSoon ? "text-amber-600 font-semibold" : "text-neutral-500"}>
+                          {l.next_due_date && <div>{fmtDate(l.next_due_date)}{daysLeft != null && daysLeft < 0 ? " ⚠" : ""}</div>}
+                          {l.next_due_km != null && <div>{l.next_due_km.toLocaleString()} km{kmLeft != null && kmLeft < 0 ? " ⚠" : ""}</div>}
+                        </div>
+                      ) : <span className="text-neutral-300">—</span>}
+                    </td>
                     <td className="px-4 py-2.5 text-right font-semibold text-neutral-900">€{Number(l.cost).toFixed(2)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <Link href={`/app/maintenance/${companyId}/${l.id}`}
                         className="text-xs text-brand-700 hover:underline">Edit</Link>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

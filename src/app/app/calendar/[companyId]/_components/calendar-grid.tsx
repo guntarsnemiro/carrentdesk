@@ -52,8 +52,6 @@ interface Vehicle {
   plate: string;
   status: string;
   gov_inspection_next: string | null;
-  service_next: string | null;
-  insurance_valid_until: string | null;
 }
 
 interface Customer {
@@ -1091,11 +1089,9 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       );
                     })}
 
-                    {/* Inspection / insurance markers — full cell */}
+                    {/* Gov. inspection marker only */}
                     {[
                       { date: v.gov_inspection_next,  color: "bg-yellow-300", title: "Gov. inspection due" },
-                      { date: v.service_next,          color: "bg-blue-300",   title: "Service due" },
-                      { date: v.insurance_valid_until, color: "bg-emerald-300", title: "Insurance expires" },
                     ].map(({ date, color, title }) => {
                       if (!date) return null;
                       const markerStr = date.slice(0, 10);
@@ -1205,9 +1201,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           ))}
           <div className="mx-1 h-4 w-px bg-border" />
           {[
-            { label: "Gov. inspection", color: "bg-yellow-300"  },
-            { label: "Service due",     color: "bg-blue-300"    },
-            { label: "Insurance exp.",  color: "bg-emerald-300" },
+            { label: "Gov. inspection", color: "bg-yellow-300" },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
               <span className={`h-3 w-4 rounded-sm ${l.color} opacity-70`} />

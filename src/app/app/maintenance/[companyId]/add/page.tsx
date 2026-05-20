@@ -26,12 +26,17 @@ export default async function AddMaintenancePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const { data: vehicles } = await db
-    .from("vehicles")
-    .select("id, make, model, plate, year")
-    .eq("company_id", companyId)
-    .neq("status", "retired")
-    .order("make");
+  const [{ data: vehicles }, { data: garages }] = await Promise.all([
+    db.from("vehicles")
+      .select("id, make, model, plate, year, odometer_km")
+      .eq("company_id", companyId)
+      .neq("status", "retired")
+      .order("make"),
+    db.from("garage_presets")
+      .select("id, name, phone")
+      .eq("company_id", companyId)
+      .order("created_at"),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
@@ -43,7 +48,12 @@ export default async function AddMaintenancePage({
         <h1 className="mt-3 text-2xl font-bold text-neutral-900">Add maintenance entry</h1>
       </div>
       <div className="rounded-2xl border border-border bg-white p-6">
-        <MaintenanceForm companyId={companyId} vehicles={vehicles ?? []} defaultVehicleId={defaultVehicleId} />
+        <MaintenanceForm
+          companyId={companyId}
+          vehicles={vehicles ?? []}
+          garages={garages ?? []}
+          defaultVehicleId={defaultVehicleId}
+        />
       </div>
     </div>
   );

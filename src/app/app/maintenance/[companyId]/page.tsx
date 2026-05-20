@@ -3,29 +3,20 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { GaragePresetsManager } from "./_components/garage-presets-manager";
 
 export const metadata: Metadata = { title: "Maintenance" };
 
 const TYPE_LABELS: Record<string, string> = {
-  oil_change:         "Oil change",
-  tires:              "Tires",
-  brakes:             "Brakes",
-  gov_inspection_fee: "Gov. inspection fee",
-  insurance_payment:  "Insurance payment",
-  bodywork:           "Bodywork / paint",
-  cleaning:           "Cleaning / detailing",
-  other:              "Other",
+  oil_change: "Oil change", tires: "Tires", brakes: "Brakes",
+  gov_inspection_fee: "Gov. inspection fee", insurance_payment: "Insurance payment",
+  bodywork: "Bodywork / paint", cleaning: "Cleaning / detailing", other: "Other",
 };
-
 const TYPE_COLOR: Record<string, string> = {
-  oil_change:         "bg-amber-50 text-amber-700",
-  tires:              "bg-blue-50 text-blue-700",
-  brakes:             "bg-red-50 text-red-700",
-  gov_inspection_fee: "bg-yellow-50 text-yellow-700",
-  insurance_payment:  "bg-emerald-50 text-emerald-700",
-  bodywork:           "bg-purple-50 text-purple-700",
-  cleaning:           "bg-sky-50 text-sky-700",
-  other:              "bg-neutral-100 text-neutral-600",
+  oil_change: "bg-amber-50 text-amber-700", tires: "bg-blue-50 text-blue-700",
+  brakes: "bg-red-50 text-red-700", gov_inspection_fee: "bg-yellow-50 text-yellow-700",
+  insurance_payment: "bg-emerald-50 text-emerald-700", bodywork: "bg-purple-50 text-purple-700",
+  cleaning: "bg-sky-50 text-sky-700", other: "bg-neutral-100 text-neutral-600",
 };
 
 function fmtDate(iso: string) {
@@ -54,20 +45,90 @@ export default async function MaintenancePage({
     .from("companies").select("id, name").eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
-  const { data: logs } = await db
-    .from("maintenance_logs")
-    .select("id, date, type, description, cost, supplier, vehicle:vehicles(make, model, plate, year)")
-    .eq("company_id", companyId)
-    .order("date", { ascending: false })
-    .limit(500);
+  const [{ data: logs }, { data: garages }, { data: vehicles }] = await Promise.all([
+    db.from("maintenance_logs")
+      .select("id, date, type, description, cost, supplier, next_due_km, next_due_date, next_due_label, odometer_km, vehicle_id, vehicle:vehicles(make, model, plate, year, odometer_km)")
+      .eq("company_id", companyId)
+      .order("date", { ascending: false })
+      .limit(500),
+    db.from("garage_presets")
+      .select("id, name, phone, notes")
+      .eq("company_id", companyId)
+      .order("created_at"),
+    db.from("vehicles")
+      .select("id, make, model, plate, odometer_km")
+      .eq("company_id", companyId)
+      .neq("status", "retired"),
+  ]);
+
+  // ── Build upcoming reminders ──────────────────────────────────────────────
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  interface Reminder {
+    logId: string; vehicleId: string; vehicleName: string; plate: string;
+    label: string; type: string;
+    nextDueKm: number | null; nextDueDate: string | null;
+    currentOdo: number | null; logDate: string;
+    urgency: number;
+  }
+
+  type LogRow = { id: string; vehicle_id: string; date: string; type: string; cost: number; supplier: string | null; next_due_km: number | null; next_due_date: string | null; next_due_label: string | null; odometer_km: number | null; description: string | null; vehicle: { make: string; model: string; plate: string; year: number; odometer_km: number | null } | null; };
+
+  const vehicleOdoMap = new Map((vehicles ?? []).map((v) => [v.id, v.odometer_km]));
+
+  // Group logs by vehicle+type, keep latest per combo
+  const latestByVehicleType = new Map<string, LogRow>();
+  for (const l of (logs ?? []) as LogRow[]) {
+    if (!l.next_due_km && !l.next_due_date) continue;
+    const key = `${l.vehicle_id}::${l.type}`;
+    const existing = latestByVehicleType.get(key);
+    if (!existing || l.date > existing.date) latestByVehicleType.set(key, l);
+  }
+
+  const reminders: Reminder[] = [];
+  for (const l of latestByVehicleType.values()) {
+    const v = l.vehicle as { make: string; model: string; plate: string; year: number; odometer_km: number | null } | null;
+    if (!v) continue;
+    const currentOdo = vehicleOdoMap.get(l.vehicle_id) ?? v.odometer_km;
+    let urgency = Infinity;
+    if (l.next_due_date) {
+      const daysLeft = Math.ceil((new Date(l.next_due_date).getTime() - today.getTime()) / 86400000);
+      urgency = Math.min(urgency, daysLeft);
+    }
+    if (l.next_due_km && currentOdo != null) {
+      const kmLeft = l.next_due_km - currentOdo;
+      urgency = Math.min(urgency, kmLeft / 100); // rough scale
+    }
+    reminders.push({
+      logId: l.id, vehicleId: l.vehicle_id,
+      vehicleName: `${v.make} ${v.model}`, plate: v.plate,
+      label: l.next_due_label ?? TYPE_LABELS[l.type] ?? l.type,
+      type: l.type,
+      nextDueKm: l.next_due_km, nextDueDate: l.next_due_date,
+      currentOdo, logDate: l.date, urgency,
+    });
+  }
+  reminders.sort((a, b) => a.urgency - b.urgency);
+
+  function reminderStatus(r: Reminder): "overdue" | "soon" | "ok" {
+    const daysLeft = r.nextDueDate
+      ? Math.ceil((new Date(r.nextDueDate).getTime() - today.getTime()) / 86400000)
+      : null;
+    const kmLeft = r.nextDueKm != null && r.currentOdo != null ? r.nextDueKm - r.currentOdo : null;
+    if ((daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0)) return "overdue";
+    if ((daysLeft != null && daysLeft <= 30) || (kmLeft != null && kmLeft <= 2000)) return "soon";
+    return "ok";
+  }
 
   // Stats
   const now        = new Date();
-  const thisMonth  = logs?.filter((l) => l.date.slice(0, 7) === now.toISOString().slice(0, 7)) ?? [];
-  const thisYear   = logs?.filter((l) => l.date.slice(0, 4) === String(now.getFullYear())) ?? [];
+  const allLogs    = (logs ?? []) as LogRow[];
+  const thisMonth  = allLogs.filter((l) => l.date.slice(0, 7) === now.toISOString().slice(0, 7));
+  const thisYear   = allLogs.filter((l) => l.date.slice(0, 4) === String(now.getFullYear()));
   const totalCostMonth = thisMonth.reduce((s, l) => s + Number(l.cost), 0);
   const totalCostYear  = thisYear.reduce((s, l) => s + Number(l.cost), 0);
-  const totalAll       = (logs ?? []).reduce((s, l) => s + Number(l.cost), 0);
+  const totalAll       = allLogs.reduce((s, l) => s + Number(l.cost), 0);
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
@@ -83,22 +144,77 @@ export default async function MaintenancePage({
         </Link>
       </div>
 
-      {/* Stats */}
+      {/* Cost stats */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "This month",   value: `€${totalCostMonth.toFixed(2)}`, color: "text-neutral-900" },
-          { label: "This year",    value: `€${totalCostYear.toFixed(2)}`,  color: "text-neutral-900" },
-          { label: "All time",     value: `€${totalAll.toFixed(2)}`,       color: "text-neutral-900" },
+          { label: "This month", value: `€${totalCostMonth.toFixed(2)}` },
+          { label: "This year",  value: `€${totalCostYear.toFixed(2)}`  },
+          { label: "All time",   value: `€${totalAll.toFixed(2)}`       },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-border bg-white px-4 py-3">
             <p className="text-xs text-neutral-400">{s.label}</p>
-            <p className={`mt-1 text-xl font-semibold ${s.color}`}>{s.value}</p>
+            <p className="mt-1 text-xl font-semibold text-neutral-900">{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Table */}
-      {logs && logs.length > 0 ? (
+      {/* ── Upcoming service reminders ── */}
+      {reminders.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-border bg-white overflow-hidden">
+          <div className="border-b border-border px-6 py-4">
+            <h2 className="text-base font-semibold text-neutral-900">Upcoming service</h2>
+          </div>
+          <ul className="divide-y divide-border">
+            {reminders.map((r) => {
+              const status = reminderStatus(r);
+              const daysLeft = r.nextDueDate
+                ? Math.ceil((new Date(r.nextDueDate).getTime() - today.getTime()) / 86400000)
+                : null;
+              const kmLeft = r.nextDueKm != null && r.currentOdo != null
+                ? r.nextDueKm - r.currentOdo : null;
+              return (
+                <li key={r.logId} className="flex items-center gap-4 px-6 py-3">
+                  <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                    status === "overdue" ? "bg-red-500" :
+                    status === "soon"    ? "bg-amber-400" : "bg-emerald-400"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900">
+                      {r.vehicleName}
+                      <span className="ml-2 font-mono text-xs text-neutral-400">{r.plate}</span>
+                    </p>
+                    <p className="text-xs text-neutral-500">{r.label}</p>
+                  </div>
+                  <div className="text-right text-xs text-neutral-500 space-y-0.5">
+                    {r.nextDueDate && (
+                      <p className={daysLeft != null && daysLeft < 0 ? "text-red-600 font-semibold" : daysLeft != null && daysLeft <= 30 ? "text-amber-600 font-semibold" : ""}>
+                        {daysLeft != null && daysLeft < 0
+                          ? `${Math.abs(daysLeft)} days overdue`
+                          : daysLeft === 0 ? "Due today"
+                          : `${daysLeft} days left · ${fmtDate(r.nextDueDate)}`}
+                      </p>
+                    )}
+                    {r.nextDueKm != null && (
+                      <p className={kmLeft != null && kmLeft < 0 ? "text-red-600 font-semibold" : kmLeft != null && kmLeft <= 2000 ? "text-amber-600 font-semibold" : ""}>
+                        {kmLeft != null
+                          ? kmLeft < 0
+                            ? `${Math.abs(kmLeft).toLocaleString()} km overdue`
+                            : `${kmLeft.toLocaleString()} km left (${r.nextDueKm.toLocaleString()} km)`
+                          : `Due at ${r.nextDueKm.toLocaleString()} km`}
+                      </p>
+                    )}
+                  </div>
+                  <Link href={`/app/maintenance/${companyId}/${r.logId}`}
+                    className="shrink-0 text-xs text-brand-700 hover:underline">Edit</Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Log table ── */}
+      {allLogs.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-border bg-white">
           <table className="w-full min-w-[700px] text-sm">
             <thead>
@@ -113,7 +229,7 @@ export default async function MaintenancePage({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {logs.map((l) => {
+              {(logs as LogRow[]).map((l) => {
                 const v = l.vehicle as { make: string; model: string; plate: string; year: number } | null;
                 return (
                   <tr key={l.id} className="hover:bg-slate-50">
@@ -146,7 +262,7 @@ export default async function MaintenancePage({
               <tr className="border-t-2 border-border bg-slate-50">
                 <td colSpan={5} className="px-4 py-3 text-sm font-medium text-neutral-600">Total shown</td>
                 <td className="px-4 py-3 text-sm font-bold text-neutral-900 text-right">
-                  €{(logs ?? []).reduce((s, l) => s + Number(l.cost), 0).toFixed(2)}
+                  €{allLogs.reduce((s, l) => s + Number(l.cost), 0).toFixed(2)}
                 </td>
                 <td />
               </tr>
@@ -163,6 +279,17 @@ export default async function MaintenancePage({
           </Link>
         </div>
       )}
+
+      {/* ── Garage presets ── */}
+      <div className="mt-10 rounded-2xl border border-border bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Saved garages</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Save your frequently used garages for quick selection when logging maintenance.
+        </p>
+        <div className="mt-4">
+          <GaragePresetsManager companyId={companyId} initial={garages ?? []} />
+        </div>
+      </div>
     </div>
   );
 }
