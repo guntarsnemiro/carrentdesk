@@ -4,9 +4,9 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { RevenueChart } from "./_components/revenue-chart";
 import {
-  buildPLRows, depositsHeld, deferredRevenue, monthProRataRevenue,
+  buildPLRows, depositsHeld, deferredRevenue,
   monthAmortizedCosts, fleetMonthlyDepreciation, monthlyDepreciation,
-  amortizedCost,
+  amortizedCost, proRataRevenue,
   type Booking, type PeriodCost, type VehicleAsset,
 } from "@/lib/finance";
 
@@ -124,57 +124,34 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
     revenue: number; directCosts: number; depreciation: number; netContrib: number;
     bookingCount: number; depMode: string | null;
   };
-  const vehicleStatMap = new Map<string, VehicleStat>();
-  for (const v of vehicles) {
-    vehicleStatMap.set(v.id, {
-      id: v.id, make: "", model: "", plate: "",
-      revenue: 0, directCosts: 0, depreciation: 0, netContrib: 0,
-      bookingCount: 0, depMode: v.depreciation_mode,
-    });
-  }
-  for (const b of bookings) {
-    if (!vehicleStatMap.has(b.vehicle_id)) continue;
-    const s = vehicleStatMap.get(b.vehicle_id)!;
-    if (!s.make && b.vehicles) { s.make = b.vehicles.make; s.model = b.vehicles.model; s.plate = b.vehicles.plate; }
-    for (const r of plRows) {
-      s.revenue += (() => {
-        // Only count if booking falls in this 12-month window
-        const start = new Date(b.start_at);
-        return start.getUTCFullYear() >= plRows[0].year ? (function() {
-          const { proRataRevenue } = require("@/lib/finance");
-          return proRataRevenue(b, r.year, r.month);
-        })() : 0;
-      })();
-    }
-    s.bookingCount += 1;
-  }
 
-  // Simpler: compute per-vehicle revenue as all-time bookings pro-rata for 12 months
-  const vStatsFinal: VehicleStat[] = [];
-  for (const v of vehicles) {
+  const vStatsFinal: VehicleStat[] = vehicles.map((v) => {
     const vBookings = bookings.filter((b) => b.vehicle_id === v.id);
     const vMaint    = maintCosts.filter((c) => c.vehicle_id === v.id);
+
     let revenue = 0;
     let directCosts = 0;
     let depreciation = 0;
+
     for (const r of plRows) {
-      revenue      += vBookings.reduce((s, b) => {
-        const { proRataRevenue: prr } = require("@/lib/finance");
-        return s + prr(b, r.year, r.month);
-      }, 0);
+      for (const b of vBookings) revenue += proRataRevenue(b, r.year, r.month);
       directCosts  += monthAmortizedCosts(vMaint, r.year, r.month);
       depreciation += monthlyDepreciation(v, companyRate, r.year, r.month);
     }
-    const veh = bookings.find((b) => b.vehicle_id === v.id)?.vehicles;
-    vStatsFinal.push({
+
+    const veh = vBookings[0]?.vehicles;
+    return {
       id: v.id,
-      make: veh?.make ?? "", model: veh?.model ?? "", plate: veh?.plate ?? "",
+      make:  veh?.make  ?? "",
+      model: veh?.model ?? "",
+      plate: veh?.plate ?? "",
       revenue, directCosts, depreciation,
       netContrib: revenue - directCosts - depreciation,
       bookingCount: vBookings.length,
       depMode: v.depreciation_mode,
-    });
-  }
+    };
+  });
+
   const vehicleStats = vStatsFinal.filter((v) => v.make).sort((a, b) => b.revenue - a.revenue);
 
   // ── Depreciation summary ─────────────────────────────────────────────────────
