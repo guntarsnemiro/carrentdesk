@@ -146,6 +146,15 @@ export type Database = {
         Update: { company_id?: string; created_at?: string; id?: string; name?: string; notes?: string | null; phone?: string | null }
         Relationships: [{ foreignKeyName: "garage_presets_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
+      odometer_readings: {
+        Row: { company_id: string; created_at: string; id: string; odometer_km: number; recorded_at: string; source: string; vehicle_id: string }
+        Insert: { company_id: string; created_at?: string; id?: string; odometer_km: number; recorded_at?: string; source?: string; vehicle_id: string }
+        Update: { company_id?: string; created_at?: string; id?: string; odometer_km?: number; recorded_at?: string; source?: string; vehicle_id?: string }
+        Relationships: [
+          { foreignKeyName: "odometer_readings_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "odometer_readings_vehicle_id_fkey"; columns: ["vehicle_id"]; isOneToOne: false; referencedRelation: "vehicles"; referencedColumns: ["id"] },
+        ]
+      }
       locations: {
         Row: { address: string; company_id: string; created_at: string; id: string; is_primary: boolean; lat: number | null; lng: number | null }
         Insert: { address: string; company_id: string; created_at?: string; id?: string; is_primary?: boolean; lat?: number | null; lng?: number | null }

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { OdometerHint } from "@/components/operator/odometer-hint";
+import type { OdometerReading } from "@/components/operator/odometer-hint";
+export type { OdometerReading };
 
 type VehicleStatus   = "available" | "rented" | "maintenance" | "retired";
 type VehicleCategory = "economy" | "compact" | "midsize" | "suv" | "van" | "luxury" | "other";
@@ -21,7 +24,7 @@ interface Vehicle {
   notes: string | null;
 }
 
-interface Props { companyId: string; vehicle?: Vehicle; }
+interface Props { companyId: string; vehicle?: Vehicle; lastOdoReading?: OdometerReading; }
 
 const CATEGORIES: { value: VehicleCategory; label: string }[] = [
   { value: "economy", label: "Economy" }, { value: "compact", label: "Compact" },
@@ -39,7 +42,7 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: "maintenance", label: "Maintenance" }, { value: "retired",     label: "Retired"     },
 ];
 
-export function VehicleForm({ companyId, vehicle }: Props) {
+export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
   const router  = useRouter();
   const isEdit  = Boolean(vehicle);
 
@@ -102,11 +105,29 @@ export function VehicleForm({ companyId, vehicle }: Props) {
       updated_at:             new Date().toISOString(),
     };
 
-    const { error } = isEdit
-      ? await supabase.from("vehicles").update(payload).eq("id", vehicle!.id)
-      : await supabase.from("vehicles").insert(payload);
+    let vehicleId = vehicle?.id;
+    if (isEdit) {
+      const { error } = await supabase.from("vehicles").update(payload).eq("id", vehicle!.id);
+      if (error) { setStatus("error"); setErrorMsg(error.message); return; }
+    } else {
+      const { data, error } = await supabase.from("vehicles").insert(payload).select("id").single();
+      if (error || !data) { setStatus("error"); setErrorMsg(error?.message ?? "Failed"); return; }
+      vehicleId = data.id;
+    }
 
-    if (error) { setStatus("error"); setErrorMsg(error.message); return; }
+    // Log odometer reading if provided and changed
+    const newOdo = form.odometer_km ? parseInt(form.odometer_km, 10) : null;
+    const oldOdo = vehicle?.odometer_km ?? null;
+    if (newOdo != null && vehicleId && newOdo !== oldOdo) {
+      await supabase.from("odometer_readings").insert({
+        company_id: companyId,
+        vehicle_id: vehicleId,
+        odometer_km: newOdo,
+        source: "manual",
+        recorded_at: new Date().toISOString().slice(0, 10),
+      });
+    }
+
     router.push(`/app/fleet/${companyId}`);
     router.refresh();
   }
@@ -186,9 +207,15 @@ export function VehicleForm({ companyId, vehicle }: Props) {
             <input name="registration_number" value={form.registration_number} onChange={set} placeholder="LV-123456" className={inp} />
           </Field>
         </div>
-        <Field label="Odometer (km)">
+        <div>
+          <label className="block text-sm font-medium text-neutral-700">Odometer (km)</label>
           <input name="odometer_km" type="number" min={0} value={form.odometer_km} onChange={set} placeholder="85000" className={inp} />
-        </Field>
+          {lastOdoReading ? (
+            <OdometerHint reading={lastOdoReading} />
+          ) : vehicle?.odometer_km != null ? (
+            <p className="mt-1 text-xs text-neutral-400">Last saved: {vehicle.odometer_km.toLocaleString()} km</p>
+          ) : null}
+        </div>
       </Section>
 
       {/* ── Government technical inspection ── */}

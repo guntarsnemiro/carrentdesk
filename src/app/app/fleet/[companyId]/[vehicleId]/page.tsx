@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { VehicleForm } from "../_components/vehicle-form";
+import type { OdometerReading } from "@/components/operator/odometer-hint";
 
 export const metadata: Metadata = { title: "Edit car" };
 
@@ -44,12 +45,23 @@ export default async function EditVehiclePage({
     .eq("id", vehicleId).eq("company_id", companyId).maybeSingle();
   if (!vehicle) notFound();
 
-  const { data: maintLogs } = await db
-    .from("maintenance_logs")
-    .select("id, date, type, description, cost, supplier, next_due_km, next_due_date, next_due_label, odometer_km")
-    .eq("vehicle_id", vehicleId)
-    .order("date", { ascending: false })
-    .limit(20);
+  const [{ data: maintLogs }, { data: lastOdoRow }] = await Promise.all([
+    db.from("maintenance_logs")
+      .select("id, date, type, description, cost, supplier, next_due_km, next_due_date, next_due_label, odometer_km")
+      .eq("vehicle_id", vehicleId)
+      .order("date", { ascending: false })
+      .limit(20),
+    db.from("odometer_readings")
+      .select("odometer_km, recorded_at, source")
+      .eq("vehicle_id", vehicleId)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const lastOdoReading: OdometerReading | undefined = lastOdoRow
+    ? { km: lastOdoRow.odometer_km, date: lastOdoRow.recorded_at, source: lastOdoRow.source }
+    : undefined;
 
   const totalMaintCost = (maintLogs ?? []).reduce((s, l) => s + Number(l.cost), 0);
 
@@ -65,7 +77,7 @@ export default async function EditVehiclePage({
         </h1>
         <p className="mt-1 font-mono text-sm text-neutral-500">{vehicle.plate}</p>
       </div>
-      <VehicleForm companyId={companyId} vehicle={vehicle} />
+      <VehicleForm companyId={companyId} vehicle={vehicle} lastOdoReading={lastOdoReading} />
 
       {/* Service history */}
       <div className="mt-10">
@@ -92,6 +104,7 @@ export default async function EditVehiclePage({
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Date</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Type</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Description</th>
+                  <th className="px-4 py-2.5 font-medium text-neutral-500">Odometer</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500">Next due</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500 text-right">Cost</th>
                   <th className="px-4 py-2.5 font-medium text-neutral-500"></th>
@@ -112,7 +125,10 @@ export default async function EditVehiclePage({
                   <tr key={l.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2.5 text-neutral-600 whitespace-nowrap">{fmtDate(l.date)}</td>
                     <td className="px-4 py-2.5 text-neutral-700">{TYPE_LABELS[l.type] ?? l.type}</td>
-                    <td className="px-4 py-2.5 text-neutral-500 max-w-[140px] truncate">{l.description ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-neutral-500 max-w-[120px] truncate">{l.description ?? "—"}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-neutral-500">
+                      {l.odometer_km != null ? `${l.odometer_km.toLocaleString()} km` : "—"}
+                    </td>
                     <td className="px-4 py-2.5 text-xs">
                       {hasReminder ? (
                         <div className={isOverdue ? "text-red-600 font-semibold" : isSoon ? "text-amber-600 font-semibold" : "text-neutral-500"}>

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { OdometerHint } from "@/components/operator/odometer-hint";
 
 type MaintenanceType = "oil_change" | "tires" | "brakes" | "gov_inspection_fee" | "insurance_payment" | "bodywork" | "cleaning" | "other";
 
 interface Vehicle { id: string; make: string; model: string; plate: string; year: number; odometer_km: number | null; }
 interface Garage  { id: string; name: string; phone: string | null; }
+export interface OdoMap { [vehicleId: string]: { km: number; date: string; source: string } }
 
 interface Log {
   id: string; vehicle_id: string; date: string; type: MaintenanceType; description: string | null;
@@ -18,6 +20,7 @@ interface Props {
   companyId: string;
   vehicles: Vehicle[];
   garages: Garage[];
+  lastOdoMap?: OdoMap;
   log?: Log;
   defaultVehicleId?: string;
 }
@@ -40,7 +43,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-export function MaintenanceForm({ companyId, vehicles, garages, log, defaultVehicleId }: Props) {
+export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log, defaultVehicleId }: Props) {
   const isEdit = Boolean(log);
   const today  = new Date().toISOString().slice(0, 10);
 
@@ -80,6 +83,7 @@ export function MaintenanceForm({ companyId, vehicles, garages, log, defaultVehi
   }
 
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
+  const lastOdo = lastOdoMap?.[form.vehicle_id];
   const currentOdo = form.odometer_km ? parseInt(form.odometer_km) : selectedVehicle?.odometer_km ?? null;
   const nextDueKmAbsolute = nextDueOffset && currentOdo != null
     ? currentOdo + parseInt(nextDueOffset)
@@ -123,6 +127,25 @@ export function MaintenanceForm({ companyId, vehicles, garages, log, defaultVehi
       const { error } = await supabase.from("maintenance_logs").insert(payload);
       if (error) { setErrorMsg(error.message); setStatus("idle"); return; }
     }
+
+    // Log odometer reading + update vehicle if provided
+    const newOdo = form.odometer_km ? parseInt(form.odometer_km, 10) : null;
+    if (newOdo != null) {
+      const recordedAt = form.date || new Date().toISOString().slice(0, 10);
+      await supabase.from("odometer_readings").insert({
+        company_id: companyId,
+        vehicle_id: form.vehicle_id,
+        odometer_km: newOdo,
+        source: "maintenance",
+        recorded_at: recordedAt,
+      });
+      // Update vehicle.odometer_km if new reading is higher than stored
+      const storedOdo = selectedVehicle?.odometer_km ?? 0;
+      if (newOdo > storedOdo) {
+        await supabase.from("vehicles").update({ odometer_km: newOdo, updated_at: new Date().toISOString() }).eq("id", form.vehicle_id);
+      }
+    }
+
     window.location.href = `/app/maintenance/${companyId}`;
   }
 
@@ -172,9 +195,15 @@ export function MaintenanceForm({ companyId, vehicles, garages, log, defaultVehi
         <Field label="Cost (€) *">
           <input name="cost" type="number" min={0} step={0.01} required value={form.cost} onChange={set} placeholder="0.00" className={inp} />
         </Field>
-        <Field label="Odometer (km)">
+        <div>
+          <label className="block text-sm font-medium text-neutral-700">Odometer (km)</label>
           <input name="odometer_km" type="number" min={0} value={form.odometer_km} onChange={set} placeholder="85000" className={inp} />
-        </Field>
+          {lastOdo ? (
+            <OdometerHint reading={lastOdo} />
+          ) : selectedVehicle?.odometer_km != null ? (
+            <p className="mt-1 text-xs text-neutral-400">Last saved: {selectedVehicle.odometer_km.toLocaleString()} km</p>
+          ) : null}
+        </div>
       </div>
 
       {/* Supplier / Garage */}
