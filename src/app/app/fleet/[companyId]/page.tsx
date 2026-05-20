@@ -11,6 +11,29 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function currentBookValue(
+  v: { purchase_price: number | null; purchase_date: string | null; depreciation_rate: number | null; residual_value: number | null; depreciation_mode: string | null },
+  companyRate: number,
+): number | null {
+  if (!v.purchase_price || !v.purchase_date || !v.depreciation_mode || v.depreciation_mode === "none") return null;
+  const rate      = v.depreciation_rate ?? companyRate;
+  const residual  = v.residual_value ?? 0;
+  const depreciable = Math.max(0, v.purchase_price - residual);
+  const monthlyDep  = depreciable * (rate / 100 / 12);
+  const now = new Date();
+  const pd  = new Date(v.purchase_date);
+  const monthsElapsed = (now.getFullYear() - pd.getFullYear()) * 12 + (now.getMonth() - pd.getMonth());
+  return Math.max(residual, v.purchase_price - monthlyDep * Math.max(0, monthsElapsed));
+}
+
+function editedLabel(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 60000; // minutes
+  if (diff < 2)   return "just now";
+  if (diff < 60)  return `${Math.floor(diff)}m ago`;
+  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+  return "";
+}
+
 function alertClass(iso: string | null) {
   if (!iso) return "";
   const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -59,17 +82,20 @@ export default async function FleetPage({
 
   const { data: company } = await db
     .from("companies")
-    .select("id, name")
+    .select("id, name, default_depreciation_rate")
     .eq("id", companyId)
     .maybeSingle();
   if (!company) notFound();
 
+  const companyRate = company.default_depreciation_rate ?? 20;
+
   const { data: vehicles } = await db
     .from("vehicles")
-    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin, registration_number, gov_inspection_next, insurance_valid_until")
+    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin, registration_number, gov_inspection_next, insurance_valid_until, updated_at, purchase_price, purchase_date, depreciation_rate, residual_value, depreciation_mode")
     .eq("company_id", companyId)
     .order("make")
-    .order("model");
+    .order("model")
+    .order("plate"); // stable tiebreaker — plate never changes
 
   const counts = {
     total:       vehicles?.length ?? 0,
@@ -131,6 +157,7 @@ export default async function FleetPage({
                 <th className="px-4 py-3 font-medium text-neutral-500">Seats</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Category</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Odometer</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Book value</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Gov. Inspection</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Insurance until</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">VIN</th>
@@ -143,7 +170,14 @@ export default async function FleetPage({
                 <tr key={v.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-neutral-900">{v.make} {v.model}</p>
-                    <p className="mt-0.5 text-xs text-neutral-400">{v.year}</p>
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      {v.year}
+                      {editedLabel(v.updated_at) && (
+                        <span className="ml-2 rounded bg-brand-100 px-1.5 py-0.5 text-brand-700 font-medium">
+                          ✓ edited {editedLabel(v.updated_at)}
+                        </span>
+                      )}
+                    </p>
                   </td>
                   <td className="px-4 py-3 font-mono text-sm text-neutral-700">{v.plate}</td>
                   <td className="px-4 py-3 font-mono text-xs text-neutral-500">{v.registration_number ?? "—"}</td>
@@ -153,6 +187,18 @@ export default async function FleetPage({
                   <td className="px-4 py-3 text-sm capitalize text-neutral-500">{v.category ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-neutral-500">
                     {v.odometer_km != null ? `${v.odometer_km.toLocaleString()} km` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {(() => {
+                      const bv = currentBookValue(v, companyRate);
+                      if (bv === null) return <span className="text-neutral-300">—</span>;
+                      return (
+                        <div>
+                          <p className="font-semibold text-neutral-800">€{Math.round(bv).toLocaleString()}</p>
+                          <p className="text-xs text-neutral-400">{v.depreciation_mode === "current_value" ? "from est. value" : "from purchase"}</p>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className={`px-4 py-3 text-sm ${alertClass(v.gov_inspection_next)}`}>
                     {fmtDate(v.gov_inspection_next)}
