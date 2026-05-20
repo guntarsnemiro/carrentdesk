@@ -5,6 +5,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { CATEGORY_LABELS, CATEGORY_COLOR } from "./_components/expense-form";
 import { PayeeManager } from "./_components/payee-manager";
+import { RecurringGenerator } from "./_components/recurring-generator";
 
 export const metadata: Metadata = { title: "Business Expenses" };
 
@@ -36,9 +37,14 @@ export default async function ExpensesPage({
     .from("companies").select("id, name").eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
+  const now = new Date();
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const firstOfMonth = `${currentYM}-01`;
+  const currentMonthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
   const [{ data: expenses }, { data: payees }] = await Promise.all([
     db.from("company_expenses")
-      .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring")
+      .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring, notes")
       .eq("company_id", companyId)
       .order("date", { ascending: false })
       .limit(500),
@@ -48,14 +54,17 @@ export default async function ExpensesPage({
       .order("created_at"),
   ]);
 
-  const now = new Date();
   const allExpenses = expenses ?? [];
-  const thisMonth = allExpenses.filter((e) => e.date.slice(0, 7) === now.toISOString().slice(0, 7));
+  const thisMonth = allExpenses.filter((e) => e.date.slice(0, 7) === currentYM);
   const thisYear  = allExpenses.filter((e) => e.date.slice(0, 4) === String(now.getFullYear()));
 
   const totalMonth = thisMonth.reduce((s, e) => s + Number(e.amount), 0);
   const totalYear  = thisYear.reduce((s, e) => s + Number(e.amount), 0);
   const totalAll   = allExpenses.reduce((s, e) => s + Number(e.amount), 0);
+
+  // Recurring generator data
+  const recurringExpenses = allExpenses.filter((e) => e.is_recurring);
+  const thisMonthKeys = thisMonth.map((e) => `${e.category}||${e.description}`);
 
   // Category breakdown for this year
   const byCategory = (Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((cat) => ({
@@ -113,6 +122,15 @@ export default async function ExpensesPage({
           </div>
         </div>
       )}
+
+      {/* Recurring generator banner */}
+      <RecurringGenerator
+        companyId={companyId}
+        recurring={recurringExpenses}
+        thisMonthKeys={thisMonthKeys}
+        currentMonthLabel={currentMonthLabel}
+        firstOfMonth={firstOfMonth}
+      />
 
       {/* Payee quick note */}
       {(payees ?? []).length > 0 && (
