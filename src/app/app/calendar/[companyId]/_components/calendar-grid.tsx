@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { DateInput } from "@/components/ui/date-input";
 
 type Insurance     = "none" | "partial" | "full";
 type PaymentMethod = "cash" | "card" | "bank_transfer" | "other";
@@ -955,7 +956,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           allBookings={bookings}
           preVehicleId={newBookingTarget.vehicleId}
           preStart={strToLocalDatetime(newBookingTarget.startStr, "10:00")}
-          preEnd={strToLocalDatetime(strAddDay(newBookingTarget.endStr), "10:00")}
+          preEnd={strToLocalDatetime(newBookingTarget.endStr, "10:00")}
           onClose={() => setNewBookingTarget(null)}
           onCreated={handleCreated}
           locationPresets={locationPresets}
@@ -1242,9 +1243,11 @@ function CalDateTimeInput({ value, onChange, className }: {
   const [datePart = "", timePart = "08:00"] = value ? value.split("T") : [];
   return (
     <div>
-      <input type="date" value={datePart}
-        onChange={(e) => onChange(`${e.target.value}T${timePart}`)}
-        className={`w-full ${className ?? ""}`} />
+      <DateInput
+        value={datePart}
+        onChange={(d) => onChange(`${d}T${timePart}`)}
+        className={`w-full ${className ?? ""}`}
+      />
       <CalTimeSelect value={timePart} onChange={(t) => onChange(`${datePart}T${t}`)} />
     </div>
   );

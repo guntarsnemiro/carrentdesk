@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { OdometerHint } from "@/components/operator/odometer-hint";
+import { DateInput } from "@/components/ui/date-input";
 
 type MaintenanceType = "oil_change" | "tires" | "brakes" | "gov_inspection_fee" | "insurance_payment" | "bodywork" | "cleaning" | "other";
 
@@ -180,7 +181,7 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
       {/* Date & Type */}
       <div className="grid grid-cols-2 gap-4">
         <Field label="Date *" hint="DD.MM.YYYY">
-          <input name="date" type="date" required value={form.date} onChange={set} className={inp} />
+          <DateInput required value={form.date} onChange={(v) => setForm((p) => ({ ...p, date: v }))} className={inp} />
         </Field>
         <Field label="Type *">
           <select name="type" value={form.type} onChange={set} className={inp}>
@@ -256,10 +257,10 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
         {amortizeOn && (
           <div className="mt-3 grid grid-cols-2 gap-4">
             <Field label="Covers from" hint="DD.MM.YYYY">
-              <input type="date" value={coversFrom} onChange={(e) => setCoversFrom(e.target.value)} className={inp} />
+              <DateInput value={coversFrom} onChange={setCoversFrom} className={inp} />
             </Field>
             <Field label="Covers until" hint="DD.MM.YYYY">
-              <input type="date" value={coversUntil} onChange={(e) => setCoversUntil(e.target.value)} className={inp} />
+              <DateInput value={coversUntil} onChange={setCoversUntil} className={inp} />
             </Field>
           </div>
         )}
@@ -296,7 +297,7 @@ export function MaintenanceForm({ companyId, vehicles, garages, lastOdoMap, log,
                 )}
               </div>
               <Field label="Due date" hint="DD.MM.YYYY">
-                <input type="date" value={nextDueDate} onChange={(e) => setNextDueDate(e.target.value)} className={inp} />
+                <DateInput value={nextDueDate} onChange={setNextDueDate} className={inp} />
               </Field>
             </div>
 

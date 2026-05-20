@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { OdometerHint } from "@/components/operator/odometer-hint";
+import { DateInput } from "@/components/ui/date-input";
 import type { OdometerReading } from "@/components/operator/odometer-hint";
 export type { OdometerReading };
 
@@ -245,10 +246,10 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
         <p className="mb-3 text-xs text-neutral-400">The mandatory state roadworthiness test (e.g. Latvian TA, Estonian ÜTV, Lithuanian TA).</p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Last inspection date" hint="DD.MM.YYYY">
-            <input name="gov_inspection_date" type="date" value={form.gov_inspection_date} onChange={set} className={inp} />
+            <DateInput value={form.gov_inspection_date} onChange={(v) => setForm((p) => ({ ...p, gov_inspection_date: v }))} className={inp} />
           </Field>
           <Field label="Next inspection due" hint="DD.MM.YYYY">
-            <input name="gov_inspection_next" type="date" value={form.gov_inspection_next} onChange={set} className={inp} />
+            <DateInput value={form.gov_inspection_next} onChange={(v) => setForm((p) => ({ ...p, gov_inspection_next: v }))} className={inp} />
           </Field>
         </div>
       </Section>
@@ -258,10 +259,10 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
         <p className="mb-3 text-xs text-neutral-400">Your internal full technical service (oil change, filters, brakes, etc.).</p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Last service date" hint="DD.MM.YYYY">
-            <input name="service_date" type="date" value={form.service_date} onChange={set} className={inp} />
+            <DateInput value={form.service_date} onChange={(v) => setForm((p) => ({ ...p, service_date: v }))} className={inp} />
           </Field>
           <Field label="Next service due" hint="DD.MM.YYYY">
-            <input name="service_next" type="date" value={form.service_next} onChange={set} className={inp} />
+            <DateInput value={form.service_next} onChange={(v) => setForm((p) => ({ ...p, service_next: v }))} className={inp} />
           </Field>
         </div>
       </Section>
@@ -273,7 +274,7 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
             <input name="insurance_number" value={form.insurance_number} onChange={set} placeholder="POL-12345678" className={inp} />
           </Field>
           <Field label="Valid until" hint="DD.MM.YYYY">
-            <input name="insurance_valid_until" type="date" value={form.insurance_valid_until} onChange={set} className={inp} />
+            <DateInput value={form.insurance_valid_until} onChange={(v) => setForm((p) => ({ ...p, insurance_valid_until: v }))} className={inp} />
           </Field>
         </div>
       </Section>
@@ -316,7 +317,7 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
                   value={form.purchase_price} onChange={set} placeholder="10000" className={inp} />
               </Field>
               <Field label={form.depreciation_mode === "current_value" ? "Date of valuation *" : "Purchase date *"} hint="DD.MM.YYYY">
-                <input name="purchase_date" type="date" value={form.purchase_date} onChange={set} className={inp} />
+                <DateInput value={form.purchase_date} onChange={(v) => setForm((p) => ({ ...p, purchase_date: v }))} className={inp} />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -336,7 +337,7 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
                 <p className="mb-3 text-xs font-medium text-neutral-500 uppercase tracking-wide">Vehicle disposal (sold / written off)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Disposal date" hint="Date car left the fleet">
-                    <input name="disposed_at" type="date" value={form.disposed_at} onChange={set} className={inp} />
+                    <DateInput value={form.disposed_at} onChange={(v) => setForm((p) => ({ ...p, disposed_at: v }))} className={inp} />
                   </Field>
                   <Field label="Sale / payout price (€)" hint="Insurance payout or actual sale price">
                     <input name="disposal_price" type="number" min={0} step={0.01}

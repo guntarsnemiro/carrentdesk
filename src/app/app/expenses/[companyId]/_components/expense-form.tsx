@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { DateInput } from "@/components/ui/date-input";
 
 type ExpenseCategory = "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other";
 
@@ -128,7 +129,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Date *" hint="DD.MM.YYYY">
-          <input name="date" type="date" required value={form.date} onChange={set} className={inp} />
+          <DateInput required value={form.date} onChange={(v) => setForm((p) => ({ ...p, date: v }))} className={inp} />
         </Field>
         <Field label="Category *">
           <select name="category" value={form.category} onChange={set} className={inp}>
@@ -225,11 +226,11 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-neutral-700">Covers from</label>
-                <input type="date" value={coversFrom} onChange={(e) => setCoversFrom(e.target.value)} className={inp} />
+                <DateInput value={coversFrom} onChange={setCoversFrom} className={inp} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700">Covers until</label>
-                <input type="date" value={coversUntil} onChange={(e) => setCoversUntil(e.target.value)} className={inp} />
+                <DateInput value={coversUntil} onChange={setCoversUntil} className={inp} />
               </div>
             </div>
           )}

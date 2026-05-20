@@ -82,9 +82,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     label: "Settings",
-    href: () => "/app/settings",
+    href: (id) => `/app/settings/${id}`,
     icon: <SettingsIcon />,
-    soon: true,
+    requiresCompany: true,
   },
 ];
 

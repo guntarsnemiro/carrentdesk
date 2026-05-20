@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { LocationInput } from "@/components/operator/location-input";
+import { DateInput } from "@/components/ui/date-input";
 
 type BookingStatus   = "confirmed" | "active" | "returned" | "cancelled";
 type Insurance       = "none" | "partial" | "full";
@@ -413,8 +414,11 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Payment received date">
-            <p className="mb-1 text-xs text-neutral-400">DD.MM.YYYY — when money arrived</p>
-            <input name="paid_at" type="date" value={form.paid_at} onChange={set} className={inp} />
+            <DateInput
+              value={form.paid_at}
+              onChange={(v) => setForm((p) => ({ ...p, paid_at: v }))}
+              className={`mt-1 ${inp}`}
+            />
           </Field>
           <Field label="Payment method">
             <select name="payment_method" value={form.payment_method} onChange={set} className={inp}>
@@ -434,7 +438,11 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
           </label>
           <Field label="Deposit returned date">
             <p className="mb-1 text-xs text-neutral-400">Leave blank if still held</p>
-            <input name="deposit_returned_at" type="date" value={form.deposit_returned_at} onChange={set} className={inp} />
+            <DateInput
+              value={form.deposit_returned_at}
+              onChange={(v) => setForm((p) => ({ ...p, deposit_returned_at: v }))}
+              className={`mt-1 ${inp}`}
+            />
           </Field>
         </div>
       </Section>
@@ -535,9 +543,12 @@ function DateTimeField({ label, value, onChange, required }: {
     <div>
       <label className="block text-sm font-medium text-neutral-700">{label}</label>
       <div className="mt-1 flex flex-wrap gap-2">
-        <input type="date" required={required} value={datePart}
-          onChange={(e) => onChange(`${e.target.value}T${timePart}`)}
-          className={`flex-1 min-w-[130px] ${inp}`} />
+        <DateInput
+          required={required}
+          value={datePart}
+          onChange={(d) => onChange(`${d}T${timePart}`)}
+          className={`flex-1 min-w-[130px] ${inp}`}
+        />
         <TimeSelect value={timePart} onChange={(t) => onChange(`${datePart}T${t}`)} />
       </div>
     </div>

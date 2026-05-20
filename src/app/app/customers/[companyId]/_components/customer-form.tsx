@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { DateInput } from "@/components/ui/date-input";
 
 type Language = "en" | "lv" | "ru" | "other";
 
@@ -143,7 +144,7 @@ export function CustomerForm({ companyId, customer }: Props) {
             placeholder="Street, City, Country" className={inp} />
         </Field>
         <Field label="Date of birth" hint="DD.MM.YYYY">
-          <input name="date_of_birth" type="date" value={form.date_of_birth} onChange={set} className={inp} />
+          <DateInput value={form.date_of_birth} onChange={(v) => setForm((p) => ({ ...p, date_of_birth: v }))} className={inp} />
         </Field>
       </Section>
 
@@ -155,7 +156,7 @@ export function CustomerForm({ companyId, customer }: Props) {
               placeholder="PA1234567" className={`${inp} font-mono`} />
           </Field>
           <Field label="ID expiry date" hint="DD.MM.YYYY">
-            <input name="id_expiry" type="date" value={form.id_expiry} onChange={set} className={inp} />
+            <DateInput value={form.id_expiry} onChange={(v) => setForm((p) => ({ ...p, id_expiry: v }))} className={inp} />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -164,7 +165,7 @@ export function CustomerForm({ companyId, customer }: Props) {
               placeholder="LV12345678" className={`${inp} font-mono`} />
           </Field>
           <Field label="Driver license expiry" hint="DD.MM.YYYY">
-            <input name="driver_license_expiry" type="date" value={form.driver_license_expiry} onChange={set} className={inp} />
+            <DateInput value={form.driver_license_expiry} onChange={(v) => setForm((p) => ({ ...p, driver_license_expiry: v }))} className={inp} />
           </Field>
         </div>
       </Section>
