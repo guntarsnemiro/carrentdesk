@@ -1055,6 +1055,11 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 const rangeStart = days[0]!.str;
                 const rangeEnd   = days[days.length - 1]!.str;
 
+                // Build a set of days that are simultaneously a return AND a pickup for this vehicle
+                const returnDays = new Set(vBookings.map((b) => b.end_at.slice(0, 10)));
+                const pickupDays = new Set(vBookings.map((b) => b.start_at.slice(0, 10)));
+                const splitDays  = new Set([...returnDays].filter((d) => pickupDays.has(d)));
+
                 const selMin = selection && selection.vehicleId === v.id
                   ? (selection.startStr <= selection.endStr ? selection.startStr : selection.endStr) : null;
                 const selMax = selection && selection.vehicleId === v.id
@@ -1067,14 +1072,20 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
                       const isToday    = str === todayStr;
                       const isSelected = selMin && selMax && str >= selMin && str <= selMax;
+                      const isSplitDay = !isSelected && splitDays.has(str);
+
+                      // Split day gets a diagonal gradient: top-left = return (grey), bottom-right = pickup (amber)
+                      const splitStyle = isSplitDay
+                        ? { background: "linear-gradient(135deg, rgba(148,163,184,0.35) 50%, rgba(251,191,36,0.30) 50%)" }
+                        : {};
 
                       return (
                         <div key={str}
-                          style={{ width: DAY_W }}
+                          style={{ width: DAY_W, ...splitStyle }}
                           className={`shrink-0 h-full border-r border-border/30 cursor-crosshair
                             ${isSelected   ? "bg-brand-100"        : ""}
-                            ${!isSelected && isToday   ? "bg-brand-50/50"    : ""}
-                            ${!isSelected && isWeekend ? "bg-slate-50/70"    : ""}
+                            ${!isSelected && !isSplitDay && isToday   ? "bg-brand-50/50"    : ""}
+                            ${!isSelected && !isSplitDay && isWeekend ? "bg-slate-50/70"    : ""}
                           `}
                           onMouseDown={(e) => {
                             if (e.button !== 0) return;
@@ -1209,6 +1220,10 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
               <span className="text-xs text-neutral-500">{l.label}</span>
             </div>
           ))}
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-4 rounded-sm" style={{ background: "linear-gradient(135deg, rgba(148,163,184,0.6) 50%, rgba(251,191,36,0.55) 50%)" }} />
+            <span className="text-xs text-neutral-500">Return + pickup same day</span>
+          </div>
         </div>
       </div>
     </>

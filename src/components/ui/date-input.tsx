@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * A text input that always shows DD/MM/YYYY regardless of browser locale.
  * Internally stores and receives values as YYYY-MM-DD (HTML date format).
  * Also accepts dot-separated input (DD.MM.YYYY) and auto-inserts slashes.
+ * Includes a calendar icon button that opens the native date picker.
  */
 
 function isoToDisplay(iso: string): string {
@@ -39,6 +40,7 @@ interface DateInputProps {
 
 export function DateInput({ value, onChange, required, className, placeholder = "DD/MM/YYYY" }: DateInputProps) {
   const [text, setText] = useState(() => isoToDisplay(value));
+  const hiddenRef = useRef<HTMLInputElement>(null);
 
   // Sync when parent changes value externally
   useEffect(() => {
@@ -47,7 +49,6 @@ export function DateInput({ value, onChange, required, className, placeholder = 
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     let v = e.target.value;
-    // Strip anything that's not digit or separator
     v = v.replace(/[^0-9./]/g, "");
     setText(v);
     const iso = displayToIso(v);
@@ -59,38 +60,76 @@ export function DateInput({ value, onChange, required, className, placeholder = 
   }
 
   function handleKeyUp(e: React.KeyboardEvent<HTMLInputElement>) {
-    // Auto-insert slash after DD and after MM while user types digits
     if (e.key === "Backspace" || e.key === "Delete") return;
     const v = (e.target as HTMLInputElement).value;
-    // After 2 digits (day), add /
     if (v.length === 2 && !v.includes("/") && !v.includes(".")) {
       setText(v + "/");
     }
-    // After DD/MM (5 chars), add /
     if (v.length === 5 && v[2] === "/" && !v.slice(3).includes("/")) {
       setText(v + "/");
     }
   }
 
   function handleBlur() {
-    // On blur, normalize to DD/MM/YYYY if valid
-    if (value) {
-      setText(isoToDisplay(value));
+    if (value) setText(isoToDisplay(value));
+  }
+
+  function handlePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const iso = e.target.value; // already YYYY-MM-DD
+    if (iso) {
+      onChange(iso);
+      setText(isoToDisplay(iso));
+    }
+  }
+
+  function openPicker() {
+    try {
+      hiddenRef.current?.showPicker();
+    } catch {
+      hiddenRef.current?.click();
     }
   }
 
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={text}
-      onChange={handleChange}
-      onKeyUp={handleKeyUp}
-      onBlur={handleBlur}
-      placeholder={placeholder}
-      required={required}
-      maxLength={10}
-      className={className}
-    />
+    <div className="relative flex items-center">
+      <input
+        type="text"
+        inputMode="numeric"
+        value={text}
+        onChange={handleChange}
+        onKeyUp={handleKeyUp}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        required={required}
+        maxLength={10}
+        className={`${className ?? ""} pr-8`}
+      />
+      {/* Hidden native date picker — used only for the calendar popup */}
+      <input
+        ref={hiddenRef}
+        type="date"
+        value={value}
+        onChange={handlePickerChange}
+        tabIndex={-1}
+        aria-hidden
+        className="absolute right-0 w-0 opacity-0 pointer-events-none"
+        style={{ height: 0, padding: 0, border: 0 }}
+      />
+      {/* Calendar icon button */}
+      <button
+        type="button"
+        onClick={openPicker}
+        tabIndex={-1}
+        className="absolute right-2 flex items-center justify-center text-neutral-400 hover:text-brand-600 transition-colors"
+        title="Open date picker"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </button>
+    </div>
   );
 }
