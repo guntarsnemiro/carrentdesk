@@ -5,9 +5,34 @@ import { ModuleGrid } from "@/app/for-rentals/_components/module-grid";
 import { FAQ } from "@/app/for-rentals/_components/faq";
 
 export const metadata: Metadata = {
-  title: "For rental owners — The operations platform for independent rentals",
+  title: "Car Rental Management Software for Independent Operators | CarRentDesk",
   description:
-    "Everything your car rental business needs in one place. Fleet management, inspections, customer records, and daily workflows — built by rental owners, for rental owners.",
+    "Fleet management, bookings, customer records, maintenance tracking, and true P&L reporting — all in one platform. Built for independent car rental companies in the Baltics. Free during beta.",
+  keywords: [
+    "car rental management software",
+    "car rental fleet management",
+    "car rental business software",
+    "fleet management system",
+    "car rental booking software",
+    "independent car rental software",
+    "car rental software Latvia",
+    "car rental software Riga",
+    "car rental software Estonia",
+    "car rental software Lithuania",
+    "auto nomas programma",
+    "rental car management system",
+    "small car rental business software",
+  ],
+  openGraph: {
+    title: "Car Rental Management Software for Independent Operators | CarRentDesk",
+    description: "Fleet, bookings, customers, maintenance and real P&L — one platform for independent car rental companies. Free during beta.",
+    url: "https://carrentdesk.com/for-rentals",
+    siteName: "CarRentDesk",
+    type: "website",
+  },
+  alternates: {
+    canonical: "https://carrentdesk.com/for-rentals",
+  },
 };
 
 export default function ForRentalsPage() {
@@ -18,6 +43,8 @@ export default function ForRentalsPage() {
       <ProblemBlock />
       <BuiltFor />
       <ModulesSection />
+      <FinanceIntelligence />
+      <ComparisonSection />
       <DualValueBlock />
       <FounderNote />
       <FoundingOffer />
@@ -87,14 +114,15 @@ function Hero() {
 }
 
 function WhatsInsideCard() {
-  const items: Array<{ label: string; live: boolean }> = [
-    { label: "Fleet & car management", live: true },
-    { label: "Bookings & availability calendar", live: true },
-    { label: "Customer database & risk tracking", live: true },
-    { label: "Dashboard — today's pickups & returns", live: true },
-    { label: "Revenue & finance overview", live: true },
-    { label: "Excel import for cars & customers", live: true },
-    { label: "Marketplace listing — 0% commission", live: true },
+  const items: Array<{ label: string }> = [
+    { label: "Fleet management & inspection tracking" },
+    { label: "Bookings & Gantt availability calendar" },
+    { label: "Customer database with blacklist protection" },
+    { label: "Maintenance log & service reminders" },
+    { label: "Business expense tracking" },
+    { label: "True P&L — pro-rata revenue + depreciation" },
+    { label: "Excel import — cars & customers in minutes" },
+    { label: "Marketplace listing — 0% commission" },
   ];
 
   return (
@@ -102,10 +130,10 @@ function WhatsInsideCard() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-200">
         What&apos;s live today
       </p>
-      <ul className="mt-5 space-y-3">
+      <ul className="mt-5 space-y-2.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2.5 text-sm text-brand-100">
-            <span aria-hidden className="grid size-5 place-items-center rounded-full bg-success/20 text-[10px] text-success">
+            <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-success/20 text-[10px] text-success">
               ✓
             </span>
             {item.label}
@@ -276,6 +304,182 @@ function ModulesSection() {
         Built with and tested by real rental companies in Riga. Every feature
         comes from an actual operator problem — not a product manager's guess.
       </p>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * 5b. Finance Intelligence — key differentiator section
+ * ------------------------------------------------------------------------- */
+function FinanceIntelligence() {
+  const points = [
+    {
+      stat: "Pro-rata revenue",
+      detail:
+        "Revenue counted by the day the car is actually out — not by when the invoice was issued. A 30-day June rental paid in May shows as June income. No distortions.",
+    },
+    {
+      stat: "Amortized costs",
+      detail:
+        "Annual insurance (€1,200) spreads as €100/month. Government fees spread across their coverage period. Every month shows its true share — not a spike in the payment month.",
+    },
+    {
+      stat: "Vehicle depreciation",
+      detail:
+        "Enter the current market value of each car. The platform calculates monthly straight-line depreciation automatically and deducts it from net profit.",
+    },
+    {
+      stat: "Per-car profitability",
+      detail:
+        "Revenue earned − direct maintenance − depreciation = net contribution per vehicle. See instantly which cars pull their weight and which don't.",
+    },
+  ];
+
+  return (
+    <section className="bg-brand-950 py-16 lg:py-24">
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">
+            Finance intelligence — unique to CarRentDesk
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+            The first rental platform that shows you real profit — not just bookings.
+          </h2>
+          <p className="mt-4 text-base leading-7 text-brand-200">
+            Most rental software counts revenue when a booking is made. CarRentDesk calculates what you actually earned — by the day, after costs, after depreciation. The number your accountant would recognise.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {points.map((p) => (
+            <div key={p.stat} className="rounded-2xl bg-white/[0.06] p-6 ring-1 ring-white/10">
+              <p className="text-sm font-bold text-white">{p.stat}</p>
+              <p className="mt-2 text-sm leading-6 text-brand-200">{p.detail}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl bg-white/[0.04] px-6 py-5 ring-1 ring-white/10">
+          <p className="text-sm font-semibold text-white">12-month P&amp;L table — built in, no spreadsheet needed</p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[540px] text-xs">
+              <thead>
+                <tr className="text-left text-brand-400">
+                  <th className="pb-2 pr-4 font-medium">Month</th>
+                  <th className="pb-2 pr-4 text-right font-medium">Revenue</th>
+                  <th className="pb-2 pr-4 text-right font-medium">Cash costs</th>
+                  <th className="pb-2 pr-4 text-right font-medium">EBITDA</th>
+                  <th className="pb-2 pr-4 text-right font-medium">Depreciation</th>
+                  <th className="pb-2 text-right font-medium">Net profit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-brand-100">
+                {[
+                  ["Mar 2026", "€4,280", "−€980",  "€3,300", "−€420", "€2,880"],
+                  ["Apr 2026", "€5,100", "−€1,120", "€3,980", "−€420", "€3,560"],
+                  ["May 2026", "€6,340", "−€1,050", "€5,290", "−€420", "€4,870"],
+                ].map(([month, rev, costs, ebitda, dep, net]) => (
+                  <tr key={month}>
+                    <td className="py-1.5 pr-4 text-brand-300">{month}</td>
+                    <td className="py-1.5 pr-4 text-right">{rev}</td>
+                    <td className="py-1.5 pr-4 text-right text-red-400">{costs}</td>
+                    <td className="py-1.5 pr-4 text-right text-emerald-400 font-medium">{ebitda}</td>
+                    <td className="py-1.5 pr-4 text-right text-brand-400">{dep}</td>
+                    <td className="py-1.5 text-right font-bold text-emerald-300">{net}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-brand-500">Illustrative example · 10-car fleet · 20%/year depreciation rate</p>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/join"
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
+          >
+            See your numbers →
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * 5c. Comparison vs Excel / other tools
+ * ------------------------------------------------------------------------- */
+function ComparisonSection() {
+  const rows = [
+    { feature: "Availability calendar",        crd: true,  excel: false, other: "partial" },
+    { feature: "Customer blacklist / risk log", crd: true,  excel: false, other: false     },
+    { feature: "Maintenance reminders by km",   crd: true,  excel: false, other: false     },
+    { feature: "Business expense tracking",     crd: true,  excel: "manual", other: false  },
+    { feature: "Pro-rata revenue (accrual)",    crd: true,  excel: false, other: false     },
+    { feature: "Vehicle depreciation in P&L",  crd: true,  excel: false, other: false     },
+    { feature: "Per-car net profitability",     crd: true,  excel: false, other: false     },
+    { feature: "Marketplace listing included",  crd: true,  excel: false, other: false     },
+    { feature: "Monthly price",                 crd: "Free", excel: "Free", other: "€150–400" },
+  ];
+
+  function Cell({ val }: { val: boolean | string }) {
+    if (val === true)  return <span className="text-emerald-600 font-semibold">✓ Yes</span>;
+    if (val === false) return <span className="text-neutral-300">—</span>;
+    if (val === "partial") return <span className="text-amber-500 text-xs">Partial</span>;
+    if (val === "manual") return <span className="text-amber-500 text-xs">Manual</span>;
+    return <span className="font-semibold text-neutral-700">{val}</span>;
+  }
+
+  return (
+    <section className="mx-auto w-full max-w-7xl px-6 py-14 lg:px-8 lg:py-20">
+      <div className="max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+          Why not just use Excel?
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+          Excel is free. But it costs you every time something breaks.
+        </h2>
+        <p className="mt-4 text-base leading-7 text-neutral-700">
+          Most independent rentals run on spreadsheets and WhatsApp. That works — until a car misses an inspection, a customer dispute has no paper trail, or you can&apos;t answer &quot;which car is actually profitable?&quot;
+        </p>
+      </div>
+
+      <div className="mt-10 overflow-x-auto rounded-2xl border border-border bg-white">
+        <table className="w-full min-w-[580px] text-sm">
+          <thead>
+            <tr className="border-b border-border bg-slate-50 text-left text-xs">
+              <th className="px-5 py-3 font-medium text-neutral-500">Feature</th>
+              <th className="px-5 py-3 text-center font-semibold text-brand-700">CarRentDesk</th>
+              <th className="px-5 py-3 text-center font-medium text-neutral-500">Excel / Sheets</th>
+              <th className="px-5 py-3 text-center font-medium text-neutral-500">Other rental tools</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => (
+              <tr key={r.feature} className="hover:bg-slate-50">
+                <td className="px-5 py-3 text-neutral-700">{r.feature}</td>
+                <td className="px-5 py-3 text-center"><Cell val={r.crd} /></td>
+                <td className="px-5 py-3 text-center"><Cell val={r.excel} /></td>
+                <td className="px-5 py-3 text-center"><Cell val={r.other} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-4 text-xs text-neutral-400">
+        "Other rental tools" = typical fleet management SaaS targeting SMEs. Pricing based on publicly listed rates, May 2026.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href="/join"
+          className="inline-flex items-center justify-center rounded-full bg-brand-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+        >
+          Start free — no card needed →
+        </Link>
+      </div>
     </section>
   );
 }
