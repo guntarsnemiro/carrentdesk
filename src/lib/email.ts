@@ -2,8 +2,11 @@ import "server-only";
 import { Resend } from "resend";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS = process.env.EMAIL_FROM ?? "CarRentDesk <hello@carrentdesk.com>";
-const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "hello@carrentdesk.com";
+// Use a verified Resend sender. Until carrentdesk.com is verified in Resend,
+// onboarding@resend.dev is the only domain that works out of the box.
+// Once you verify carrentdesk.com in Resend, set EMAIL_FROM in Vercel env vars.
+const FROM_ADDRESS = process.env.EMAIL_FROM ?? "CarRentDesk <onboarding@resend.dev>";
+const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "info@carrentdesk.com";
 
 /**
  * Returns null when RESEND_API_KEY is not configured (local dev / preview).
