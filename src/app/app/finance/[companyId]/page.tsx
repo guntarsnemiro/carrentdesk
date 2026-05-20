@@ -56,10 +56,10 @@ export default async function FinancePage({
     .order("start_at", { ascending: false });
 
   // Fetch maintenance costs
-  const { data: maintLogs } = await db
-    .from("maintenance_logs")
-    .select("id, date, cost, vehicle_id, type")
-    .eq("company_id", companyId);
+  const [{ data: maintLogs }, { data: bizExpenses }] = await Promise.all([
+    db.from("maintenance_logs").select("id, date, cost, vehicle_id, type").eq("company_id", companyId),
+    db.from("company_expenses").select("id, date, category, amount").eq("company_id", companyId),
+  ]);
 
   const all = (bookings ?? []) as {
     id: string;
@@ -96,11 +96,21 @@ export default async function FinancePage({
 
   // Maintenance costs
   const maint = (maintLogs ?? []) as { id: string; date: string; cost: number; vehicle_id: string; type: string }[];
-  const costOf = (m: typeof maint[0]) => Number(m.cost);
-  const maintThisMonth = maint.filter((m) => inMonth(m.date, thisYear, thisMonth));
-  const maintThisYear  = maint.filter((m) => new Date(m.date).getFullYear() === thisYear);
-  const costsThisMonth = maintThisMonth.reduce((s, m) => s + costOf(m), 0);
-  const costsThisYear  = maintThisYear.reduce((s, m) => s + costOf(m), 0);
+  const biz   = (bizExpenses ?? []) as { id: string; date: string; category: string; amount: number }[];
+  const costOf = (m: { cost: number }) => Number(m.cost);
+  const amtOf  = (e: { amount: number }) => Number(e.amount);
+
+  const maintThisMonth  = maint.filter((m) => inMonth(m.date, thisYear, thisMonth));
+  const maintThisYear   = maint.filter((m) => new Date(m.date).getFullYear() === thisYear);
+  const bizThisMonth    = biz.filter((e) => inMonth(e.date, thisYear, thisMonth));
+  const bizThisYear     = biz.filter((e) => new Date(e.date).getFullYear() === thisYear);
+
+  const maintCostMonth  = maintThisMonth.reduce((s, m) => s + costOf(m), 0);
+  const maintCostYear   = maintThisYear.reduce((s, m) => s + costOf(m), 0);
+  const bizCostMonth    = bizThisMonth.reduce((s, e) => s + amtOf(e), 0);
+  const bizCostYear     = bizThisYear.reduce((s, e) => s + amtOf(e), 0);
+  const costsThisMonth  = maintCostMonth + bizCostMonth;
+  const costsThisYear   = maintCostYear  + bizCostYear;
   const profitThisMonth = revenueThisMonth - costsThisMonth;
   const profitThisYear  = revenueThisYear  - costsThisYear;
 
@@ -115,10 +125,11 @@ export default async function FinancePage({
     const mo   = date.getMonth();
     const mBookings = all.filter((b) => inMonth(b.start_at, yr, mo));
     const mMaint    = maint.filter((m) => inMonth(m.date, yr, mo));
+    const mBiz      = biz.filter((e) => inMonth(e.date, yr, mo));
     return {
       label:     MONTH_SHORT[mo]!,
       revenue:   mBookings.reduce((s, b) => s + priceOf(b), 0),
-      costs:     mMaint.reduce((s, m) => s + costOf(m), 0),
+      costs:     mMaint.reduce((s, m) => s + costOf(m), 0) + mBiz.reduce((s, e) => s + amtOf(e), 0),
       bookings:  mBookings.length,
       isCurrent: mo === thisMonth && yr === thisYear,
     };
@@ -158,6 +169,19 @@ export default async function FinancePage({
 
   // Recent bookings (last 10 with a price)
   const recentWithPrice = all.filter((b) => (b.booking_price ?? 0) > 0).slice(0, 10);
+
+  // Business expense breakdown by category
+  const EXP_LABELS: Record<string, string> = {
+    salary: "Salary", tax: "Tax", rent: "Rent / Office",
+    phone_internet: "Phone / Internet", accounting_legal: "Accounting / Legal",
+    supplies_stock: "Supplies / Stock", company_insurance: "Company insurance", other: "Other",
+  };
+  const bizByCategory = new Map<string, number>();
+  for (const e of biz) { bizByCategory.set(e.category, (bizByCategory.get(e.category) ?? 0) + amtOf(e)); }
+  const bizBreakdown = Array.from(bizByCategory.entries())
+    .map(([cat, total]) => ({ cat, label: EXP_LABELS[cat] ?? cat, total }))
+    .sort((a, b) => b.total - a.total);
+  const totalBizAll = biz.reduce((s, e) => s + amtOf(e), 0);
 
   // Cost breakdown by maintenance type
   const TYPE_LABELS: Record<string, string> = {
@@ -199,7 +223,7 @@ export default async function FinancePage({
         <StatCard
           label="Costs this month"
           value={fmt(costsThisMonth)}
-          sub={`${maintThisMonth.length} entries`}
+          sub={`maint. ${fmt(maintCostMonth)} · biz ${fmt(bizCostMonth)}`}
         />
         <StatCard
           label="Profit this month"
@@ -217,7 +241,7 @@ export default async function FinancePage({
       {/* ── Year stats ── */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard label="Revenue this year" value={fmt(revenueThisYear)} sub={`${thisYearBookings.length} bookings`} />
-        <StatCard label="Costs this year"   value={fmt(costsThisYear)}   sub={`${maintThisYear.length} entries`} />
+        <StatCard label="Costs this year" value={fmt(costsThisYear)} sub={`maint. ${fmt(maintCostYear)} · biz ${fmt(bizCostYear)}`} />
         <StatCard
           label="Profit this year"
           value={fmt(profitThisYear)}
@@ -308,6 +332,40 @@ export default async function FinancePage({
               <span className="w-40 shrink-0 text-sm font-semibold text-neutral-700">Total</span>
               <div className="flex-1" />
               <span className="w-20 shrink-0 text-right text-sm font-bold text-neutral-900">{fmt(totalCostAll)}</span>
+              <span className="w-10 shrink-0" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Business expense breakdown ── */}
+      {bizBreakdown.length > 0 && (
+        <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
+          <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">Business expense breakdown</h2>
+              <p className="text-xs text-neutral-400 mt-0.5">All time · overhead &amp; general costs</p>
+            </div>
+            <Link href={`/app/expenses/${companyId}`} className="text-sm text-brand-700 hover:underline">View all →</Link>
+          </div>
+          <div className="divide-y divide-border">
+            {bizBreakdown.map(({ cat, label, total }) => {
+              const barW = totalBizAll > 0 ? (total / totalBizAll) * 100 : 0;
+              return (
+                <div key={cat} className="flex items-center gap-4 px-6 py-3">
+                  <span className="w-44 shrink-0 text-sm text-neutral-700">{label}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-violet-400" style={{ width: `${barW}%` }} />
+                  </div>
+                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-neutral-900">{fmt(total)}</span>
+                  <span className="w-10 shrink-0 text-right text-xs text-neutral-400">{barW.toFixed(0)}%</span>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-4 px-6 py-3 bg-slate-50">
+              <span className="w-44 shrink-0 text-sm font-semibold text-neutral-700">Total</span>
+              <div className="flex-1" />
+              <span className="w-20 shrink-0 text-right text-sm font-bold text-neutral-900">{fmt(totalBizAll)}</span>
               <span className="w-10 shrink-0" />
             </div>
           </div>
