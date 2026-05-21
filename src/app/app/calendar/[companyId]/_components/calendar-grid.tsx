@@ -1074,18 +1074,14 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const isSelected = selMin && selMax && str >= selMin && str <= selMax;
                       const isSplitDay = !isSelected && splitDays.has(str);
 
-                      // Split day gets a diagonal gradient: top-left = return (grey), bottom-right = pickup (amber)
-                      const splitStyle = isSplitDay
-                        ? { background: "linear-gradient(135deg, rgba(148,163,184,0.35) 50%, rgba(251,191,36,0.30) 50%)" }
-                        : {};
-
                       return (
                         <div key={str}
-                          style={{ width: DAY_W, ...splitStyle }}
-                          className={`shrink-0 h-full border-r border-border/30 cursor-crosshair
-                            ${isSelected   ? "bg-brand-100"        : ""}
-                            ${!isSelected && !isSplitDay && isToday   ? "bg-brand-50/50"    : ""}
-                            ${!isSelected && !isSplitDay && isWeekend ? "bg-slate-50/70"    : ""}
+                          style={{ width: DAY_W }}
+                          className={`relative shrink-0 h-full border-r border-border/30 cursor-crosshair
+                            ${isSelected                                          ? "bg-brand-100"    : ""}
+                            ${!isSelected && isToday    && !isSplitDay            ? "bg-brand-50/50"  : ""}
+                            ${!isSelected && isWeekend  && !isSplitDay && !isToday? "bg-slate-50/70"  : ""}
+                            ${!isSelected && isSplitDay                           ? "bg-white"        : ""}
                           `}
                           onMouseDown={(e) => {
                             if (e.button !== 0) return;
@@ -1097,7 +1093,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             if (!isDraggingRef.current || selection?.vehicleId !== v.id) return;
                             setSelection((prev) => prev ? { ...prev, endStr: str } : prev);
                           }}
-                        />
+                        >
+                          {/* Diagonal overlay sits above booking bars so it is always visible */}
+                          {isSplitDay && !isSelected && (
+                            <div
+                              className="absolute inset-0 z-20 pointer-events-none"
+                              style={{ background: "linear-gradient(135deg, rgba(148,163,184,0.55) 50%, rgba(251,191,36,0.50) 50%)" }}
+                            />
+                          )}
+                        </div>
                       );
                     })}
 
