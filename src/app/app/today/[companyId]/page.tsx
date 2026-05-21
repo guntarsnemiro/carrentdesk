@@ -5,6 +5,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { RenewAction } from "./_components/renew-action";
 import { ReleaseDeposit } from "./_components/release-deposit";
+import { LocalTime } from "../../dashboard/_components/local-time";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -25,9 +26,6 @@ function in7DaysUTC() {
 function endOfMonthUTC() {
   const d = new Date();
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(new Date(d.getUTCFullYear(), d.getUTCMonth() + 1, 0).getUTCDate()).padStart(2, "0")}`;
-}
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -275,13 +273,12 @@ function BookingCard({ b, companyId, timeField, label, dim = false }: {
   b: { id: string; start_at: string; end_at: string; pickup_location: string | null; return_location: string | null; booking_price: number | null; customers: { full_name: string; phone: string } | null; vehicles: { make: string; model: string; plate: string } | null };
   companyId: string; timeField: "start_at" | "end_at"; label: string; dim?: boolean;
 }) {
-  const time = fmtTime(b[timeField]);
   const location = timeField === "start_at" ? b.pickup_location : b.return_location;
   return (
     <div className={`flex items-start justify-between gap-4 rounded-xl border border-border bg-white px-4 py-3 ${dim ? "opacity-70" : ""}`}>
       <div>
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-neutral-900">{time}</span>
+          <span className="text-base font-bold text-neutral-900"><LocalTime iso={b[timeField]} /></span>
           <span className="text-xs text-neutral-400">{label}</span>
         </div>
         <p className="mt-0.5 text-sm font-semibold text-neutral-900">{b.customers?.full_name ?? "—"}</p>

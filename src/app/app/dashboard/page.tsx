@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { LocalTime } from "./_components/local-time";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -11,7 +12,7 @@ const cityLabel: Record<string, string> = {
 };
 
 function greeting() {
-  const h = new Date().getHours();
+  const h = new Date().getUTCHours();
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
@@ -19,29 +20,34 @@ function greeting() {
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-GB", {
-    weekday: "long", day: "numeric", month: "long",
+    weekday: "long", day: "numeric", month: "long", timeZone: "UTC",
   });
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+/** Returns today's date string "YYYY-MM-DD" in UTC */
+function todayUTC() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+function tomorrowUTC() {
+  const d = new Date(Date.now() + 86_400_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
-function isSameDay(iso: string, date: Date) {
-  const d = new Date(iso);
-  return d.getFullYear() === date.getFullYear()
-    && d.getMonth() === date.getMonth()
-    && d.getDate() === date.getDate();
+function in7DaysUTC() {
+  const d = new Date(Date.now() + 7 * 86_400_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
 function isThisMonth(iso: string | null, refDate: Date) {
   if (!iso) return false;
   const d = new Date(iso);
-  return d.getFullYear() === refDate.getFullYear() && d.getMonth() === refDate.getMonth();
+  return d.getUTCFullYear() === refDate.getUTCFullYear() && d.getUTCMonth() === refDate.getUTCMonth();
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 type BookingFull = {
@@ -50,6 +56,10 @@ type BookingFull = {
   status: string;
   start_at: string;
   end_at: string;
+  is_longterm: boolean;
+  renewal_period_days: number | null;
+  deposit_amount: number | null;
+  deposit_returned_at: string | null;
   vehicles: { id: string; make: string; model: string; plate: string } | null;
   customers: { id: string; full_name: string; phone: string } | null;
 };
@@ -89,26 +99,25 @@ export default async function DashboardPage({
 
   const companyIds = companies.map((c) => c.id);
 
-  const now      = new Date();
-  const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const nowIso   = now.toISOString();
+  const now = new Date();
+  const today = todayUTC();
+  const tomorrow = tomorrowUTC();
+  const in7Days = in7DaysUTC();
 
-  // Vehicles (status + alert fields)
+  // Vehicles
   const { data: vehicleRows } = companyIds.length
     ? await db.from("vehicles")
         .select("id, company_id, make, model, plate, status, insurance_valid_until, gov_inspection_next, service_next")
         .in("company_id", companyIds)
     : { data: [] };
 
-  // Bookings for today, tomorrow and currently active
-  const windowEnd = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  // All non-cancelled, non-returned bookings (broad — Today page approach)
   const { data: bookingRows } = companyIds.length
     ? await db.from("bookings")
-        .select("id, company_id, status, start_at, end_at, vehicles(id, make, model, plate), customers(id, full_name, phone)")
+        .select("id, company_id, status, start_at, end_at, is_longterm, renewal_period_days, deposit_amount, deposit_returned_at, vehicles(id, make, model, plate), customers(id, full_name, phone)")
         .in("company_id", companyIds)
-        .in("status", ["confirmed", "active"])
-        .lte("start_at", windowEnd)
+        .neq("status", "cancelled")
+        .neq("status", "returned")
     : { data: [] };
 
   // Customer counts
@@ -116,7 +125,7 @@ export default async function DashboardPage({
     ? await db.from("customers").select("company_id").in("company_id", companyIds)
     : { data: [] };
 
-  // Maintenance reminders — fetch logs that have a next_due set, joined with vehicle info
+  // Maintenance reminders
   const { data: maintLogsRaw } = companyIds.length
     ? await db.from("maintenance_logs")
         .select("id, company_id, vehicle_id, type, next_due_km, next_due_date, next_due_label, odometer_km, date, vehicle:vehicles(make, model, plate, odometer_km)")
@@ -125,7 +134,6 @@ export default async function DashboardPage({
         .order("date", { ascending: false })
     : { data: [] };
 
-  // Per vehicle+type keep only the latest log with a reminder
   type MaintLog = { id: string; company_id: string; vehicle_id: string; type: string; next_due_km: number | null; next_due_date: string | null; next_due_label: string | null; odometer_km: number | null; date: string; vehicle: { make: string; model: string; plate: string; odometer_km: number | null } | null; };
   const latestMaintMap = new Map<string, MaintLog>();
   for (const l of (maintLogsRaw ?? []) as MaintLog[]) {
@@ -139,7 +147,6 @@ export default async function DashboardPage({
 
   return (
     <div className="px-8 py-8">
-      {/* Welcome banner */}
       {claimed === "1" && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
           <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -152,7 +159,6 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Greeting */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-neutral-900">{greeting()}</h1>
         <p className="mt-1 text-sm text-neutral-400">{todayLabel()}</p>
@@ -176,31 +182,50 @@ export default async function DashboardPage({
             const bookings  = allBookings.filter((b) => b.company_id === company.id);
             const customers = (customerCounts ?? []).filter((c) => c.company_id === company.id).length;
 
-            const pickupsToday   = bookings.filter((b) => isSameDay(b.start_at, today));
-            const returnsToday   = bookings.filter((b) => isSameDay(b.end_at,   today));
-            const pickupsTomorrow = bookings.filter((b) => isSameDay(b.start_at, tomorrow));
-            const returnsTomorrow = bookings.filter((b) => isSameDay(b.end_at,   tomorrow));
-            const currentlyOut   = bookings.filter((b) =>
-              new Date(b.start_at) <= now && new Date(b.end_at) > now && !isSameDay(b.end_at, today)
+            // Use UTC string slice for reliable date comparison (same as Today page)
+            const pickupsToday    = bookings.filter((b) => b.start_at.slice(0, 10) === today)
+              .sort((a, b) => a.start_at.localeCompare(b.start_at));
+            const returnsToday    = bookings.filter((b) => b.end_at.slice(0, 10) === today && !b.is_longterm)
+              .sort((a, b) => a.end_at.localeCompare(b.end_at));
+            const pickupsTomorrow = bookings.filter((b) => b.start_at.slice(0, 10) === tomorrow)
+              .sort((a, b) => a.start_at.localeCompare(b.start_at));
+            const returnsTomorrow = bookings.filter((b) => b.end_at.slice(0, 10) === tomorrow && !b.is_longterm)
+              .sort((a, b) => a.end_at.localeCompare(b.end_at));
+            const currentlyOut    = bookings.filter((b) => b.start_at.slice(0, 10) < today && b.end_at.slice(0, 10) > today);
+
+            // Long-term renewals due within 7 days
+            const renewalsDue = bookings.filter((b) =>
+              b.is_longterm && b.status === "active" &&
+              b.end_at.slice(0, 10) >= today && b.end_at.slice(0, 10) <= in7Days
+            ).sort((a, b) => a.end_at.localeCompare(b.end_at));
+
+            const renewalsOverdue = bookings.filter((b) =>
+              b.is_longterm && b.status === "active" && b.end_at.slice(0, 10) < today
+            ).sort((a, b) => a.end_at.localeCompare(b.end_at));
+
+            // Deposits outstanding (ended, not returned)
+            const depositsOutstanding = bookings.filter((b) =>
+              b.deposit_amount != null && b.deposit_amount > 0 &&
+              b.deposit_returned_at == null &&
+              b.end_at.slice(0, 10) <= today
             );
 
-            // Alerts — this month
+            // Alerts this month
             const insuranceExpiring  = vehicles.filter((v) => isThisMonth(v.insurance_valid_until, now));
             const govInspectionDue   = vehicles.filter((v) => isThisMonth(v.gov_inspection_next,   now));
             const serviceDue         = vehicles.filter((v) => isThisMonth(v.service_next,          now));
 
-            // Maintenance reminders — overdue or due within 30 days
             type MaintReminder = { logId: string; vehicleName: string; plate: string; label: string; daysLeft: number | null; kmLeft: number | null; href: string };
             const maintReminders: MaintReminder[] = [];
+            const todayMs = Date.now();
             for (const l of latestMaintMap.values()) {
               if (l.company_id !== company.id) continue;
               const v = l.vehicle as { make: string; model: string; plate: string; odometer_km: number | null } | null;
               if (!v) continue;
-              const currentOdo = v.odometer_km;
               const daysLeft = l.next_due_date
-                ? Math.ceil((new Date(l.next_due_date).getTime() - today.getTime()) / 86400000)
+                ? Math.ceil((new Date(l.next_due_date).getTime() - todayMs) / 86400000)
                 : null;
-              const kmLeft = l.next_due_km != null && currentOdo != null ? l.next_due_km - currentOdo : null;
+              const kmLeft = l.next_due_km != null && v.odometer_km != null ? l.next_due_km - v.odometer_km : null;
               const isOverdue = (daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0);
               const isSoon    = !isOverdue && ((daysLeft != null && daysLeft <= 30) || (kmLeft != null && kmLeft <= 2000));
               if (isOverdue || isSoon) {
@@ -222,7 +247,6 @@ export default async function DashboardPage({
 
             return (
               <div key={company.id}>
-                {/* Company header */}
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-semibold text-neutral-900">{company.name}</h2>
@@ -242,32 +266,86 @@ export default async function DashboardPage({
 
                 <div className="space-y-4">
 
-                  {/* ── Today ── */}
+                  {/* ── Overdue renewals — urgent banner ── */}
+                  {renewalsOverdue.length > 0 && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+                      <p className="mb-2 text-sm font-semibold text-red-800">⚠ Overdue renewals ({renewalsOverdue.length})</p>
+                      <div className="divide-y divide-red-100">
+                        {renewalsOverdue.map((b) => {
+                          const daysAgo = Math.round((Date.now() - new Date(b.end_at).getTime()) / 86_400_000);
+                          return (
+                            <Link key={b.id} href={`/app/rentals/${company.id}/${b.id}`}
+                              className="flex items-center gap-4 py-2.5 hover:opacity-75">
+                              <span className="flex-1 text-sm font-medium text-red-900">{b.customers?.full_name ?? "—"}</span>
+                              <span className="text-sm text-red-700">{b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : "—"}</span>
+                              <span className="font-mono text-xs text-red-600">{b.vehicles?.plate ?? ""}</span>
+                              <span className="text-xs text-red-600">{daysAgo}d overdue</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Today: Pickups & Returns ── */}
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <DayCard
-                      title="Pickups today"
-                      count={pickupsToday.length}
-                      color="emerald"
-                      emptyText="No pickups today"
-                      companyId={company.id}
-                    >
-                      {pickupsToday.sort((a, b) => a.start_at.localeCompare(b.start_at)).map((b) => (
+                    <DayCard title="Pickups today" count={pickupsToday.length} color="emerald" emptyText="No pickups today">
+                      {pickupsToday.map((b) => (
                         <BookingRow key={b.id} booking={b} timeField="start_at" companyId={company.id} />
                       ))}
                     </DayCard>
 
-                    <DayCard
-                      title="Returns today"
-                      count={returnsToday.length}
-                      color="blue"
-                      emptyText="No returns today"
-                      companyId={company.id}
-                    >
-                      {returnsToday.sort((a, b) => a.end_at.localeCompare(b.end_at)).map((b) => (
+                    <DayCard title="Returns today" count={returnsToday.length} color="blue" emptyText="No returns today">
+                      {returnsToday.map((b) => (
                         <BookingRow key={b.id} booking={b} timeField="end_at" companyId={company.id} />
                       ))}
                     </DayCard>
                   </div>
+
+                  {/* ── Renewals due this week ── */}
+                  {renewalsDue.length > 0 && (
+                    <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5">
+                      <p className="mb-3 text-sm font-semibold text-brand-800">↻ Renewals due — next 7 days ({renewalsDue.length})</p>
+                      <div className="divide-y divide-brand-100">
+                        {renewalsDue.map((b) => {
+                          const daysLeft = Math.round((new Date(b.end_at).getTime() - Date.now()) / 86_400_000);
+                          return (
+                            <Link key={b.id} href={`/app/rentals/${company.id}/${b.id}`}
+                              className="flex items-center gap-4 py-2.5 hover:opacity-75">
+                              <span className="flex-1 text-sm font-medium text-neutral-900">{b.customers?.full_name ?? "—"}</span>
+                              <span className="text-sm text-neutral-600">{b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : "—"}</span>
+                              <span className="font-mono text-xs text-neutral-400">{b.vehicles?.plate ?? ""}</span>
+                              <span className={`text-xs font-medium ${daysLeft === 0 ? "text-red-600" : daysLeft <= 2 ? "text-amber-600" : "text-brand-700"}`}>
+                                {daysLeft === 0 ? "due today" : `${daysLeft}d left`}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Deposits to release ── */}
+                  {depositsOutstanding.length > 0 && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                      <p className="mb-3 text-sm font-semibold text-amber-800">💰 Deposits to release ({depositsOutstanding.length})</p>
+                      <div className="divide-y divide-amber-100">
+                        {depositsOutstanding.map((b) => {
+                          const daysAgo = Math.round((Date.now() - new Date(b.end_at).getTime()) / 86_400_000);
+                          return (
+                            <Link key={b.id} href={`/app/rentals/${company.id}/${b.id}`}
+                              className="flex items-center gap-4 py-2.5 hover:opacity-75">
+                              <span className="flex-1 text-sm font-medium text-neutral-900">{b.customers?.full_name ?? "—"}</span>
+                              <span className="text-sm text-neutral-600">{b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : "—"}</span>
+                              <span className="font-mono text-xs text-neutral-400">{b.vehicles?.plate ?? ""}</span>
+                              <span className="text-xs font-semibold text-amber-700">€{(b.deposit_amount ?? 0).toFixed(2)}</span>
+                              <span className="text-xs text-amber-600">{daysAgo === 0 ? "returned today" : `${daysAgo}d ago`}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* ── Tomorrow ── */}
                   {(pickupsTomorrow.length > 0 || returnsTomorrow.length > 0) && (
@@ -286,11 +364,13 @@ export default async function DashboardPage({
                             return ta.localeCompare(tb);
                           })
                           .map((b) => {
-                            const time = b.type === "Pickup" ? formatTime(b.start_at) : formatTime(b.end_at);
+                            const iso = b.type === "Pickup" ? b.start_at : b.end_at;
                             return (
                               <Link key={`${b.type}-${b.id}`} href={`/app/rentals/${company.id}/${b.id}`}
                                 className="flex items-center gap-4 py-2.5 hover:opacity-75">
-                                <span className="w-12 shrink-0 font-mono text-sm font-medium text-neutral-700">{time}</span>
+                                <span className="w-12 shrink-0 font-mono text-sm font-medium text-neutral-700">
+                                  <LocalTime iso={iso} />
+                                </span>
                                 <span className={`w-14 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-medium ${b.type === "Pickup" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>
                                   {b.type}
                                 </span>
@@ -417,17 +497,13 @@ export default async function DashboardPage({
 // ── Sub-components ──────────────────────────────────────────────────────────
 
 function DayCard({
-  title, count, color, emptyText, children, companyId: _,
+  title, count, color, emptyText, children,
 }: {
   title: string; count: number; color: "emerald" | "blue";
-  emptyText: string; children: React.ReactNode; companyId: string;
+  emptyText: string; children: React.ReactNode;
 }) {
-  const accent = color === "emerald"
-    ? "border-emerald-200 bg-emerald-50"
-    : "border-blue-200 bg-blue-50";
-  const badge  = color === "emerald"
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-blue-100 text-blue-700";
+  const accent = color === "emerald" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50";
+  const badge  = color === "emerald" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700";
 
   return (
     <div className={`rounded-2xl border p-5 ${count > 0 ? accent : "border-border bg-white"}`}>
@@ -451,11 +527,12 @@ function BookingRow({
 }: {
   booking: BookingFull; timeField: "start_at" | "end_at"; companyId: string;
 }) {
-  const time = formatTime(booking[timeField]);
   return (
     <Link href={`/app/rentals/${companyId}/${booking.id}`}
       className="flex items-center gap-3 py-2.5 hover:opacity-75">
-      <span className="w-12 shrink-0 font-mono text-sm font-bold text-neutral-800">{time}</span>
+      <span className="w-12 shrink-0 font-mono text-sm font-bold text-neutral-800">
+        <LocalTime iso={booking[timeField]} />
+      </span>
       <span className="flex-1 text-sm font-medium text-neutral-900">{booking.customers?.full_name ?? "—"}</span>
       <span className="text-sm text-neutral-600">
         {booking.vehicles ? `${booking.vehicles.make} ${booking.vehicles.model}` : "—"}

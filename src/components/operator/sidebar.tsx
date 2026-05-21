@@ -33,12 +33,6 @@ const NAV_ITEMS: NavItem[] = [
     icon: <GridIcon />,
   },
   {
-    label: "Today",
-    href: (id) => `/app/today/${id}`,
-    icon: <TodayIcon />,
-    requiresCompany: true,
-  },
-  {
     label: "Cars",
     href: (id) => `/app/fleet/${id}`,
     icon: <CarIcon />,
