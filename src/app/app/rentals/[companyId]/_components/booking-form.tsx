@@ -389,10 +389,11 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
                   onChange={(e) => setForm((p) => ({ ...p, renewal_period_days: e.target.value }))}
                   className={inp}
                 >
-                  <option value="30">Monthly (30 days)</option>
-                  <option value="90">Quarterly (90 days)</option>
+                  <option value="7">Weekly (7 days)</option>
                   <option value="14">2 weeks</option>
+                  <option value="30">Monthly (30 days)</option>
                   <option value="60">2 months (60 days)</option>
+                  <option value="90">Quarterly (90 days)</option>
                   <option value="180">6 months</option>
                   <option value="365">1 year</option>
                 </select>
