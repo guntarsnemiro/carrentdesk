@@ -1060,19 +1060,6 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 const pickupDays = new Set(vBookings.map((b) => b.start_at.slice(0, 10)));
                 const splitDays  = new Set([...returnDays].filter((d) => pickupDays.has(d)));
 
-                // Map split days → actual booking status colors (CSS hex) for triangle rendering
-                const STATUS_CSS: Record<string, string> = {
-                  confirmed: "#fbbf24", active: "#10b981", returned: "#d4d4d4", maintenance: "#94a3b8",
-                };
-                const splitReturnColor = new Map<string, string>();
-                const splitPickupColor = new Map<string, string>();
-                for (const d of splitDays) {
-                  const ret = vBookings.find((b) => b.end_at.slice(0, 10) === d);
-                  const pik = vBookings.find((b) => b.start_at.slice(0, 10) === d);
-                  if (ret) splitReturnColor.set(d, STATUS_CSS[ret.status] ?? "#d4d4d4");
-                  if (pik) splitPickupColor.set(d, STATUS_CSS[pik.status] ?? "#fbbf24");
-                }
-
                 const selMin = selection && selection.vehicleId === v.id
                   ? (selection.startStr <= selection.endStr ? selection.startStr : selection.endStr) : null;
                 const selMax = selection && selection.vehicleId === v.id
@@ -1085,16 +1072,13 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
                       const isToday    = str === todayStr;
                       const isSelected = selMin && selMax && str >= selMin && str <= selMax;
-                      const isSplitDay = !isSelected && splitDays.has(str);
-
                       return (
                         <div key={str}
                           style={{ width: DAY_W }}
-                          className={`relative shrink-0 h-full border-r border-border/30 cursor-crosshair
-                            ${isSelected                                          ? "bg-brand-100"    : ""}
-                            ${!isSelected && isToday    && !isSplitDay            ? "bg-brand-50/50"  : ""}
-                            ${!isSelected && isWeekend  && !isSplitDay && !isToday? "bg-slate-50/70"  : ""}
-                            ${!isSelected && isSplitDay                           ? "bg-white"        : ""}
+                          className={`shrink-0 h-full border-r border-border/30 cursor-crosshair
+                            ${isSelected             ? "bg-brand-100"    : ""}
+                            ${!isSelected && isToday  ? "bg-brand-50/50"  : ""}
+                            ${!isSelected && !isToday && isWeekend ? "bg-slate-50/70" : ""}
                           `}
                           onMouseDown={(e) => {
                             if (e.button !== 0) return;
@@ -1106,39 +1090,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             if (!isDraggingRef.current || selection?.vehicleId !== v.id) return;
                             setSelection((prev) => prev ? { ...prev, endStr: str } : prev);
                           }}
-                        >
-                          {/* Split day: two triangles in the booking's actual colors, plus a diagonal rule */}
-                          {isSplitDay && !isSelected && (
-                            <>
-                              {/* Top-left triangle = returning booking color */}
-                              <div
-                                className="absolute inset-0 pointer-events-none"
-                                style={{
-                                  zIndex: 15,
-                                  clipPath: "polygon(0 0, 100% 0, 0 100%)",
-                                  backgroundColor: splitReturnColor.get(str) ?? "#d4d4d4",
-                                }}
-                              />
-                              {/* Bottom-right triangle = pickup booking color */}
-                              <div
-                                className="absolute inset-0 pointer-events-none"
-                                style={{
-                                  zIndex: 15,
-                                  clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                                  backgroundColor: splitPickupColor.get(str) ?? "#fbbf24",
-                                }}
-                              />
-                              {/* 2px diagonal divider line */}
-                              <div
-                                className="absolute inset-0 pointer-events-none"
-                                style={{
-                                  zIndex: 20,
-                                  background: "linear-gradient(135deg, transparent calc(50% - 1px), rgba(255,255,255,0.8) calc(50% - 1px), rgba(255,255,255,0.8) calc(50% + 1px), transparent calc(50% + 1px))",
-                                }}
-                              />
-                            </>
-                          )}
-                        </div>
+                        />
                       );
                     })}
 
@@ -1202,6 +1154,25 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             ...(b.booking_price != null ? [`€${b.booking_price.toFixed(2)}`] : []),
                           ];
 
+                      // On a split day (same-day return + pickup):
+                      // — return bar ends in the left half of that cell with a small gap
+                      // — pickup bar starts in the right half of that cell with a small gap
+                      // Both keep their normal rounded ends, creating a visible gap between them.
+                      const half = Math.floor(DAY_W / 2);
+                      const isReturnOnSplitDay = endIdx !== -1 && splitDays.has(endStr);
+                      const isPickupOnSplitDay  = splitDays.has(startStr);
+
+                      let barLeft  = startIdx * DAY_W + 2;
+                      let barWidth = span * DAY_W - 4;
+
+                      if (isReturnOnSplitDay) {
+                        barWidth = (span - 1) * DAY_W + half - 3;
+                      }
+                      if (isPickupOnSplitDay) {
+                        barLeft  = startIdx * DAY_W + half + 1;
+                        barWidth = span * DAY_W - half - 3;
+                      }
+
                       return (
                         <button
                           key={b.id}
@@ -1211,8 +1182,8 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                           onMouseMove={(e)  => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
                           onMouseLeave={()  => setTooltip(null)}
                           style={{
-                            left:  startIdx * DAY_W + 2,
-                            width: span * DAY_W - 4,
+                            left:  barLeft,
+                            width: barWidth,
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
@@ -1264,7 +1235,10 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
             </div>
           ))}
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-4 rounded-sm" style={{ background: "linear-gradient(135deg, rgba(148,163,184,0.6) 50%, rgba(251,191,36,0.55) 50%)" }} />
+            <span className="flex items-center gap-0.5">
+              <span className="h-3 w-3 rounded-sm bg-neutral-300" />
+              <span className="h-3 w-3 rounded-sm bg-amber-400" />
+            </span>
             <span className="text-xs text-neutral-500">Return + pickup same day</span>
           </div>
         </div>
