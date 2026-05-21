@@ -1060,6 +1060,19 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 const pickupDays = new Set(vBookings.map((b) => b.start_at.slice(0, 10)));
                 const splitDays  = new Set([...returnDays].filter((d) => pickupDays.has(d)));
 
+                // Map split days → actual booking status colors (CSS hex) for triangle rendering
+                const STATUS_CSS: Record<string, string> = {
+                  confirmed: "#fbbf24", active: "#10b981", returned: "#d4d4d4", maintenance: "#94a3b8",
+                };
+                const splitReturnColor = new Map<string, string>();
+                const splitPickupColor = new Map<string, string>();
+                for (const d of splitDays) {
+                  const ret = vBookings.find((b) => b.end_at.slice(0, 10) === d);
+                  const pik = vBookings.find((b) => b.start_at.slice(0, 10) === d);
+                  if (ret) splitReturnColor.set(d, STATUS_CSS[ret.status] ?? "#d4d4d4");
+                  if (pik) splitPickupColor.set(d, STATUS_CSS[pik.status] ?? "#fbbf24");
+                }
+
                 const selMin = selection && selection.vehicleId === v.id
                   ? (selection.startStr <= selection.endStr ? selection.startStr : selection.endStr) : null;
                 const selMax = selection && selection.vehicleId === v.id
@@ -1094,12 +1107,36 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             setSelection((prev) => prev ? { ...prev, endStr: str } : prev);
                           }}
                         >
-                          {/* Thin diagonal line on split days — bars handle the half-cell rendering */}
+                          {/* Split day: two triangles in the booking's actual colors, plus a diagonal rule */}
                           {isSplitDay && !isSelected && (
-                            <div
-                              className="absolute inset-0 z-20 pointer-events-none"
-                              style={{ background: "linear-gradient(135deg, transparent calc(50% - 1px), rgba(100,116,139,0.5) calc(50% - 1px), rgba(100,116,139,0.5) calc(50% + 1px), transparent calc(50% + 1px))" }}
-                            />
+                            <>
+                              {/* Top-left triangle = returning booking color */}
+                              <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                  zIndex: 15,
+                                  clipPath: "polygon(0 0, 100% 0, 0 100%)",
+                                  backgroundColor: splitReturnColor.get(str) ?? "#d4d4d4",
+                                }}
+                              />
+                              {/* Bottom-right triangle = pickup booking color */}
+                              <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                  zIndex: 15,
+                                  clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                                  backgroundColor: splitPickupColor.get(str) ?? "#fbbf24",
+                                }}
+                              />
+                              {/* 2px diagonal divider line */}
+                              <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                  zIndex: 20,
+                                  background: "linear-gradient(135deg, transparent calc(50% - 1px), rgba(255,255,255,0.8) calc(50% - 1px), rgba(255,255,255,0.8) calc(50% + 1px), transparent calc(50% + 1px))",
+                                }}
+                              />
+                            </>
                           )}
                         </div>
                       );
@@ -1165,26 +1202,6 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             ...(b.booking_price != null ? [`€${b.booking_price.toFixed(2)}`] : []),
                           ];
 
-                      // On a split day (same-day return + pickup for this vehicle):
-                      // — the returning booking is clipped to the LEFT half of that cell
-                      // — the pickup booking is offset to the RIGHT half of that cell
-                      const isReturnOnSplitDay = splitDays.has(endStr) && endIdx !== -1;
-                      const isPickupOnSplitDay  = splitDays.has(startStr) && startIdx !== -1;
-
-                      let barLeft  = startIdx * DAY_W + 2;
-                      let barWidth = span * DAY_W - 4;
-
-                      if (isReturnOnSplitDay) {
-                        // Clip bar so it ends at the left half of the split cell
-                        barWidth = (span - 1) * DAY_W + Math.floor(DAY_W / 2) - 2;
-                      }
-                      if (isPickupOnSplitDay) {
-                        // Push bar so it starts at the right half of the split cell
-                        const offset = Math.ceil(DAY_W / 2);
-                        barLeft  = startIdx * DAY_W + offset;
-                        barWidth = span * DAY_W - offset - 2;
-                      }
-
                       return (
                         <button
                           key={b.id}
@@ -1194,15 +1211,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                           onMouseMove={(e)  => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
                           onMouseLeave={()  => setTooltip(null)}
                           style={{
-                            left:  barLeft,
-                            width: barWidth,
+                            left:  startIdx * DAY_W + 2,
+                            width: span * DAY_W - 4,
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
                           className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
                             ${blockColor}
-                            ${!clipsLeft  && !isPickupOnSplitDay  ? "rounded-l-md" : ""}
-                            ${!clipsRight && !isReturnOnSplitDay  ? "rounded-r-md" : ""}
+                            ${!clipsLeft  ? "rounded-l-md" : ""}
+                            ${!clipsRight ? "rounded-r-md" : ""}
                           `}
                         >
                           <span className="truncate">{blockLabel}</span>
