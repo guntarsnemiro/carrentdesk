@@ -28,19 +28,20 @@ export function RenewAction({ bookingId, customerName, plate, currentEndAt, rene
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(pricePerPeriod != null ? String(pricePerPeriod) : "");
   const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10));
+  // New renewal date — pre-filled from period but fully editable
+  const [newEndDate, setNewEndDate] = useState(addDays(currentEndAt, renewalPeriodDays).slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const newEndAt = addDays(currentEndAt, renewalPeriodDays);
-
   async function handleRenew() {
+    if (!newEndDate) { setError("Please set the new renewal date."); return; }
     setSaving(true);
     setError("");
     const supabase = getAuthBrowserClient();
     const { error: err } = await supabase
       .from("bookings")
       .update({
-        end_at: newEndAt,
+        end_at: new Date(newEndDate + "T12:00:00Z").toISOString(),
         paid_at: paidDate ? new Date(paidDate).toISOString() : null,
         booking_price: amount ? parseFloat(amount) : null,
         updated_at: new Date().toISOString(),
@@ -69,10 +70,20 @@ export function RenewAction({ bookingId, customerName, plate, currentEndAt, rene
       <p className="text-sm font-semibold text-brand-900">
         Renew — {customerName} / {plate}
       </p>
-      <p className="text-xs text-neutral-600">
-        New period: <span className="font-medium">{fmtDate(currentEndAt)} → {fmtDate(newEndAt)}</span>
+      <p className="text-xs text-neutral-500">
+        Paid from: <span className="font-medium text-neutral-700">{fmtDate(currentEndAt)}</span>
       </p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-neutral-500">Paid until (new renewal date)</span>
+          <input
+            type="date"
+            value={newEndDate}
+            onChange={(e) => setNewEndDate(e.target.value)}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          />
+          <span className="text-[11px] text-neutral-400">Pre-filled: +{renewalPeriodDays} days — edit if different</span>
+        </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-neutral-500">Amount paid (€)</span>
           <input
