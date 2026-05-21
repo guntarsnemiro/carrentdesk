@@ -33,6 +33,8 @@ interface Booking {
   pickup_location: string | null;
   return_location: string | null;
   notes: string | null;
+  is_longterm: boolean;
+  renewal_period_days: number | null;
 }
 
 interface Props {
@@ -84,6 +86,8 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     pickup_location:    booking?.pickup_location ?? "",
     return_location:    booking?.return_location ?? "",
     notes:              booking?.notes ?? "",
+    is_longterm:        booking?.is_longterm ?? false,
+    renewal_period_days: booking?.renewal_period_days != null ? String(booking.renewal_period_days) : "30",
   });
 
   // ── Customer search ──
@@ -207,6 +211,8 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
       pickup_location:    form.pickup_location.trim() || null,
       return_location:    form.return_location.trim() || null,
       notes:              form.notes.trim() || null,
+      is_longterm:        form.is_longterm,
+      renewal_period_days: form.is_longterm && form.renewal_period_days ? parseInt(form.renewal_period_days) : null,
       updated_at:         new Date().toISOString(),
     };
 
@@ -343,11 +349,58 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
           <DateTimeField label="Return date & time *" required value={form.end_at}
             onChange={(v) => setForm((p) => ({ ...p, end_at: v }))} />
         </div>
-        {days != null && (
+        {days != null && !form.is_longterm && (
           <p className="text-sm text-neutral-500">
             Duration: <span className="font-semibold text-neutral-800">{days} {days === 1 ? "day" : "days"}</span>
           </p>
         )}
+
+        {/* Long-term rental toggle */}
+        <div className="rounded-xl border border-border bg-slate-50 p-4">
+          <label className="flex cursor-pointer items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-neutral-800">Long-term rental</p>
+              <p className="text-xs text-neutral-500">Rolling rental with no fixed end date — renews each period</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.is_longterm}
+              onClick={() => setForm((p) => ({ ...p, is_longterm: !p.is_longterm }))}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none
+                ${form.is_longterm ? "bg-brand-700" : "bg-neutral-300"}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
+                ${form.is_longterm ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </label>
+          {form.is_longterm && (
+            <div className="mt-4 space-y-3">
+              <Field label="First paid period ends (renewal date) *">
+                <DateInput
+                  value={form.end_at.slice(0, 10)}
+                  onChange={(v) => setForm((p) => ({ ...p, end_at: v ? `${v}T12:00` : p.end_at }))}
+                />
+                <p className="mt-1 text-xs text-neutral-400">The car shows on calendar as occupied past this date until you mark a renewal.</p>
+              </Field>
+              <Field label="Renewal period">
+                <select
+                  value={form.renewal_period_days}
+                  onChange={(e) => setForm((p) => ({ ...p, renewal_period_days: e.target.value }))}
+                  className={inp}
+                >
+                  <option value="30">Monthly (30 days)</option>
+                  <option value="90">Quarterly (90 days)</option>
+                  <option value="14">2 weeks</option>
+                  <option value="60">2 months (60 days)</option>
+                  <option value="180">6 months</option>
+                  <option value="365">1 year</option>
+                </select>
+              </Field>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Field label="Pickup location">
             <LocationInput

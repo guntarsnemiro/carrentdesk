@@ -16,8 +16,8 @@ export type Database = {
           child_seat_toddler: boolean; company_id: string; created_at: string; customer_id: string | null
           deposit_amount: number | null; deposit_paid: boolean; deposit_returned_at: string | null
           end_at: string; id: string
-          insurance: Database["public"]["Enums"]["booking_insurance"]; is_maintenance: boolean; notes: string | null
-          paid_at: string | null
+          insurance: Database["public"]["Enums"]["booking_insurance"]; is_longterm: boolean; is_maintenance: boolean; notes: string | null
+          paid_at: string | null; renewal_period_days: number | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null; pickup_location: string | null
           return_location: string | null; start_at: string; status: Database["public"]["Enums"]["booking_status"]
           updated_at: string; vehicle_id: string
@@ -27,8 +27,8 @@ export type Database = {
           child_seat_toddler?: boolean; company_id: string; created_at?: string; customer_id?: string | null
           deposit_amount?: number | null; deposit_paid?: boolean; deposit_returned_at?: string | null
           end_at: string; id?: string
-          insurance?: Database["public"]["Enums"]["booking_insurance"]; is_maintenance?: boolean; notes?: string | null
-          paid_at?: string | null
+          insurance?: Database["public"]["Enums"]["booking_insurance"]; is_longterm?: boolean; is_maintenance?: boolean; notes?: string | null
+          paid_at?: string | null; renewal_period_days?: number | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null; pickup_location?: string | null
           return_location?: string | null; start_at: string; status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string; vehicle_id: string
@@ -38,8 +38,8 @@ export type Database = {
           child_seat_toddler?: boolean; company_id?: string; created_at?: string; customer_id?: string | null
           deposit_amount?: number | null; deposit_paid?: boolean; deposit_returned_at?: string | null
           end_at?: string; id?: string
-          insurance?: Database["public"]["Enums"]["booking_insurance"]; is_maintenance?: boolean; notes?: string | null
-          paid_at?: string | null
+          insurance?: Database["public"]["Enums"]["booking_insurance"]; is_longterm?: boolean; is_maintenance?: boolean; notes?: string | null
+          paid_at?: string | null; renewal_period_days?: number | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null; pickup_location?: string | null
           return_location?: string | null; start_at?: string; status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string; vehicle_id?: string

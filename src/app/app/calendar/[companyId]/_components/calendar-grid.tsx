@@ -29,6 +29,8 @@ interface Booking {
   end_at: string;
   status: string;
   is_maintenance: boolean;
+  is_longterm: boolean;
+  renewal_period_days: number | null;
   customer_name: string | null;
   customer_phone: string | null;
   customer_id: string | null;
@@ -1135,12 +1137,14 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const clipsLeft  = startStr < rangeStart;
                       const clipsRight = endStr   > rangeEnd;
 
+                      const isLongTerm = b.is_longterm && !b.is_maintenance;
+
                       const blockColor = b.is_maintenance
                         ? "bg-slate-400 hover:bg-slate-500 text-white"
                         : `${colorBg} ${colorText}`;
                       const blockLabel = b.is_maintenance
                         ? "🔧 Maintenance"
-                        : (b.customer_name ?? "—");
+                        : `${isLongTerm ? "↻ " : ""}${b.customer_name ?? "—"}`;
 
                       const fmtDt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
                       const tipLines = b.is_maintenance
@@ -1174,6 +1178,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       }
 
                       return (
+                        <> {/* fragment allows tail div alongside main bar */}
                         <button
                           key={b.id}
                           onMouseDown={(e) => e.stopPropagation()}
@@ -1190,11 +1195,28 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                           className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
                             ${blockColor}
                             ${!clipsLeft  ? "rounded-l-md" : ""}
-                            ${!clipsRight ? "rounded-r-md" : ""}
+                            ${!clipsRight && !isLongTerm ? "rounded-r-md" : ""}
                           `}
                         >
                           <span className="truncate">{blockLabel}</span>
                         </button>
+
+                        {/* Long-term: lighter "committed" tail extends to end of visible range */}
+                        {isLongTerm && endIdx !== -1 && endIdx < days.length - 1 && (
+                          <div
+                            style={{
+                              left: (endIdx + 1) * DAY_W,
+                              width: (days.length - endIdx - 1) * DAY_W,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                            }}
+                            className={`absolute flex h-6 items-center overflow-hidden pl-1.5 text-[10px] font-medium opacity-35 z-10 rounded-r-md
+                              ${blockColor}`}
+                          >
+                            <span className="truncate italic">committed</span>
+                          </div>
+                        )}
+                        </> // fragment end
                       );
                     })}
                   </div>

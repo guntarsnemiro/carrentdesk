@@ -61,7 +61,7 @@ export default async function CalendarPage({
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, vehicle_id, status, start_at, end_at, is_maintenance, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
+    .select("id, vehicle_id, status, start_at, end_at, is_maintenance, is_longterm, renewal_period_days, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
     .eq("company_id", companyId)
     .neq("status", "cancelled")
     .gte("end_at", start)
@@ -72,6 +72,8 @@ export default async function CalendarPage({
     vehicle_id:         b.vehicle_id,
     status:             b.status,
     is_maintenance:     b.is_maintenance ?? false,
+    is_longterm:        b.is_longterm ?? false,
+    renewal_period_days: b.renewal_period_days ?? null,
     start_at:           b.start_at,
     end_at:             b.end_at,
     insurance:          b.insurance,
