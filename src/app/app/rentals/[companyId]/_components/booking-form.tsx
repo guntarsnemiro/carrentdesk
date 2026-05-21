@@ -81,7 +81,7 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     deposit_amount:     booking?.deposit_amount != null ? String(booking.deposit_amount) : "",
     deposit_paid:           booking?.deposit_paid ?? false,
     deposit_returned_at:    booking?.deposit_returned_at ?? "",
-    paid_at:                booking?.paid_at ?? "",
+    paid_at:                booking?.paid_at ?? (booking ? "" : defaultStart().slice(0, 10)),
     payment_method:         (booking?.payment_method ?? "") as PaymentMethod | "",
     pickup_location:    booking?.pickup_location ?? "",
     return_location:    booking?.return_location ?? "",
@@ -345,7 +345,12 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <DateTimeField label="Pickup date & time *" required value={form.start_at}
-            onChange={(v) => setForm((p) => ({ ...p, start_at: v }))} />
+            onChange={(v) => setForm((p) => ({
+              ...p,
+              start_at: v,
+              // Keep paid_at in sync with pickup date unless it was manually changed
+              paid_at: p.paid_at === p.start_at.slice(0, 10) || p.paid_at === defaultStart().slice(0, 10) ? v.slice(0, 10) : p.paid_at,
+            }))} />
           <DateTimeField label="Return date & time *" required value={form.end_at}
             onChange={(v) => setForm((p) => ({ ...p, end_at: v }))} />
         </div>

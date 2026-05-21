@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { RenewAction } from "./_components/renew-action";
+import { ReleaseDeposit } from "./_components/release-deposit";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -124,7 +125,25 @@ export default async function TodayPage({ params }: { params: Promise<{ companyI
     (v.insurance_valid_until && v.insurance_valid_until.slice(0, 10) >= today && v.insurance_valid_until.slice(0, 10) <= endOfMonth)
   );
 
-  const hasAnything = pickupsToday.length + returnsToday.length + renewalsDue.length + renewalsOverdue.length > 0;
+  // ── Outstanding deposits (deposit_amount set, not yet returned, rental ended or status=returned)
+  const { data: depositRaw } = await db
+    .from("bookings")
+    .select("id, end_at, deposit_amount, customers(full_name), vehicles(make, model, plate)")
+    .eq("company_id", companyId)
+    .neq("status", "cancelled")
+    .is("deposit_returned_at", null)
+    .gt("deposit_amount", 0)
+    .lt("end_at", new Date().toISOString());
+
+  const depositsOutstanding = (depositRaw ?? []) as unknown as Array<{
+    id: string;
+    end_at: string;
+    deposit_amount: number;
+    customers: { full_name: string } | null;
+    vehicles: { make: string; model: string; plate: string } | null;
+  }>;
+
+  const hasAnything = pickupsToday.length + returnsToday.length + renewalsDue.length + renewalsOverdue.length + depositsOutstanding.length > 0;
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8 max-w-2xl space-y-6">
@@ -185,6 +204,29 @@ export default async function TodayPage({ params }: { params: Promise<{ companyI
           {returnsTomorrow.map((b) => (
             <BookingCard key={b.id} b={b} companyId={companyId} timeField="end_at" label="Return" dim />
           ))}
+        </Section>
+      )}
+
+      {/* ── Outstanding deposits */}
+      {depositsOutstanding.length > 0 && (
+        <Section title={`💰 Deposits to release (${depositsOutstanding.length})`} color="amber">
+          {depositsOutstanding.map((b) => {
+            const daysAgo = Math.round((Date.now() - new Date(b.end_at).getTime()) / 86_400_000);
+            return (
+              <div key={b.id} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-white px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{b.customers?.full_name ?? "—"}</p>
+                  <p className="text-xs text-neutral-500">
+                    {b.vehicles?.make} {b.vehicles?.model} · {b.vehicles?.plate}
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700 font-medium">
+                    €{b.deposit_amount.toFixed(2)} held · returned {daysAgo === 0 ? "today" : `${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`}
+                  </p>
+                </div>
+                <ReleaseDeposit bookingId={b.id} amount={b.deposit_amount} />
+              </div>
+            );
+          })}
         </Section>
       )}
 
