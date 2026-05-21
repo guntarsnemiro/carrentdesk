@@ -1094,11 +1094,11 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             setSelection((prev) => prev ? { ...prev, endStr: str } : prev);
                           }}
                         >
-                          {/* Diagonal overlay sits above booking bars so it is always visible */}
+                          {/* Thin diagonal line on split days — bars handle the half-cell rendering */}
                           {isSplitDay && !isSelected && (
                             <div
                               className="absolute inset-0 z-20 pointer-events-none"
-                              style={{ background: "linear-gradient(135deg, rgba(148,163,184,0.55) 50%, rgba(251,191,36,0.50) 50%)" }}
+                              style={{ background: "linear-gradient(135deg, transparent calc(50% - 1px), rgba(100,116,139,0.5) calc(50% - 1px), rgba(100,116,139,0.5) calc(50% + 1px), transparent calc(50% + 1px))" }}
                             />
                           )}
                         </div>
@@ -1130,14 +1130,16 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                     {vBookings.map((b) => {
                       const startStr = b.start_at.slice(0, 10);
                       const endStr   = b.end_at.slice(0, 10);
-                      if (startStr > rangeEnd || endStr <= rangeStart) return null;
+                      if (startStr > rangeEnd || endStr < rangeStart) return null;
 
                       const visStart = startStr < rangeStart ? rangeStart : startStr;
                       const visEnd   = endStr   > rangeEnd   ? rangeEnd   : endStr;
                       const startIdx = days.findIndex((d) => d.str === visStart);
                       const endIdx   = days.findIndex((d) => d.str === visEnd);
                       if (startIdx === -1) return null;
-                      const span = endIdx === -1 ? days.length - startIdx : Math.max(1, endIdx - startIdx);
+
+                      // +1 so the bar reaches the actual return day (inclusive)
+                      const span = endIdx === -1 ? days.length - startIdx : Math.max(1, endIdx - startIdx + 1);
 
                       const colorBg   = STATUS_COLOR[b.status] ?? "bg-neutral-200";
                       const colorText = STATUS_TEXT[b.status]  ?? "text-neutral-700";
@@ -1163,6 +1165,26 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             ...(b.booking_price != null ? [`€${b.booking_price.toFixed(2)}`] : []),
                           ];
 
+                      // On a split day (same-day return + pickup for this vehicle):
+                      // — the returning booking is clipped to the LEFT half of that cell
+                      // — the pickup booking is offset to the RIGHT half of that cell
+                      const isReturnOnSplitDay = splitDays.has(endStr) && endIdx !== -1;
+                      const isPickupOnSplitDay  = splitDays.has(startStr) && startIdx !== -1;
+
+                      let barLeft  = startIdx * DAY_W + 2;
+                      let barWidth = span * DAY_W - 4;
+
+                      if (isReturnOnSplitDay) {
+                        // Clip bar so it ends at the left half of the split cell
+                        barWidth = (span - 1) * DAY_W + Math.floor(DAY_W / 2) - 2;
+                      }
+                      if (isPickupOnSplitDay) {
+                        // Push bar so it starts at the right half of the split cell
+                        const offset = Math.ceil(DAY_W / 2);
+                        barLeft  = startIdx * DAY_W + offset;
+                        barWidth = span * DAY_W - offset - 2;
+                      }
+
                       return (
                         <button
                           key={b.id}
@@ -1172,15 +1194,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                           onMouseMove={(e)  => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
                           onMouseLeave={()  => setTooltip(null)}
                           style={{
-                            left:  startIdx * DAY_W + 2,
-                            width: span    * DAY_W - 4,
+                            left:  barLeft,
+                            width: barWidth,
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
                           className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
                             ${blockColor}
-                            ${!clipsLeft  ? "rounded-l-md" : ""}
-                            ${!clipsRight ? "rounded-r-md" : ""}
+                            ${!clipsLeft  && !isPickupOnSplitDay  ? "rounded-l-md" : ""}
+                            ${!clipsRight && !isReturnOnSplitDay  ? "rounded-r-md" : ""}
                           `}
                         >
                           <span className="truncate">{blockLabel}</span>
