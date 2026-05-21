@@ -184,7 +184,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">Finance</h1>
-          <p className="mt-1 text-sm text-neutral-500">{company.name} · Pro-rata P&amp;L</p>
+          <p className="mt-1 text-sm text-neutral-500">{company.name} · Monthly profit &amp; loss</p>
         </div>
       </div>
 
@@ -199,15 +199,15 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
           footnote="vs last month"
         />
         <StatCard
-          label="EBITDA this month"
+          label="Rental income after costs"
           value={fmt(currentRow?.ebitda ?? 0)}
-          sub="earned − cash costs"
+          sub="earned − running expenses"
           badgeColor={(currentRow?.ebitda ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}
         />
         <StatCard
           label="Net profit this month"
           value={fmt(currentRow?.netProfit ?? 0)}
-          sub="EBITDA − depreciation"
+          sub="rental income after costs − depreciation"
           badgeColor={(currentRow?.netProfit ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}
         />
         <StatCard
@@ -229,7 +229,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
             <p className="mt-0.5 text-xs text-emerald-500">net profit, last 12 months</p>
           </div>
           <div className="rounded-xl bg-amber-50 px-4 py-4">
-            <p className="text-xs text-amber-600 font-medium">Deferred (not yet earned)</p>
+            <p className="text-xs text-amber-600 font-medium">Prepaid by customers</p>
             <p className="mt-1 text-2xl font-bold text-amber-700">{fmt(deferred)}</p>
             <p className="mt-0.5 text-xs text-amber-500">paid, but rental days ahead</p>
           </div>
@@ -243,8 +243,8 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
 
       {/* ── 12-month P&L table ── */}
       <div className="rounded-2xl border border-border bg-white p-6">
-        <h2 className="mb-4 text-base font-semibold text-neutral-900">12-month P&amp;L</h2>
-        <p className="mb-4 text-xs text-neutral-400">Revenue = pro-rata earned (days rented). Costs = amortized. Depreciation = straight-line per car.</p>
+        <h2 className="mb-4 text-base font-semibold text-neutral-900">12-month profit &amp; loss</h2>
+        <p className="mb-4 text-xs text-neutral-400">Revenue = days rented (spread across rental period). Costs = spread over coverage period. Depreciation = straight-line per car.</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-sm">
             <thead>
@@ -252,7 +252,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
                 <th className="pb-2 font-medium">Month</th>
                 <th className="pb-2 text-right font-medium">Revenue</th>
                 <th className="pb-2 text-right font-medium">Cash costs</th>
-                <th className="pb-2 text-right font-medium">EBITDA</th>
+                <th className="pb-2 text-right font-medium">After costs</th>
                 <th className="pb-2 text-right font-medium">Depreciation</th>
                 <th className="pb-2 text-right font-medium">Net profit</th>
               </tr>
@@ -321,7 +321,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
       {vehicleStats.length > 0 && (
         <div className="rounded-2xl border border-border bg-white p-6">
           <h2 className="mb-1 text-base font-semibold text-neutral-900">Fleet profitability</h2>
-          <p className="mb-4 text-xs text-neutral-400">Last 12 months. Revenue = pro-rata earned. Direct costs = vehicle-specific maintenance (amortized).</p>
+          <p className="mb-4 text-xs text-neutral-400">Last 12 months. Revenue = days rented. Direct costs = vehicle-specific maintenance (spread over coverage period).</p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
               <thead>
@@ -331,7 +331,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
                   <th className="pb-2 text-right font-medium">Revenue</th>
                   <th className="pb-2 text-right font-medium">Direct costs</th>
                   <th className="pb-2 text-right font-medium">Depreciation</th>
-                  <th className="pb-2 text-right font-medium">Net contribution</th>
+                  <th className="pb-2 text-right font-medium">Car profit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
