@@ -864,11 +864,16 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
   // Drag-to-select state
   const [selection,   setSelection]   = useState<Selection | null>(null);
   const isDraggingRef = useRef(false);
+  const dayWRef       = useRef(DAY_W_DESKTOP); // kept in sync with DAY_W state
 
   const days = Array.from({ length: TOTAL_DAYS }, (_, i) => {
     const d = addDays(today, i - DAYS_PAST);
     return { date: d, str: toStr(d) };
   });
+  // ref copy of days so global handlers don't need deps
+  const daysRef = useRef(days);
+  useEffect(() => { daysRef.current = days; });
+  useEffect(() => { dayWRef.current = DAY_W; }, [DAY_W]);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -889,6 +894,57 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, [selection]);
+
+  // Auto-scroll + extend selection while dragging past visible edges
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let animFrame: number | null = null;
+
+    function cancelAnim() {
+      if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
+    }
+
+    function handleGlobalMouseMove(e: MouseEvent) {
+      if (!isDraggingRef.current) { cancelAnim(); return; }
+
+      const rect = el!.getBoundingClientRect();
+      const EDGE = 80;
+      const MAX_SPEED = 12;
+
+      // Update selection end based on absolute mouse position over the scroll container
+      const rawIdx = Math.floor((e.clientX - rect.left + el!.scrollLeft) / dayWRef.current);
+      const clampedIdx = Math.max(0, Math.min(daysRef.current.length - 1, rawIdx));
+      const hoveredStr = daysRef.current[clampedIdx]?.str;
+      if (hoveredStr) {
+        setSelection((prev) => prev ? { ...prev, endStr: hoveredStr } : prev);
+      }
+
+      // Auto-scroll when near right or left edge
+      cancelAnim();
+      if (e.clientX > rect.right - EDGE) {
+        const factor = Math.min(1, (e.clientX - (rect.right - EDGE)) / EDGE);
+        const scroll = () => {
+          el!.scrollLeft += Math.ceil(factor * MAX_SPEED);
+          if (isDraggingRef.current) animFrame = requestAnimationFrame(scroll);
+        };
+        animFrame = requestAnimationFrame(scroll);
+      } else if (e.clientX < rect.left + EDGE) {
+        const factor = Math.min(1, ((rect.left + EDGE) - e.clientX) / EDGE);
+        const scroll = () => {
+          el!.scrollLeft -= Math.ceil(factor * MAX_SPEED);
+          if (isDraggingRef.current) animFrame = requestAnimationFrame(scroll);
+        };
+        animFrame = requestAnimationFrame(scroll);
+      }
+    }
+
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      cancelAnim();
+    };
+  }, []);
 
   function scrollToToday() {
     scrollRef.current?.scrollTo({ left: (DAYS_PAST - SCROLL_OFFSET) * DAY_W, behavior: "smooth" });
@@ -985,6 +1041,10 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           + New booking
         </button>
         <div className="mx-1 h-5 w-px bg-border" />
+        <button onClick={() => scrollRef.current?.scrollBy({ left: -30 * DAY_W, behavior: "smooth" })}
+          className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
+          ← 1 month
+        </button>
         <button onClick={() => scrollRef.current?.scrollBy({ left: -7 * DAY_W, behavior: "smooth" })}
           className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
           ← 1 week
@@ -997,11 +1057,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
           1 week →
         </button>
+        <button onClick={() => scrollRef.current?.scrollBy({ left: 30 * DAY_W, behavior: "smooth" })}
+          className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
+          1 month →
+        </button>
         <span className="ml-auto text-xs text-neutral-400">Drag on a row to create · Click a booking to edit</span>
       </div>
 
       {/* Grid */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-white">
+      <div className="overflow-clip rounded-2xl border border-border bg-white">
         <div className="flex">
 
           {/* Fixed vehicle column */}
