@@ -258,10 +258,6 @@ export default async function DashboardPage({
                     )}
                     <span className="text-sm text-neutral-400">{cityLabel[company.city] ?? company.city}</span>
                   </div>
-                  <a href={`/c/${company.slug}`} target="_blank" rel="noopener noreferrer"
-                    className="text-sm text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline">
-                    View public listing →
-                  </a>
                 </div>
 
                 <div className="space-y-4">
