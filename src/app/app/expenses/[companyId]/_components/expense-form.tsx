@@ -4,31 +4,36 @@ import { useState } from "react";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { DateInput } from "@/components/ui/date-input";
 
-type ExpenseCategory = "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other";
+export type CostCategory =
+  | "car_insurance" | "gov_inspection" | "service_repair" | "fuel"
+  | "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal"
+  | "supplies_stock" | "company_insurance" | "other";
 
-export interface Payee { id: string; name: string; }
+export const VEHICLE_CATEGORIES: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair", "fuel"];
+export const AMORTIZE_CATEGORIES: CostCategory[] = ["car_insurance", "gov_inspection", "company_insurance"];
 
-interface Expense {
-  id: string; date: string; category: ExpenseCategory; description: string;
-  amount: number; supplier: string | null; invoice_number: string | null;
-  quantity: number | null; unit: string | null; is_recurring: boolean; notes: string | null;
-  covers_from: string | null; covers_until: string | null;
-}
-
-interface Props { companyId: string; expense?: Expense; payees?: Payee[]; }
-
-export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+export const CATEGORY_LABELS: Record<CostCategory, string> = {
+  // ── Car costs ──
+  car_insurance:     "Car insurance",
+  gov_inspection:    "Gov. inspection",
+  service_repair:    "Service & repair",
+  fuel:              "Fuel",
+  // ── Business costs ──
   salary:            "Salary",
-  tax:               "Tax",
+  tax:               "Tax & fees",
   rent:              "Rent / Office",
   phone_internet:    "Phone / Internet",
   accounting_legal:  "Accounting / Legal",
-  supplies_stock:    "Supplies / Stock",
+  supplies_stock:    "Supplies & stock",
   company_insurance: "Company insurance",
   other:             "Other",
 };
 
-export const CATEGORY_COLOR: Record<ExpenseCategory, string> = {
+export const CATEGORY_COLOR: Record<CostCategory, string> = {
+  car_insurance:     "bg-sky-50 text-sky-700",
+  gov_inspection:    "bg-yellow-50 text-yellow-700",
+  service_repair:    "bg-orange-50 text-orange-700",
+  fuel:              "bg-slate-100 text-slate-600",
   salary:            "bg-violet-50 text-violet-700",
   tax:               "bg-red-50 text-red-700",
   rent:              "bg-orange-50 text-orange-700",
@@ -38,6 +43,21 @@ export const CATEGORY_COLOR: Record<ExpenseCategory, string> = {
   company_insurance: "bg-emerald-50 text-emerald-700",
   other:             "bg-neutral-100 text-neutral-600",
 };
+
+const CAR_CATS: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair", "fuel"];
+const BIZ_CATS: CostCategory[] = ["salary", "tax", "rent", "phone_internet", "accounting_legal", "supplies_stock", "company_insurance", "other"];
+
+export interface Payee { id: string; name: string; }
+export interface Vehicle { id: string; make: string; model: string; plate: string; }
+
+interface Expense {
+  id: string; date: string; category: CostCategory; description: string;
+  amount: number; supplier: string | null; invoice_number: string | null;
+  quantity: number | null; unit: string | null; is_recurring: boolean; notes: string | null;
+  covers_from: string | null; covers_until: string | null; vehicle_id: string | null;
+}
+
+interface Props { companyId: string; expense?: Expense; payees?: Payee[]; vehicles?: Vehicle[]; }
 
 const inp = "mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500";
 
@@ -51,13 +71,19 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
+function addMonths(dateStr: string, n: number) {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+export function ExpenseForm({ companyId, expense, payees = [], vehicles = [] }: Props) {
   const isEdit = Boolean(expense);
   const today = new Date().toISOString().slice(0, 10);
 
   const [form, setForm] = useState({
     date:           expense?.date           ?? today,
-    category:       (expense?.category      ?? "other") as ExpenseCategory,
+    category:       (expense?.category      ?? "other") as CostCategory,
     description:    expense?.description    ?? "",
     amount:         expense?.amount != null ? String(expense.amount) : "",
     supplier:       expense?.supplier       ?? "",
@@ -66,6 +92,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
     unit:           expense?.unit           ?? "",
     is_recurring:   expense?.is_recurring   ?? false,
     notes:          expense?.notes          ?? "",
+    vehicle_id:     expense?.vehicle_id     ?? "",
   });
 
   const [amortizeOn,  setAmortizeOn]  = useState(!!(expense?.covers_from || expense?.covers_until));
@@ -75,11 +102,22 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
   const [status,   setStatus]   = useState<"idle" | "saving" | "deleting">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const isSupplies = form.category === "supplies_stock";
+  const isVehicleCat = VEHICLE_CATEGORIES.includes(form.category);
+  const isSupplies   = form.category === "supplies_stock";
 
   function set(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const val = e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value;
     setForm((p) => ({ ...p, [e.target.name]: val }));
+  }
+
+  function handleCategoryChange(cat: CostCategory) {
+    setForm((p) => ({ ...p, category: cat, vehicle_id: VEHICLE_CATEGORIES.includes(cat) ? p.vehicle_id : "" }));
+    // Auto-suggest amortization for insurance/inspection
+    if (AMORTIZE_CATEGORIES.includes(cat) && !amortizeOn) {
+      setAmortizeOn(true);
+      if (!coversFrom) setCoversFrom(today);
+      if (!coversUntil) setCoversUntil(addMonths(today, 12));
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -105,6 +143,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
       notes:          form.notes.trim() || null,
       covers_from:    amortizeOn && coversFrom  ? coversFrom  : null,
       covers_until:   amortizeOn && coversUntil ? coversUntil : null,
+      vehicle_id:     isVehicleCat && form.vehicle_id ? form.vehicle_id : null,
     };
 
     const { error } = isEdit
@@ -116,7 +155,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
   }
 
   async function handleDelete() {
-    if (!expense || !confirm("Delete this expense entry?")) return;
+    if (!expense || !confirm("Delete this cost entry?")) return;
     setStatus("deleting");
     const { error } = await getAuthBrowserClient().from("company_expenses").delete().eq("id", expense.id);
     if (error) { alert(error.message); setStatus("idle"); return; }
@@ -127,77 +166,111 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {errorMsg && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{errorMsg}</div>}
 
+      {/* Category first — drives the rest of the form */}
+      <Field label="Category *">
+        <div className="mt-2 space-y-2">
+          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide">Car costs</p>
+          <div className="flex flex-wrap gap-2">
+            {CAR_CATS.map((cat) => (
+              <button key={cat} type="button"
+                onClick={() => handleCategoryChange(cat)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors
+                  ${form.category === cat
+                    ? "border-brand-600 bg-brand-600 text-white"
+                    : "border-border bg-slate-50 text-neutral-600 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+                  }`}>
+                {CATEGORY_LABELS[cat]}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide mt-3">Business costs</p>
+          <div className="flex flex-wrap gap-2">
+            {BIZ_CATS.map((cat) => (
+              <button key={cat} type="button"
+                onClick={() => handleCategoryChange(cat)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors
+                  ${form.category === cat
+                    ? "border-brand-600 bg-brand-600 text-white"
+                    : "border-border bg-slate-50 text-neutral-600 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+                  }`}>
+                {CATEGORY_LABELS[cat]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Field>
+
+      {/* Vehicle picker — only for car costs */}
+      {isVehicleCat && vehicles.length > 0 && (
+        <Field label="Which car?">
+          <select name="vehicle_id" value={form.vehicle_id} onChange={set} className={inp}>
+            <option value="">— Not linked to a specific car —</option>
+            {vehicles.map((v) => (
+              <option key={v.id} value={v.id}>{v.make} {v.model} · {v.plate}</option>
+            ))}
+          </select>
+        </Field>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="Date *" hint="DD.MM.YYYY">
           <DateInput required value={form.date} onChange={(v) => setForm((p) => ({ ...p, date: v }))} className={inp} />
         </Field>
-        <Field label="Category *">
-          <select name="category" value={form.category} onChange={set} className={inp}>
-            {(Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]).map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
+        <Field label="Amount (€) *">
+          <input name="amount" type="number" min={0} step={0.01} required value={form.amount}
+            onChange={set} placeholder="0.00" className={inp} />
         </Field>
       </div>
 
       <Field label="Description *">
         <input name="description" required value={form.description} onChange={set}
           placeholder={
-            form.category === "salary" ? "e.g. Jānis Bērziņš — March salary" :
-            form.category === "rent" ? "e.g. Office rent — March" :
+            form.category === "car_insurance"  ? "e.g. Volvo S60 insurance 2026" :
+            form.category === "gov_inspection" ? "e.g. Technical inspection — Volvo S60" :
+            form.category === "service_repair" ? "e.g. Oil change + filters" :
+            form.category === "salary"         ? "e.g. Jānis Bērziņš — March salary" :
+            form.category === "rent"           ? "e.g. Office rent — March" :
             form.category === "supplies_stock" ? "e.g. Engine oil 5W-30 — 208L drum" :
-            form.category === "tax" ? "e.g. VAT payment Q1 2026" :
+            form.category === "tax"            ? "e.g. VAT payment Q1 2026" :
             "Description…"
           }
           className={inp} />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Amount (€) *">
-          <input name="amount" type="number" min={0} step={0.01} required value={form.amount}
-            onChange={set} placeholder="0.00" className={inp} />
-        </Field>
-        {isSupplies ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Quantity">
-              <input name="quantity" type="number" min={0} step={0.001} value={form.quantity}
-                onChange={set} placeholder="208" className={inp} />
-            </Field>
-            <Field label="Unit">
-              <input name="unit" value={form.unit} onChange={set} placeholder="L, pcs, kg…" className={inp} />
-            </Field>
-          </div>
-        ) : (
-          <div>
-            <label className="block text-sm font-medium text-neutral-700">
-              {form.category === "salary" ? "Employee" : "Supplier / Payee"}
-            </label>
-            {payees.length > 0 && (
-              <div className="mt-1.5 mb-1.5 flex flex-wrap gap-1.5">
-                {payees.map((p) => (
-                  <button key={p.id} type="button" onClick={() => setForm((f) => ({ ...f, supplier: p.name }))}
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors
-                      ${form.supplier === p.name
-                        ? "border-brand-600 bg-brand-600 text-white"
-                        : "border-border bg-slate-50 text-neutral-600 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
-                      }`}>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            <input name="supplier" value={form.supplier} onChange={set}
-              placeholder={payees.length > 0 ? "Or type a custom name…" : form.category === "salary" ? "Employee name" : "Company / payee name"}
-              className={inp} />
+      {isSupplies && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Quantity">
+            <input name="quantity" type="number" min={0} step={0.001} value={form.quantity}
+              onChange={set} placeholder="208" className={inp} />
+          </Field>
+          <Field label="Unit">
+            <input name="unit" value={form.unit} onChange={set} placeholder="L, pcs, kg…" className={inp} />
+          </Field>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-neutral-700">
+          {form.category === "salary" ? "Employee" : "Supplier / Payee"}
+        </label>
+        {payees.length > 0 && (
+          <div className="mt-1.5 mb-1.5 flex flex-wrap gap-1.5">
+            {payees.map((p) => (
+              <button key={p.id} type="button" onClick={() => setForm((f) => ({ ...f, supplier: p.name }))}
+                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors
+                  ${form.supplier === p.name
+                    ? "border-brand-600 bg-brand-600 text-white"
+                    : "border-border bg-slate-50 text-neutral-600 hover:border-brand-400"
+                  }`}>
+                {p.name}
+              </button>
+            ))}
           </div>
         )}
+        <input name="supplier" value={form.supplier} onChange={set}
+          placeholder={payees.length > 0 ? "Or type a custom name…" : form.category === "salary" ? "Employee name" : "Company / payee name"}
+          className={inp} />
       </div>
-
-      {isSupplies && (
-        <Field label="Supplier">
-          <input name="supplier" value={form.supplier} onChange={set} placeholder="e.g. Auto Depot SIA" className={inp} />
-        </Field>
-      )}
 
       <Field label="Invoice / Reference number">
         <input name="invoice_number" value={form.invoice_number} onChange={set} placeholder="INV-2026-001" className={inp} />
@@ -208,7 +281,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
           <input type="checkbox" name="is_recurring" checked={form.is_recurring} onChange={set}
             className="h-4 w-4 rounded border-border text-brand-700" />
           <div>
-            <p className="text-sm font-medium text-neutral-800">Recurring expense</p>
+            <p className="text-sm font-medium text-neutral-800">Recurring cost</p>
             <p className="text-xs text-neutral-400">Mark if this repeats monthly (rent, salary, phone, etc.)</p>
           </div>
         </label>
@@ -218,8 +291,10 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
             <input type="checkbox" checked={amortizeOn} onChange={(e) => setAmortizeOn(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-border text-brand-700" />
             <div>
-              <p className="text-sm font-medium text-neutral-800">Spread cost across a period (amortize)</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Use for annual insurance, memberships — allocates daily portion to each month in P&amp;L</p>
+              <p className="text-sm font-medium text-neutral-800">Spread cost across a period</p>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                For annual insurance, inspection fees — splits daily portion into each month on Finance page
+              </p>
             </div>
           </label>
           {amortizeOn && (
@@ -256,7 +331,7 @@ export function ExpenseForm({ companyId, expense, payees = [] }: Props) {
           </a>
           <button type="submit" disabled={status !== "idle"}
             className="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-            {status === "saving" ? "Saving…" : isEdit ? "Save changes" : "Add expense"}
+            {status === "saving" ? "Saving…" : isEdit ? "Save changes" : "Add cost"}
           </button>
         </div>
       </div>

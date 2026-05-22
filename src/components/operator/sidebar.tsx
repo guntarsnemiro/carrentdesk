@@ -57,15 +57,15 @@ const NAV_ITEMS: NavItem[] = [
     requiresCompany: true,
   },
   {
-    label: "Maintenance",
-    href: (id) => `/app/maintenance/${id}`,
-    icon: <WrenchIcon />,
+    label: "Costs",
+    href: (id) => `/app/expenses/${id}`,
+    icon: <ReceiptIcon />,
     requiresCompany: true,
   },
   {
-    label: "Expenses",
-    href: (id) => `/app/expenses/${id}`,
-    icon: <ReceiptIcon />,
+    label: "Service log",
+    href: (id) => `/app/maintenance/${id}`,
+    icon: <WrenchIcon />,
     requiresCompany: true,
   },
   {

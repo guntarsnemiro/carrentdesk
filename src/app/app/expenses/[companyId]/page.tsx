@@ -3,19 +3,17 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { CATEGORY_LABELS, CATEGORY_COLOR } from "./_components/expense-form";
+import { CATEGORY_LABELS, CATEGORY_COLOR, type CostCategory } from "./_components/expense-form";
 import { PayeeManager } from "./_components/payee-manager";
 import { RecurringGenerator } from "./_components/recurring-generator";
 
-export const metadata: Metadata = { title: "Business Expenses" };
+export const metadata: Metadata = { title: "Costs" };
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-type ExpenseCategory = "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other";
-
-export default async function ExpensesPage({
+export default async function CostsPage({
   params,
 }: {
   params: Promise<{ companyId: string }>;
@@ -42,9 +40,9 @@ export default async function ExpensesPage({
   const firstOfMonth = `${currentYM}-01`;
   const currentMonthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
-  const [{ data: expenses }, { data: payees }] = await Promise.all([
+  const [{ data: expenses }, { data: payees }, { data: maintRaw }] = await Promise.all([
     db.from("company_expenses")
-      .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring, notes")
+      .select("id, date, category, description, amount, supplier, invoice_number, quantity, unit, is_recurring, notes, vehicle_id, vehicles(make, model, plate)")
       .eq("company_id", companyId)
       .order("date", { ascending: false })
       .limit(500),
@@ -52,37 +50,84 @@ export default async function ExpensesPage({
       .select("id, name, notes")
       .eq("company_id", companyId)
       .order("created_at"),
+    db.from("maintenance_logs")
+      .select("id, date, type, description, cost, vehicle_id, vehicle:vehicles(make, model, plate)")
+      .eq("company_id", companyId)
+      .gt("cost", 0)
+      .order("date", { ascending: false })
+      .limit(500),
   ]);
 
-  const allExpenses = expenses ?? [];
-  const thisMonth = allExpenses.filter((e) => e.date.slice(0, 7) === currentYM);
-  const thisYear  = allExpenses.filter((e) => e.date.slice(0, 4) === String(now.getFullYear()));
+  // Map maintenance types to cost categories for display
+  const MAINT_TYPE_LABEL: Record<string, string> = {
+    oil_change: "Service & repair", tires: "Service & repair", brakes: "Service & repair",
+    gov_inspection_fee: "Gov. inspection", insurance_payment: "Car insurance",
+    bodywork: "Service & repair", cleaning: "Service & repair", other: "Service & repair",
+  };
+  const MAINT_TYPE_CAT: Record<string, CostCategory> = {
+    oil_change: "service_repair", tires: "service_repair", brakes: "service_repair",
+    gov_inspection_fee: "gov_inspection", insurance_payment: "car_insurance",
+    bodywork: "service_repair", cleaning: "service_repair", other: "service_repair",
+  };
 
-  const totalMonth = thisMonth.reduce((s, e) => s + Number(e.amount), 0);
-  const totalYear  = thisYear.reduce((s, e) => s + Number(e.amount), 0);
-  const totalAll   = allExpenses.reduce((s, e) => s + Number(e.amount), 0);
+  type CostRow = {
+    id: string; date: string; category: CostCategory; label: string;
+    description: string; amount: number; supplier: string | null;
+    is_recurring: boolean; vehicle: { make: string; model: string; plate: string } | null;
+    href: string; source: "expense" | "maintenance";
+  };
 
-  // Recurring generator data
-  const recurringExpenses = allExpenses.filter((e) => e.is_recurring);
+  const expenseRows: CostRow[] = (expenses ?? []).map((e) => ({
+    id: e.id, date: e.date,
+    category: (e.category ?? "other") as CostCategory,
+    label: CATEGORY_LABELS[(e.category ?? "other") as CostCategory] ?? e.category,
+    description: e.description, amount: Number(e.amount),
+    supplier: e.supplier, is_recurring: e.is_recurring,
+    vehicle: (e.vehicles as { make: string; model: string; plate: string } | null) ?? null,
+    href: `/app/expenses/${companyId}/${e.id}`,
+    source: "expense",
+  }));
+
+  const maintRows: CostRow[] = (maintRaw ?? []).map((m) => ({
+    id: m.id, date: m.date,
+    category: MAINT_TYPE_CAT[m.type] ?? "service_repair",
+    label: MAINT_TYPE_LABEL[m.type] ?? "Service & repair",
+    description: m.description ?? m.type,
+    amount: Number(m.cost), supplier: null, is_recurring: false,
+    vehicle: (m.vehicle as { make: string; model: string; plate: string } | null) ?? null,
+    href: `/app/maintenance/${companyId}/${m.id}`,
+    source: "maintenance",
+  }));
+
+  const allCosts = [...expenseRows, ...maintRows].sort((a, b) => b.date.localeCompare(a.date));
+
+  const thisMonth = allCosts.filter((e) => e.date.slice(0, 7) === currentYM);
+  const thisYear  = allCosts.filter((e) => e.date.slice(0, 4) === String(now.getFullYear()));
+
+  const totalMonth = thisMonth.reduce((s, e) => s + e.amount, 0);
+  const totalYear  = thisYear.reduce((s, e) => s + e.amount, 0);
+  const totalAll   = allCosts.reduce((s, e) => s + e.amount, 0);
+
+  // Recurring generator (expenses only)
+  const recurringExpenses = (expenses ?? []).filter((e) => e.is_recurring);
   const thisMonthKeys = thisMonth.map((e) => `${e.category}||${e.description}`);
 
-  // Category breakdown for this year
-  const byCategory = (Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((cat) => ({
-    cat,
-    total: thisYear.filter((e) => e.category === cat).reduce((s, e) => s + Number(e.amount), 0),
+  // Category breakdown this year
+  const byCategory = Object.keys(CATEGORY_LABELS).map((cat) => ({
+    cat: cat as CostCategory,
+    total: thisYear.filter((e) => e.category === cat).reduce((s, e) => s + e.amount, 0),
   })).filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Business Expenses</h1>
-          <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
+          <h1 className="text-2xl font-bold text-neutral-900">Costs</h1>
+          <p className="mt-1 text-sm text-neutral-500">{company.name} · all spending in one place</p>
         </div>
         <Link href={`/app/expenses/${companyId}/add`}
           className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
-          + Add expense
+          + Add cost
         </Link>
       </div>
 
@@ -123,7 +168,7 @@ export default async function ExpensesPage({
         </div>
       )}
 
-      {/* Recurring generator banner */}
+      {/* Recurring generator */}
       <RecurringGenerator
         companyId={companyId}
         recurring={recurringExpenses}
@@ -132,7 +177,7 @@ export default async function ExpensesPage({
         firstOfMonth={firstOfMonth}
       />
 
-      {/* Payee quick note */}
+      {/* Saved payees hint */}
       {(payees ?? []).length > 0 && (
         <div className="mb-4 flex flex-wrap gap-1.5">
           <span className="text-xs text-neutral-400 self-center mr-1">Saved payees:</span>
@@ -142,53 +187,56 @@ export default async function ExpensesPage({
         </div>
       )}
 
-      {/* Expense list */}
-      {allExpenses.length > 0 ? (
+      {/* Cost list */}
+      {allCosts.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-border bg-white">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[700px] text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50 text-left text-xs">
                 <th className="px-4 py-3 font-medium text-neutral-500">Date</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Category</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Description</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Car</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Supplier</th>
                 <th className="px-4 py-3 font-medium text-neutral-500 text-right">Amount</th>
                 <th className="px-4 py-3 font-medium text-neutral-500"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {allExpenses.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-50">
+              {allCosts.map((e) => (
+                <tr key={`${e.source}-${e.id}`} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm text-neutral-600 whitespace-nowrap">{fmtDate(e.date)}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLOR[e.category as ExpenseCategory] ?? "bg-neutral-100 text-neutral-600"}`}>
-                      {CATEGORY_LABELS[e.category as ExpenseCategory] ?? e.category}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLOR[e.category] ?? "bg-neutral-100 text-neutral-600"}`}>
+                      {e.label}
                     </span>
                     {e.is_recurring && <span className="ml-1.5 text-xs text-neutral-400">↻</span>}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-900 max-w-[220px]">
-                    <p className="truncate">{e.description}</p>
-                    {e.quantity != null && (
-                      <p className="text-xs text-neutral-400">{e.quantity} {e.unit ?? ""}</p>
+                    {e.source === "maintenance" && (
+                      <span className="ml-1.5 text-xs text-neutral-400" title="From service log">🔧</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-neutral-900 max-w-[200px]">
+                    <p className="truncate">{e.description}</p>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-neutral-500 whitespace-nowrap">
+                    {e.vehicle ? (
+                      <span className="font-mono text-xs">{e.vehicle.plate}</span>
+                    ) : "—"}
                   </td>
                   <td className="px-4 py-3 text-sm text-neutral-500">{e.supplier ?? "—"}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-neutral-900 text-right whitespace-nowrap">
-                    €{Number(e.amount).toFixed(2)}
+                    €{e.amount.toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/app/expenses/${companyId}/${e.id}`}
-                      className="text-xs text-brand-700 hover:underline">Edit</Link>
+                    <Link href={e.href} className="text-xs text-brand-700 hover:underline">Edit</Link>
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border bg-slate-50">
-                <td colSpan={4} className="px-4 py-3 text-sm font-medium text-neutral-600">Total shown</td>
-                <td className="px-4 py-3 text-sm font-bold text-neutral-900 text-right">
-                  €{totalAll.toFixed(2)}
-                </td>
+                <td colSpan={5} className="px-4 py-3 text-sm font-medium text-neutral-600">Total shown</td>
+                <td className="px-4 py-3 text-sm font-bold text-neutral-900 text-right">€{totalAll.toFixed(2)}</td>
                 <td />
               </tr>
             </tfoot>
@@ -196,19 +244,20 @@ export default async function ExpensesPage({
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-white px-8 py-14 text-center">
-          <p className="text-sm font-medium text-neutral-600">No business expenses logged yet.</p>
-          <p className="mt-1 text-sm text-neutral-400">Track salaries, rent, phone bills, taxes, and more.</p>
+          <p className="text-sm font-medium text-neutral-600">No costs logged yet.</p>
+          <p className="mt-1 text-sm text-neutral-400">Track car insurance, repairs, salaries, rent, and more.</p>
           <Link href={`/app/expenses/${companyId}/add`}
             className="mt-4 inline-block rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
-            + Add first expense
+            + Add first cost
           </Link>
         </div>
       )}
-      {/* ── Payee manager ── */}
+
+      {/* Payee manager */}
       <div className="mt-10 rounded-2xl border border-border bg-white p-6">
         <h2 className="text-base font-semibold text-neutral-900">Saved payees</h2>
         <p className="mt-1 text-sm text-neutral-400">
-          Save frequent payees — government agencies, utilities, landlord, phone company — for one-click selection when adding expenses.
+          Save frequent payees — insurers, government agencies, landlord, phone company — for quick selection when adding costs.
         </p>
         <div className="mt-4">
           <PayeeManager companyId={companyId} initial={payees ?? []} />

@@ -4,7 +4,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { ExpenseForm } from "../_components/expense-form";
 
-export const metadata: Metadata = { title: "Add business expense" };
+export const metadata: Metadata = { title: "Add cost" };
 
 export default async function AddExpensePage({
   params,
@@ -23,21 +23,22 @@ export default async function AddExpensePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const { data: payees } = await db
-    .from("expense_payees").select("id, name")
-    .eq("company_id", companyId).order("created_at");
+  const [{ data: payees }, { data: vehicles }] = await Promise.all([
+    db.from("expense_payees").select("id, name").eq("company_id", companyId).order("created_at"),
+    db.from("vehicles").select("id, make, model, plate").eq("company_id", companyId).neq("status", "retired").order("make"),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6">
         <a href={`/app/expenses/${companyId}`}
           className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
-          ← Business Expenses
+          ← Costs
         </a>
-        <h1 className="mt-3 text-2xl font-bold text-neutral-900">Add expense</h1>
+        <h1 className="mt-3 text-2xl font-bold text-neutral-900">Add cost</h1>
       </div>
       <div className="rounded-2xl border border-border bg-white p-6">
-        <ExpenseForm companyId={companyId} payees={payees ?? []} />
+        <ExpenseForm companyId={companyId} payees={payees ?? []} vehicles={vehicles ?? []} />
       </div>
     </div>
   );

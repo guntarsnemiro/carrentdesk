@@ -74,7 +74,7 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
       .select("id, date, cost, covers_from, covers_until, vehicle_id, type")
       .eq("company_id", companyId),
     db.from("company_expenses")
-      .select("id, date, amount, covers_from, covers_until, category")
+      .select("id, date, amount, covers_from, covers_until, category, vehicle_id")
       .eq("company_id", companyId),
     db.from("vehicles")
       .select("id, make, model, plate, purchase_price, purchase_date, depreciation_rate, residual_value, depreciation_mode, disposed_at, disposal_price")
@@ -84,11 +84,12 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
   const bookings = (bookingsRaw ?? []) as unknown as (Booking & { vehicles: { make: string; model: string; plate: string } | null })[];
   const costs: PeriodCost[] = [
     ...(maintRaw ?? []).map((m) => ({ id: m.id, date: m.date, amount: 0, cost: Number(m.cost), covers_from: m.covers_from, covers_until: m.covers_until, vehicle_id: m.vehicle_id })),
-    ...(bizRaw   ?? []).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount),        covers_from: e.covers_from, covers_until: e.covers_until })),
+    ...(bizRaw   ?? []).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount),        covers_from: e.covers_from, covers_until: e.covers_until, vehicle_id: e.vehicle_id ?? undefined })),
   ];
   const vehicles = (vehiclesRaw ?? []) as VehicleAsset[];
+  // Per-vehicle cost sources: maintenance logs + vehicle-linked expenses from company_expenses
   const maintCosts: PeriodCost[] = (maintRaw ?? []).map((m) => ({ id: m.id, date: m.date, amount: 0, cost: Number(m.cost), covers_from: m.covers_from, covers_until: m.covers_until, vehicle_id: m.vehicle_id }));
-  const bizCosts:  PeriodCost[] = (bizRaw   ?? []).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount), covers_from: e.covers_from, covers_until: e.covers_until }));
+  const vehicleExpenseCosts: PeriodCost[] = (bizRaw ?? []).filter((e) => e.vehicle_id).map((e) => ({ id: e.id, date: e.date, amount: Number(e.amount), covers_from: e.covers_from, covers_until: e.covers_until, vehicle_id: e.vehicle_id! }));
 
   // ── P&L rows (12 months) ────────────────────────────────────────────────────
   const plRows = buildPLRows(bookings, costs, vehicles, companyRate, 12);
@@ -127,7 +128,10 @@ export default async function FinancePage({ params }: { params: Promise<{ compan
 
   const vStatsFinal: VehicleStat[] = vehicles.map((v) => {
     const vBookings = bookings.filter((b) => b.vehicle_id === v.id);
-    const vMaint    = maintCosts.filter((c) => c.vehicle_id === v.id);
+    const vMaint    = [
+      ...maintCosts.filter((c) => c.vehicle_id === v.id),
+      ...vehicleExpenseCosts.filter((c) => c.vehicle_id === v.id),
+    ];
 
     let revenue = 0;
     let directCosts = 0;

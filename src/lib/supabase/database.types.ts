@@ -154,10 +154,10 @@ export type Database = {
         Relationships: [{ foreignKeyName: "expense_payees_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
       company_expenses: {
-        Row: { amount: number; category: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from: string | null; covers_until: string | null; created_at: string; date: string; description: string; id: string; invoice_number: string | null; is_recurring: boolean; notes: string | null; quantity: number | null; supplier: string | null; unit: string | null }
-        Insert: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date: string; description: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
-        Update: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id?: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date?: string; description?: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null }
-        Relationships: [{ foreignKeyName: "company_expenses_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
+        Row: { amount: number; category: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from: string | null; covers_until: string | null; created_at: string; date: string; description: string; id: string; invoice_number: string | null; is_recurring: boolean; notes: string | null; quantity: number | null; supplier: string | null; unit: string | null; vehicle_id: string | null }
+        Insert: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date: string; description: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null; vehicle_id?: string | null }
+        Update: { amount?: number; category?: Database["public"]["Enums"]["expense_category"]; company_id?: string; covers_from?: string | null; covers_until?: string | null; created_at?: string; date?: string; description?: string; id?: string; invoice_number?: string | null; is_recurring?: boolean; notes?: string | null; quantity?: number | null; supplier?: string | null; unit?: string | null; vehicle_id?: string | null }
+        Relationships: [{ foreignKeyName: "company_expenses_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }, { foreignKeyName: "company_expenses_vehicle_id_fkey"; columns: ["vehicle_id"]; isOneToOne: false; referencedRelation: "vehicles"; referencedColumns: ["id"] }]
       }
       garage_presets: {
         Row: { company_id: string; created_at: string; id: string; name: string; notes: string | null; phone: string | null }
@@ -254,7 +254,7 @@ export type Database = {
       country_code: "LV" | "EE" | "LT"
       demo_request_fleet_bucket: "fleet_1_10" | "fleet_11_30" | "fleet_31_100" | "fleet_100_plus"
       demo_request_status: "new" | "contacted" | "qualified" | "converted" | "rejected"
-      expense_category: "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other"
+      expense_category: "car_insurance" | "gov_inspection" | "service_repair" | "fuel" | "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal" | "supplies_stock" | "company_insurance" | "other"
       maintenance_type: "oil_change" | "tires" | "brakes" | "gov_inspection_fee" | "insurance_payment" | "bodywork" | "cleaning" | "other"
       payment_method: "cash" | "card" | "bank_transfer" | "other"
       vehicle_category: "economy" | "compact" | "midsize" | "suv" | "van" | "luxury" | "other"

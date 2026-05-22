@@ -4,7 +4,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { ExpenseForm } from "../_components/expense-form";
 
-export const metadata: Metadata = { title: "Edit expense" };
+export const metadata: Metadata = { title: "Edit cost" };
 
 export default async function EditExpensePage({
   params,
@@ -23,9 +23,10 @@ export default async function EditExpensePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const [{ data: expense }, { data: payees }] = await Promise.all([
+  const [{ data: expense }, { data: payees }, { data: vehicles }] = await Promise.all([
     db.from("company_expenses").select("*").eq("id", expenseId).eq("company_id", companyId).maybeSingle(),
     db.from("expense_payees").select("id, name").eq("company_id", companyId).order("created_at"),
+    db.from("vehicles").select("id, make, model, plate").eq("company_id", companyId).neq("status", "retired").order("make"),
   ]);
   if (!expense) notFound();
 
@@ -34,12 +35,12 @@ export default async function EditExpensePage({
       <div className="mb-6">
         <a href={`/app/expenses/${companyId}`}
           className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
-          ← Business Expenses
+          ← Costs
         </a>
-        <h1 className="mt-3 text-2xl font-bold text-neutral-900">Edit expense</h1>
+        <h1 className="mt-3 text-2xl font-bold text-neutral-900">Edit cost</h1>
       </div>
       <div className="rounded-2xl border border-border bg-white p-6">
-        <ExpenseForm companyId={companyId} expense={expense} payees={payees ?? []} />
+        <ExpenseForm companyId={companyId} expense={expense} payees={payees ?? []} vehicles={vehicles ?? []} />
       </div>
     </div>
   );
