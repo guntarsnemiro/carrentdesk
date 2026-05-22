@@ -5,11 +5,11 @@ import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { DateInput } from "@/components/ui/date-input";
 
 export type CostCategory =
-  | "car_insurance" | "gov_inspection" | "service_repair" | "fuel"
+  | "car_insurance" | "gov_inspection" | "service_repair"
   | "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal"
   | "supplies_stock" | "company_insurance" | "other";
 
-export const VEHICLE_CATEGORIES: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair", "fuel"];
+export const VEHICLE_CATEGORIES: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair"];
 export const AMORTIZE_CATEGORIES: CostCategory[] = ["car_insurance", "gov_inspection", "company_insurance"];
 
 export const CATEGORY_LABELS: Record<CostCategory, string> = {
@@ -17,7 +17,6 @@ export const CATEGORY_LABELS: Record<CostCategory, string> = {
   car_insurance:     "Car insurance",
   gov_inspection:    "Gov. inspection",
   service_repair:    "Service & repair",
-  fuel:              "Fuel",
   // ── Business costs ──
   salary:            "Salary",
   tax:               "Tax & fees",
@@ -33,7 +32,6 @@ export const CATEGORY_COLOR: Record<CostCategory, string> = {
   car_insurance:     "bg-sky-50 text-sky-700",
   gov_inspection:    "bg-yellow-50 text-yellow-700",
   service_repair:    "bg-orange-50 text-orange-700",
-  fuel:              "bg-slate-100 text-slate-600",
   salary:            "bg-violet-50 text-violet-700",
   tax:               "bg-red-50 text-red-700",
   rent:              "bg-orange-50 text-orange-700",
@@ -44,7 +42,7 @@ export const CATEGORY_COLOR: Record<CostCategory, string> = {
   other:             "bg-neutral-100 text-neutral-600",
 };
 
-const CAR_CATS: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair", "fuel"];
+const CAR_CATS: CostCategory[] = ["car_insurance", "gov_inspection", "service_repair"];
 const BIZ_CATS: CostCategory[] = ["salary", "tax", "rent", "phone_internet", "accounting_legal", "supplies_stock", "company_insurance", "other"];
 
 export interface Payee { id: string; name: string; }
@@ -126,6 +124,7 @@ export function ExpenseForm({ companyId, expense, payees = [], vehicles = [] }: 
     if (!form.description.trim()) { setErrorMsg("Description is required."); return; }
     const amount = parseFloat(form.amount);
     if (isNaN(amount) || amount < 0) { setErrorMsg("Enter a valid amount (0 or more)."); return; }
+    if (isVehicleCat && !form.vehicle_id) { setErrorMsg("Please select which car this cost belongs to."); return; }
 
     setStatus("saving");
     const supabase = getAuthBrowserClient();
@@ -200,15 +199,19 @@ export function ExpenseForm({ companyId, expense, payees = [], vehicles = [] }: 
         </div>
       </Field>
 
-      {/* Vehicle picker — only for car costs */}
-      {isVehicleCat && vehicles.length > 0 && (
-        <Field label="Which car?">
-          <select name="vehicle_id" value={form.vehicle_id} onChange={set} className={inp}>
-            <option value="">— Not linked to a specific car —</option>
-            {vehicles.map((v) => (
-              <option key={v.id} value={v.id}>{v.make} {v.model} · {v.plate}</option>
-            ))}
-          </select>
+      {/* Vehicle picker — required for car costs */}
+      {isVehicleCat && (
+        <Field label="Which car? *">
+          {vehicles.length > 0 ? (
+            <select name="vehicle_id" value={form.vehicle_id} onChange={set} required className={`${inp} ${!form.vehicle_id ? "border-amber-400 bg-amber-50" : ""}`}>
+              <option value="">— Select a car —</option>
+              {vehicles.map((v) => (
+                <option key={v.id} value={v.id}>{v.make} {v.model} · {v.plate}</option>
+              ))}
+            </select>
+          ) : (
+            <p className="mt-1 text-sm text-neutral-400">No cars found. Add cars in the fleet first.</p>
+          )}
         </Field>
       )}
 
