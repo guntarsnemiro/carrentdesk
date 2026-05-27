@@ -163,11 +163,6 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
             <p className="text-sm text-neutral-500">{companies.length} companies · {companies.filter(c => c.pipeline_stage === "active").length} active customers</p>
           </div>
           <div className="flex items-center gap-2">
-            {pendingClaimsCount > 0 && (
-              <span className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
-                🔔 {pendingClaimsCount} claim {pendingClaimsCount === 1 ? "request" : "requests"} pending
-              </span>
-            )}
             {overdue.length > 0 && (
               <button
                 onClick={() => { setFilterStage("all"); setSearch(""); }}
@@ -188,6 +183,24 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
             )}
           </div>
         </div>
+
+        {/* Pending claim requests — always visible banner */}
+        {pendingClaimsCount > 0 && (
+          <div className="border-b border-emerald-200 bg-emerald-50 px-6 py-4">
+            <p className="mb-3 text-sm font-semibold text-emerald-800">
+              Pending claim requests — {pendingClaimsCount} waiting for review
+            </p>
+            <div className="flex flex-col gap-2">
+              {companies.flatMap((co) =>
+                (claimsByCompany[co.id] ?? [])
+                  .filter((cr) => cr.status === "pending")
+                  .map((cr) => (
+                    <PendingClaimBanner key={cr.id} cr={cr} company={co} onSelect={() => setSelectedId(co.id)} />
+                  ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stage summary bar */}
         <div className="flex gap-1.5 overflow-x-auto border-b border-border bg-white px-6 pb-3 pt-3">
@@ -607,6 +620,43 @@ function SidePanel({
         </div>
       </div>
     </aside>
+  );
+}
+
+function PendingClaimBanner({ cr, company, onSelect }: { cr: ClaimRow; company: Company; onSelect: () => void }) {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-sm">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-neutral-900">{company.name}</p>
+        <p className="text-xs text-neutral-500">
+          {cr.name} · <a href={`mailto:${cr.email}`} className="hover:text-violet-700">{cr.email}</a>
+          {cr.message && <span className="ml-1 italic">· "{cr.message}"</span>}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          onClick={onSelect}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs text-neutral-600 hover:bg-slate-100"
+        >
+          View company
+        </button>
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(() => rejectClaimRequest(cr.id))}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs text-neutral-500 hover:bg-slate-100 disabled:opacity-50"
+        >
+          Reject
+        </button>
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(() => approveClaimRequest(cr.id, company.id, cr.email, company.name))}
+          className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {isPending ? "…" : "✓ Approve & send invite"}
+        </button>
+      </div>
+    </div>
   );
 }
 
