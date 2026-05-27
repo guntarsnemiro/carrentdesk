@@ -18,11 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://carrentdesk.com"),
   title: {
-    default: "CarRentDesk — Find local car rentals across the Baltics",
+    default: "CarRentDesk — Find independent local car rentals",
     template: "%s · CarRentDesk",
   },
   description:
-    "Compare independent car rental companies in Riga, Tallinn, and Vilnius. Local operators, fair prices, direct contact — no middleman.",
+    "Find and compare independent local car rental companies. Direct contact, fair prices, no commission — no big platform middleman.",
   openGraph: {
     type: "website",
     siteName: "CarRentDesk",
@@ -39,8 +39,8 @@ const ORGANIZATION_JSONLD = {
   url: "https://carrentdesk.com",
   logo: "https://carrentdesk.com/opengraph-image",
   description:
-    "Directory of independent car rental companies in the Baltics. Riga, Tallinn, Vilnius. Direct contact, no middleman.",
-  areaServed: ["Latvia", "Estonia", "Lithuania"],
+    "Directory of independent car rental companies. Direct contact, fair prices, no middleman.",
+  areaServed: "Europe",
   sameAs: [] as string[],
 };
 

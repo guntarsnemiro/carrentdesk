@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES } from "@/lib/cities";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -41,25 +40,15 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-neutral-700 md:flex">
-          {CITIES.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/${c.slug}`}
-              className="transition-colors hover:text-brand-900"
-            >
-              {c.name}
-            </Link>
-          ))}
+          <Link href="/all" className="transition-colors hover:text-brand-900">
+            Browse rentals
+          </Link>
+          <Link href="/join" className="transition-colors hover:text-brand-900">
+            For rental owners
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/join"
-            className="hidden text-sm text-neutral-400 transition-colors hover:text-brand-700 md:inline-flex"
-          >
-            For rental owners
-          </Link>
-
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -102,33 +91,24 @@ export function SiteHeader() {
           className="border-t border-border bg-background md:hidden"
         >
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-4 py-3">
-            {CITIES.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/${c.slug}`}
-                className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
-              >
-                {c.name}, {c.country}
-              </Link>
-            ))}
             <Link
               href="/all"
               className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
             >
-              All rentals
+              Browse rentals
+            </Link>
+            <Link
+              href="/join"
+              className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
+            >
+              For rental owners
             </Link>
             <div className="my-2 h-px bg-border" />
             <Link
               href="/app/login"
-              className="rounded-lg px-3 py-2 text-base font-medium text-brand-900 hover:bg-surface-soft"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/join"
               className="rounded-lg px-3 py-2 text-base font-medium text-neutral-500 hover:bg-surface-soft"
             >
-              For rental owners
+              Sign in
             </Link>
           </nav>
         </div>
