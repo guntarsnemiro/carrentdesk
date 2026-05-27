@@ -10,6 +10,7 @@ import {
   type Listing,
 } from "@/lib/listings";
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
+import { ClaimBanner } from "./_components/claim-banner";
 
 // Re-render company profiles every 60s so operator edits surface fast.
 export const revalidate = 60;
@@ -52,6 +53,7 @@ export default async function CompanyPage({ params }: PageProps) {
   const city = CITIES.find((c) => c.slug === listing.city);
   const verified = listing.status === "verified";
   const claimed = listing.status === "claimed" || verified;
+  const unclaimed = listing.status === "unclaimed";
   const profileUrl = `https://carrentdesk.com/c/${listing.slug}`;
 
   // Schema.org CarRental for rich-results eligibility on Google. Falls back
@@ -173,6 +175,18 @@ export default async function CompanyPage({ params }: PageProps) {
           </div>
 
           <aside className="space-y-6">
+            {!claimed && (
+              <div className="rounded-2xl bg-brand-950 p-5 text-white">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-300">Own this business?</p>
+                <p className="mt-1 text-sm text-brand-100">Manage your fleet, bookings and listing — free to start.</p>
+                <a
+                  href="#claim-banner"
+                  className="mt-3 inline-block rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-brand-950 hover:bg-brand-100"
+                >
+                  Claim this listing →
+                </a>
+              </div>
+            )}
             <SidebarCard title="Contact directly">
               <ul className="space-y-3 text-sm">
                 {listing.phone && (
@@ -250,6 +264,11 @@ export default async function CompanyPage({ params }: PageProps) {
           </aside>
         </div>
       </section>
+      {unclaimed && (
+        <div id="claim-banner">
+          <ClaimBanner companyId={listing.id} companyName={listing.name} />
+        </div>
+      )}
     </>
   );
 }

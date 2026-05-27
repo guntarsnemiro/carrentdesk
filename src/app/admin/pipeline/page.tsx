@@ -22,20 +22,36 @@ export default async function PipelinePage() {
     .select("id, company_id, channel, outcome, notes, contacted_at")
     .order("contacted_at", { ascending: false });
 
+  const { data: claimRequests } = await db
+    .from("claim_requests")
+    .select("id, company_id, email, name, message, status, created_at")
+    .order("created_at", { ascending: false });
+
   type LogRow = { id: string; company_id: string; channel: string; outcome: string; notes: string | null; contacted_at: string };
+  type ClaimRow = { id: string; company_id: string; email: string; name: string | null; message: string | null; status: string; created_at: string };
+
   const logsByCompany: Record<string, LogRow[]> = {};
   for (const log of logs ?? []) {
     if (!logsByCompany[log.company_id]) logsByCompany[log.company_id] = [];
     logsByCompany[log.company_id]!.push(log);
   }
 
+  const claimsByCompany: Record<string, ClaimRow[]> = {};
+  for (const cr of claimRequests ?? []) {
+    if (!claimsByCompany[cr.company_id]) claimsByCompany[cr.company_id] = [];
+    claimsByCompany[cr.company_id]!.push(cr);
+  }
+
   const todayStr = new Date().toISOString().slice(0, 10);
+  const pendingClaimsCount = (claimRequests ?? []).filter((r) => r.status === "pending").length;
 
   return (
     <PipelineClient
       companies={companies ?? []}
       logsByCompany={logsByCompany}
+      claimsByCompany={claimsByCompany}
       todayStr={todayStr}
+      pendingClaimsCount={pendingClaimsCount}
     />
   );
 }

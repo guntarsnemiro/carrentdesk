@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useCallback, useEffect } from "react";
-import { logOutreach, updatePipelineStage, updateCompanyCrm } from "../_actions";
+import { logOutreach, updatePipelineStage, updateCompanyCrm, approveClaimRequest, rejectClaimRequest } from "../_actions";
 import type { PipelineStage, OutreachChannel, OutreachOutcome } from "../_actions";
 
 type Company = {
@@ -17,10 +17,17 @@ type Log = {
   notes: string | null; contacted_at: string;
 };
 
+type ClaimRow = {
+  id: string; company_id: string; email: string; name: string | null;
+  message: string | null; status: string; created_at: string;
+};
+
 interface Props {
   companies: Company[];
   logsByCompany: Record<string, Log[]>;
+  claimsByCompany: Record<string, ClaimRow[]>;
   todayStr: string;
+  pendingClaimsCount: number;
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -69,7 +76,7 @@ const MIN_PANEL_WIDTH = 380;
 const MAX_PANEL_WIDTH = 800;
 const DEFAULT_PANEL_WIDTH = 480;
 
-export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
+export function PipelineClient({ companies, logsByCompany, claimsByCompany, todayStr, pendingClaimsCount }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterCity, setFilterCity] = useState<string>("all");
@@ -112,6 +119,7 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
 
   const selected = companies.find((c) => c.id === selectedId) ?? null;
   const logs = selectedId ? (logsByCompany[selectedId] ?? []) : [];
+  const claims = selectedId ? (claimsByCompany[selectedId] ?? []) : [];
 
   const filtered = useMemo(() => {
     return companies.filter((c) => {
@@ -155,6 +163,11 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
             <p className="text-sm text-neutral-500">{companies.length} companies · {companies.filter(c => c.pipeline_stage === "active").length} active customers</p>
           </div>
           <div className="flex items-center gap-2">
+            {pendingClaimsCount > 0 && (
+              <span className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
+                🔔 {pendingClaimsCount} claim {pendingClaimsCount === 1 ? "request" : "requests"} pending
+              </span>
+            )}
             {overdue.length > 0 && (
               <button
                 onClick={() => { setFilterStage("all"); setSearch(""); }}
@@ -312,6 +325,7 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
           <SidePanel
             company={selected}
             logs={logs}
+            claims={claims}
             isPending={isPending}
             showLogForm={showLogForm}
             setShowLogForm={setShowLogForm}
@@ -327,11 +341,12 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
 }
 
 function SidePanel({
-  company, logs, isPending, showLogForm, setShowLogForm,
+  company, logs, claims, isPending, showLogForm, setShowLogForm,
   onClose, onStageChange, fmtDate, todayStr,
 }: {
   company: Company;
   logs: Log[];
+  claims: ClaimRow[];
   isPending: boolean;
   showLogForm: boolean;
   setShowLogForm: (v: boolean) => void;
@@ -543,6 +558,20 @@ function SidePanel({
           </form>
         )}
 
+        {/* Claim requests */}
+        {claims.length > 0 && (
+          <div className="border-b border-border px-5 py-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              Claim requests ({claims.length})
+            </p>
+            <ul className="space-y-3">
+              {claims.map((cr) => (
+                <ClaimRequestRow key={cr.id} cr={cr} company={company} />
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Call history */}
         <div className="px-5 py-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
@@ -578,5 +607,40 @@ function SidePanel({
         </div>
       </div>
     </aside>
+  );
+}
+
+function ClaimRequestRow({ cr, company }: { cr: ClaimRow; company: Company }) {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <li className={`rounded-lg border p-3 ${cr.status === "pending" ? "border-emerald-200 bg-emerald-50" : "border-border bg-neutral-50"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-neutral-900">{cr.name}</p>
+          <a href={`mailto:${cr.email}`} className="text-xs text-neutral-500 hover:text-violet-700">{cr.email}</a>
+          {cr.message && <p className="mt-1 text-xs italic text-neutral-600">"{cr.message}"</p>}
+          <p className="mt-1 text-xs text-neutral-400">{cr.created_at.slice(0, 10).split("-").reverse().join("/")}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+          cr.status === "pending" ? "bg-amber-100 text-amber-700" :
+          cr.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+          "bg-red-50 text-red-500"
+        }`}>{cr.status}</span>
+      </div>
+      {cr.status === "pending" && (
+        <div className="mt-3 flex gap-2">
+          <button disabled={isPending}
+            onClick={() => startTransition(() => approveClaimRequest(cr.id, company.id, cr.email, company.name))}
+            className="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
+            {isPending ? "…" : "✓ Approve & send link"}
+          </button>
+          <button disabled={isPending}
+            onClick={() => startTransition(() => rejectClaimRequest(cr.id))}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs text-neutral-500 hover:bg-slate-100 disabled:opacity-60">
+            Reject
+          </button>
+        </div>
+      )}
+    </li>
   );
 }

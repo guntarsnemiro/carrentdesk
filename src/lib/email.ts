@@ -62,6 +62,38 @@ export async function sendAccessRequestNotification(data: {
 }
 
 /**
+ * Notifies the site owner when a rental company self-submits a claim request.
+ */
+export async function sendClaimRequestNotification(data: {
+  name: string;
+  email: string;
+  message?: string;
+  companyName: string;
+  companySlug: string;
+  adminUrl: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: OWNER_EMAIL,
+    replyTo: data.email,
+    subject: `Claim request — ${data.companyName}`,
+    text: [
+      `${data.name} (${data.email}) wants to claim the listing for ${data.companyName}.`,
+      ``,
+      data.message ? `Their message: "${data.message}"` : null,
+      ``,
+      `Review and approve in the pipeline:`,
+      data.adminUrl,
+      ``,
+      `Reply directly to respond to ${data.name}.`,
+    ].filter(Boolean).join("\n"),
+  });
+}
+
+/**
  * Sends a claim/registration invitation link to an operator.
  * Called from /api/admin/generate-claim-token when `email` is provided.
  */

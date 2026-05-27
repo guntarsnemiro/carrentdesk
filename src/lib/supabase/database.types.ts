@@ -50,6 +50,12 @@ export type Database = {
           { foreignKeyName: "bookings_vehicle_id_fkey"; columns: ["vehicle_id"]; isOneToOne: false; referencedRelation: "vehicles"; referencedColumns: ["id"] },
         ]
       }
+      claim_requests: {
+        Row: { id: string; company_id: string; email: string; name: string | null; message: string | null; status: string; created_at: string; reviewed_at: string | null }
+        Insert: { id?: string; company_id: string; email: string; name?: string | null; message?: string | null; status?: string; created_at?: string; reviewed_at?: string | null }
+        Update: { id?: string; company_id?: string; email?: string; name?: string | null; message?: string | null; status?: string; created_at?: string; reviewed_at?: string | null }
+        Relationships: [{ foreignKeyName: "claim_requests_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
+      }
       claim_tokens: {
         Row: { company_id: string; created_at: string; expires_at: string; id: string; sent_at: string | null; sent_to_email: string | null; token: string; used_at: string | null }
         Insert: { company_id: string; created_at?: string; expires_at?: string; id?: string; sent_at?: string | null; sent_to_email?: string | null; token: string; used_at?: string | null }

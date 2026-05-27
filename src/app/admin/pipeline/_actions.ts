@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { randomBytes } from "crypto";
+import { sendClaimInvite } from "@/lib/email";
 
 export type PipelineStage = "unclaimed" | "contacted" | "interested" | "trial" | "active" | "not_interested";
 export type OutreachChannel = "call" | "email" | "whatsapp" | "linkedin" | "other";
@@ -51,5 +53,22 @@ export async function logOutreach(data: {
     }).eq("id", data.company_id);
   }
 
+  revalidatePath("/admin/pipeline");
+}
+
+export async function approveClaimRequest(requestId: string, companyId: string, email: string, companyName: string) {
+  const db = createServiceRoleClient();
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await db.from("claim_tokens").insert({ company_id: companyId, token, sent_to_email: email, sent_at: new Date().toISOString(), expires_at: expiresAt });
+  await db.from("claim_requests").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", requestId);
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carrentdesk.com";
+  try { await sendClaimInvite({ email, companyName, claimUrl: `${base}/claim?token=${token}` }); } catch (err) { console.error(err); }
+  revalidatePath("/admin/pipeline");
+}
+
+export async function rejectClaimRequest(requestId: string) {
+  const db = createServiceRoleClient();
+  await db.from("claim_requests").update({ status: "rejected", reviewed_at: new Date().toISOString() }).eq("id", requestId);
   revalidatePath("/admin/pipeline");
 }
