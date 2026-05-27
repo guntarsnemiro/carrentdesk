@@ -64,21 +64,29 @@ const ALLOWED_CATEGORIES = new Set([
   "Motor vehicle dealer",
 ]);
 
-// Slugs we already seeded by hand — don't double-insert.
+// Slugs already in the database — don't double-insert.
 const EXISTING_SLUGS = new Set([
-  "baltic-car-rent",
-  "busrent",
-  "ecorent",
-  "tallinn-classic-rentals",
-  "vilnius-fairway",
+  "adcrent","addcar-car-rental-services","admita-car-rental-vilnius-airport-vno",
+  "auto-rental-tallinn","autocom-car-rental","autonomariga","autorent-ou-1autorent",
+  "baltic-car-rent","baltic-car-tallinn-car-rental","busrent","car-rent-riga-auto-noma",
+  "car-rental-123","car-rental-in-estonia","car-rental-prime-auto-riga","car4rent",
+  "e-car","easy-car-rent-tallinn-airport","easycars-p4-parking-pick-up-return-point",
+  "ecorent","eesti-autorent","ezrent","fun-car-rent-riga",
+  "gby-rent-vilnius-automobiliu-nuoma-car-rental","prime-car-rent","riga-car-rent",
+  "sir-autorent-ou","sky-ltd-car-rental-in-tallinn","solorent-car-rental-vilnius",
+  "tallinn-classic-rentals","toprent","vaikebussi-rent","vilnius-fairway",
+  "vitarent","wheego-rent-a-car-vilnius-airport",
 ]);
 
-// Apify country code → our city_slug enum
-const CITY_BY_COUNTRY = {
-  LV: "riga",
-  EE: "tallinn",
-  LT: "vilnius",
-};
+// Map Apify record → our city_slug enum
+// Uses city name first (more specific), falls back to country code
+function inferCity(record) {
+  const city = (record.city || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  if (city.includes("parnu") || city.includes("pärnu")) return "parnu";
+  if (city.includes("kaunas") || city.includes("karmelava") || city.includes("karmėlava")) return "kaunas";
+  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius" };
+  return byCountry[record.countryCode] ?? null;
+}
 
 // ---------------------------------------------------------------------------
 // Normalization helpers
@@ -213,7 +221,7 @@ for (const r of raw) {
     dropped.no_contact++;
     continue;
   }
-  const city = CITY_BY_COUNTRY[r.countryCode];
+  const city = inferCity(r);
   if (!city) {
     dropped.no_country++;
     continue;

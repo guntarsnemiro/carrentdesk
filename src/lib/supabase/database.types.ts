@@ -59,30 +59,41 @@ export type Database = {
       companies: {
         Row: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at: string | null; claimed_by_user_id: string | null
+          contact_person: string | null
           country: Database["public"]["Enums"]["country_code"]; created_at: string; default_depreciation_rate: number | null
           description: string | null; email: string | null; founded_year: number | null; id: string; last_active_at: string | null
-          logo_url: string | null; name: string; phone: string | null; slug: string
+          logo_url: string | null; name: string; next_followup_at: string | null; outreach_notes: string | null; phone: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status: Database["public"]["Enums"]["company_status"]; updated_at: string; vehicle_types: string[]
           verified_at: string | null; website: string | null; whatsapp: string | null
         }
         Insert: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
+          contact_person?: string | null
           country: Database["public"]["Enums"]["country_code"]; created_at?: string; default_depreciation_rate?: number | null
           description?: string | null; email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
-          logo_url?: string | null; name: string; phone?: string | null; slug: string
+          logo_url?: string | null; name: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
         }
         Update: {
           city?: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
-          default_depreciation_rate?: number | null;
+          contact_person?: string | null; default_depreciation_rate?: number | null;
           country?: Database["public"]["Enums"]["country_code"]; created_at?: string; description?: string | null
           email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
-          logo_url?: string | null; name?: string; phone?: string | null; slug?: string
+          logo_url?: string | null; name?: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug?: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
         }
         Relationships: []
+      }
+      outreach_logs: {
+        Row: { channel: string; company_id: string; contacted_at: string; created_at: string; id: string; notes: string | null; outcome: string }
+        Insert: { channel: string; company_id: string; contacted_at?: string; created_at?: string; id?: string; notes?: string | null; outcome: string }
+        Update: { channel?: string; company_id?: string; contacted_at?: string; created_at?: string; id?: string; notes?: string | null; outcome?: string }
+        Relationships: [{ foreignKeyName: "outreach_logs_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
       company_amenities: {
         Row: { amenity_key: string; company_id: string; value: boolean }
@@ -249,8 +260,9 @@ export type Database = {
     Enums: {
       booking_insurance: "none" | "partial" | "full"
       booking_status: "confirmed" | "active" | "returned" | "cancelled"
-      city_slug: "riga" | "tallinn" | "vilnius"
+      city_slug: "riga" | "tallinn" | "vilnius" | "parnu" | "kaunas"
       company_status: "unclaimed" | "claimed" | "verified"
+      pipeline_stage: "unclaimed" | "contacted" | "interested" | "trial" | "active" | "not_interested"
       country_code: "LV" | "EE" | "LT"
       demo_request_fleet_bucket: "fleet_1_10" | "fleet_11_30" | "fleet_31_100" | "fleet_100_plus"
       demo_request_status: "new" | "contacted" | "qualified" | "converted" | "rejected"
@@ -328,8 +340,9 @@ export const Constants = {
     Enums: {
       booking_insurance: ["none", "partial", "full"],
       booking_status: ["confirmed", "active", "returned", "cancelled"],
-      city_slug: ["riga", "tallinn", "vilnius"],
+      city_slug: ["riga", "tallinn", "vilnius", "parnu", "kaunas"],
       company_status: ["unclaimed", "claimed", "verified"],
+      pipeline_stage: ["unclaimed", "contacted", "interested", "trial", "active", "not_interested"],
       country_code: ["LV", "EE", "LT"],
       demo_request_fleet_bucket: ["fleet_1_10", "fleet_11_30", "fleet_31_100", "fleet_100_plus"],
       demo_request_status: ["new", "contacted", "qualified", "converted", "rejected"],

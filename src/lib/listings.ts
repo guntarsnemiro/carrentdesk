@@ -145,7 +145,7 @@ type CompanyRow = {
   id: string;
   slug: string;
   name: string;
-  city: "riga" | "tallinn" | "vilnius";
+  city: "riga" | "tallinn" | "vilnius" | "parnu" | "kaunas";
   country: "LV" | "EE" | "LT";
   status: CompanyStatus;
   phone: string | null;

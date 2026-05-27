@@ -5,7 +5,7 @@ import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { DateInput } from "@/components/ui/date-input";
 
 export type CostCategory =
-  | "car_insurance" | "gov_inspection" | "service_repair"
+  | "car_insurance" | "gov_inspection" | "service_repair" | "fuel"
   | "salary" | "tax" | "rent" | "phone_internet" | "accounting_legal"
   | "supplies_stock" | "company_insurance" | "other";
 
@@ -17,6 +17,7 @@ export const CATEGORY_LABELS: Record<CostCategory, string> = {
   car_insurance:     "Car insurance",
   gov_inspection:    "Gov. inspection",
   service_repair:    "Service & repair",
+  fuel:              "Fuel",
   // ── Business costs ──
   salary:            "Salary",
   tax:               "Tax & fees",
@@ -32,6 +33,7 @@ export const CATEGORY_COLOR: Record<CostCategory, string> = {
   car_insurance:     "bg-sky-50 text-sky-700",
   gov_inspection:    "bg-yellow-50 text-yellow-700",
   service_repair:    "bg-orange-50 text-orange-700",
+  fuel:              "bg-neutral-100 text-neutral-600",
   salary:            "bg-violet-50 text-violet-700",
   tax:               "bg-red-50 text-red-700",
   rent:              "bg-orange-50 text-orange-700",
