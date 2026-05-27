@@ -12,7 +12,10 @@ const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "info@carrentdesk.com";
  * All callers should handle null gracefully — email is non-critical.
  */
 function getResend(): Resend | null {
-  if (!RESEND_API_KEY) return null;
+  if (!RESEND_API_KEY) {
+    console.error("[email] RESEND_API_KEY is not set — emails will not be sent");
+    return null;
+  }
   return new Resend(RESEND_API_KEY);
 }
 
@@ -51,13 +54,19 @@ export async function sendAccessRequestNotification(data: {
     .filter(Boolean)
     .join("\n");
 
-  await resend.emails.send({
+  console.log(`[email] sending access request notification to ${OWNER_EMAIL} from ${FROM_ADDRESS}`);
+  const accessResult = await resend.emails.send({
     from: FROM_ADDRESS,
     to: OWNER_EMAIL,
     replyTo: data.email,
     subject: `New access request — ${data.companyName ?? data.name} (${data.city ?? "?"})`,
     text: `New access request on CarRentDesk:\n\n${lines}\n\nReply directly to respond to ${data.name}.`,
   });
+  if (accessResult.error) {
+    console.error("[email] Resend error for access request notification:", accessResult.error);
+  } else {
+    console.log("[email] access request notification sent, id:", accessResult.data?.id);
+  }
 }
 
 /**
