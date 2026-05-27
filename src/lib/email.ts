@@ -6,7 +6,10 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 // onboarding@resend.dev is the only domain that works out of the box.
 // Once you verify carrentdesk.com in Resend, set EMAIL_FROM in Vercel env vars.
 const FROM_ADDRESS = process.env.EMAIL_FROM ?? "CarRentDesk <onboarding@resend.dev>";
-const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "info@carrentdesk.com";
+// guntarsnemiro@inbox.lv is the Resend account email — free-tier allows sending
+// only to the account owner email when using onboarding@resend.dev as sender.
+// Once carrentdesk.com is verified in Resend, set EMAIL_FROM + OWNER_EMAIL in Vercel.
+const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "guntarsnemiro@inbox.lv";
 
 /**
  * Returns null when RESEND_API_KEY is not configured (local dev / preview).
@@ -75,7 +78,8 @@ export async function sendClaimRequestNotification(data: {
   const resend = getResend();
   if (!resend) return;
 
-  await resend.emails.send({
+  console.log(`[email] sending claim notification to ${OWNER_EMAIL} from ${FROM_ADDRESS}`);
+  const result = await resend.emails.send({
     from: FROM_ADDRESS,
     to: OWNER_EMAIL,
     replyTo: data.email,
@@ -91,6 +95,11 @@ export async function sendClaimRequestNotification(data: {
       `Reply directly to respond to ${data.name}.`,
     ].filter(Boolean).join("\n"),
   });
+  if (result.error) {
+    console.error("[email] Resend error for claim notification:", result.error);
+  } else {
+    console.log("[email] claim notification sent, id:", result.data?.id);
+  }
 }
 
 /**
