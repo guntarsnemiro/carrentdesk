@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "info@carrentdesk.com").split(",").map((e) => e.trim().toLowerCase());
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "info@carrentdesk.com,guntarsnemiro@inbox.lv").split(",").map((e) => e.trim().toLowerCase());
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const auth = await createAuthServerClient();
