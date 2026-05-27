@@ -322,7 +322,7 @@ function SidePanel({
   }
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col border-l border-border bg-white overflow-hidden">
+    <aside className="flex w-[480px] shrink-0 flex-col border-l border-border bg-white overflow-hidden">
       {/* Panel header */}
       <div className="flex items-start justify-between border-b border-border px-5 py-4">
         <div className="min-w-0">
