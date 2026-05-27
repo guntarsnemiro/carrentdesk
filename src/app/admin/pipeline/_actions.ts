@@ -15,7 +15,7 @@ export async function updatePipelineStage(companyId: string, stage: PipelineStag
 
 export async function updateCompanyCrm(
   companyId: string,
-  data: { contact_person?: string; next_followup_at?: string | null; outreach_notes?: string }
+  data: { contact_person?: string; next_followup_at?: string | null; outreach_notes?: string; fleet_size?: number | null }
 ) {
   const db = createServiceRoleClient();
   await db.from("companies").update(data).eq("id", companyId);

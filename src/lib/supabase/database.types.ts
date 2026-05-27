@@ -60,7 +60,7 @@ export type Database = {
         Row: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at: string | null; claimed_by_user_id: string | null
           contact_person: string | null
-          country: Database["public"]["Enums"]["country_code"]; created_at: string; default_depreciation_rate: number | null
+          country: Database["public"]["Enums"]["country_code"]; created_at: string; default_depreciation_rate: number | null; fleet_size: number | null
           description: string | null; email: string | null; founded_year: number | null; id: string; last_active_at: string | null
           logo_url: string | null; name: string; next_followup_at: string | null; outreach_notes: string | null; phone: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]; slug: string
@@ -70,7 +70,7 @@ export type Database = {
         Insert: {
           city: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
           contact_person?: string | null
-          country: Database["public"]["Enums"]["country_code"]; created_at?: string; default_depreciation_rate?: number | null
+          country: Database["public"]["Enums"]["country_code"]; created_at?: string; default_depreciation_rate?: number | null; fleet_size?: number | null
           description?: string | null; email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
           logo_url?: string | null; name: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug: string
@@ -79,7 +79,7 @@ export type Database = {
         }
         Update: {
           city?: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
-          contact_person?: string | null; default_depreciation_rate?: number | null;
+          contact_person?: string | null; default_depreciation_rate?: number | null; fleet_size?: number | null
           country?: Database["public"]["Enums"]["country_code"]; created_at?: string; description?: string | null
           email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
           logo_url?: string | null; name?: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null

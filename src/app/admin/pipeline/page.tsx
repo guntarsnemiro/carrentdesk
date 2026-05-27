@@ -12,7 +12,7 @@ export default async function PipelinePage() {
     .select(`
       id, name, slug, city, country, phone, website, whatsapp,
       pipeline_stage, contact_person, next_followup_at, outreach_notes,
-      status, claimed_at
+      fleet_size, status, claimed_at
     `)
     .order("next_followup_at", { ascending: true, nullsFirst: false })
     .order("name");

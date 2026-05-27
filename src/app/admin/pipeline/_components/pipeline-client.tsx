@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
-import { logOutreach, updatePipelineStage } from "../_actions";
+import { useState, useTransition, useMemo, useRef, useCallback, useEffect } from "react";
+import { logOutreach, updatePipelineStage, updateCompanyCrm } from "../_actions";
 import type { PipelineStage, OutreachChannel, OutreachOutcome } from "../_actions";
 
 type Company = {
@@ -9,7 +9,7 @@ type Company = {
   phone: string | null; website: string | null; whatsapp: string | null;
   pipeline_stage: string; contact_person: string | null;
   next_followup_at: string | null; outreach_notes: string | null;
-  status: string; claimed_at: string | null;
+  fleet_size: number | null; status: string; claimed_at: string | null;
 };
 
 type Log = {
@@ -65,6 +65,10 @@ const OUTCOMES: { value: OutreachOutcome; label: string }[] = [
 
 const STAGES: PipelineStage[] = ["unclaimed", "contacted", "interested", "trial", "active", "not_interested"];
 
+const MIN_PANEL_WIDTH = 380;
+const MAX_PANEL_WIDTH = 800;
+const DEFAULT_PANEL_WIDTH = 480;
+
 export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStage, setFilterStage] = useState<string>("all");
@@ -72,6 +76,39 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
   const [search, setSearch] = useState("");
   const [showLogForm, setShowLogForm] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+  const isResizing = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(DEFAULT_PANEL_WIDTH);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true;
+    startX.current = e.clientX;
+    startWidth.current = panelWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [panelWidth]);
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!isResizing.current) return;
+      const delta = startX.current - e.clientX;
+      const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, startWidth.current + delta));
+      setPanelWidth(newWidth);
+    }
+    function onMouseUp() {
+      if (!isResizing.current) return;
+      isResizing.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
 
   const selected = companies.find((c) => c.id === selectedId) ?? null;
   const logs = selectedId ? (logsByCompany[selectedId] ?? []) : [];
@@ -190,6 +227,7 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">Contact</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">Stage</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">Follow-up</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">Fleet</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">Calls</th>
               </tr>
             </thead>
@@ -246,6 +284,7 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
                         {isOverdue && "⚠ "}{isDueToday && "● "}{fmtDate(c.next_followup_at)}
                       </span>
                     </td>
+                    <td className="px-4 py-2.5 text-neutral-500">{c.fleet_size ? `~${c.fleet_size}` : "—"}</td>
                     <td className="px-4 py-2.5 text-neutral-500">{callCount > 0 ? callCount : "—"}</td>
                   </tr>
                 );
@@ -263,17 +302,25 @@ export function PipelineClient({ companies, logsByCompany, todayStr }: Props) {
 
       {/* Side panel */}
       {selected && (
-        <SidePanel
-          company={selected}
-          logs={logs}
-          isPending={isPending}
-          showLogForm={showLogForm}
-          setShowLogForm={setShowLogForm}
-          onClose={() => setSelectedId(null)}
-          onStageChange={handleStageChange}
-          fmtDate={fmtDate}
-          todayStr={todayStr}
-        />
+        <div style={{ width: panelWidth }} className="relative shrink-0 flex">
+          {/* Drag handle */}
+          <div
+            onMouseDown={onMouseDown}
+            className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize bg-transparent hover:bg-violet-300 transition-colors z-10"
+            title="Drag to resize"
+          />
+          <SidePanel
+            company={selected}
+            logs={logs}
+            isPending={isPending}
+            showLogForm={showLogForm}
+            setShowLogForm={setShowLogForm}
+            onClose={() => setSelectedId(null)}
+            onStageChange={handleStageChange}
+            fmtDate={fmtDate}
+            todayStr={todayStr}
+          />
+        </div>
       )}
     </div>
   );
@@ -302,6 +349,7 @@ function SidePanel({
   const [newStage, setNewStage] = useState<PipelineStage>(company.pipeline_stage as PipelineStage);
   const [contactPerson, setContactPerson] = useState(company.contact_person ?? "");
   const [followupDate, setFollowupDate] = useState(company.next_followup_at ?? "");
+  const [fleetSize, setFleetSize] = useState(company.fleet_size?.toString() ?? "");
 
   function handleLog(e: React.FormEvent) {
     e.preventDefault();
@@ -316,13 +364,16 @@ function SidePanel({
         pipeline_stage: newStage,
         contact_person: contactPerson || undefined,
       });
+      if (fleetSize) {
+        await updateCompanyCrm(company.id, { fleet_size: parseInt(fleetSize) || null });
+      }
       setShowLogForm(false);
       setNotes("");
     });
   }
 
   return (
-    <aside className="flex w-[480px] shrink-0 flex-col border-l border-border bg-white overflow-hidden">
+    <aside className="flex flex-1 flex-col border-l border-border bg-white overflow-hidden">
       {/* Panel header */}
       <div className="flex items-start justify-between border-b border-border px-5 py-4">
         <div className="min-w-0">
@@ -379,9 +430,15 @@ function SidePanel({
 
         {/* CRM meta */}
         <div className="border-b border-border px-5 py-4 space-y-3">
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Contact person</p>
-            <p className="text-sm text-neutral-700">{company.contact_person ?? <span className="text-neutral-300">Not set</span>}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Contact person</p>
+              <p className="text-sm text-neutral-700">{company.contact_person || <span className="text-neutral-300">Not set</span>}</p>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Fleet size</p>
+              <p className="text-sm text-neutral-700">{company.fleet_size ? `~${company.fleet_size} cars` : <span className="text-neutral-300">Unknown</span>}</p>
+            </div>
           </div>
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Next follow-up</p>
@@ -446,10 +503,17 @@ function SidePanel({
                 className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs text-neutral-500">Contact person</label>
-              <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} placeholder="Name of person you spoke to"
-                className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Contact person</label>
+                <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} placeholder="Name"
+                  className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Fleet size (cars)</label>
+                <input type="number" min="1" value={fleetSize} onChange={(e) => setFleetSize(e.target.value)} placeholder="e.g. 12"
+                  className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              </div>
             </div>
 
             <div>
