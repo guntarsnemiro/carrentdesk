@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "")) {
-    redirect("/app/login");
+    redirect("/app/login?next=/admin/pipeline");
   }
 
   return (
