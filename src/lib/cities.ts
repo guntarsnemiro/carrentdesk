@@ -22,7 +22,7 @@ export type City = {
    * "X km airport" on listing rows. `code` is the IATA code for trust /
    * recognition ("4.2 km RIX" reads cleaner than "4.2 km Riga Airport").
    */
-  airport: { code: "RIX" | "TLL" | "VNO"; lat: number; lng: number };
+  airport: { code: "RIX" | "TLL" | "VNO" | "EPU" | "KUN"; lat: number; lng: number };
 };
 
 /**
@@ -79,6 +79,34 @@ export const CITIES: City[] = [
       "https://images.unsplash.com/photo-1609618486710-af2cf3afb233?auto=format&fit=crop&w=1200&q=80",
     center: [54.6872, 25.2797],
     airport: { code: "VNO", lat: 54.6341, lng: 25.2858 },
+  },
+  {
+    slug: "parnu",
+    name: "Pärnu",
+    country: "Estonia",
+    countryCode: "EE",
+    tagline: "Coastal rentals in Estonia's summer capital",
+    placeholderCount: 5,
+    gradient: "linear-gradient(135deg, #0b3b46 0%, #1a6b7a 50%, #5bb8c4 100%)",
+    // Pärnu coastal view — © Unsplash (Estonia)
+    photoUrl:
+      "https://images.unsplash.com/photo-1531761535209-180857e963b9?auto=format&fit=crop&w=1200&q=80",
+    center: [58.3851, 24.4997],
+    airport: { code: "EPU", lat: 58.4199, lng: 24.4728 },
+  },
+  {
+    slug: "kaunas",
+    name: "Kaunas",
+    country: "Lithuania",
+    countryCode: "LT",
+    tagline: "Local rentals in Lithuania's second city",
+    placeholderCount: 7,
+    gradient: "linear-gradient(135deg, #2d1b4e 0%, #553a8c 50%, #9b72cf 100%)",
+    // Kaunas castle in sunlight — © Unsplash
+    photoUrl:
+      "https://images.unsplash.com/photo-1744183661929-e76ccb98f013?auto=format&fit=crop&w=1200&q=80",
+    center: [54.8985, 23.9036],
+    airport: { code: "KUN", lat: 54.9639, lng: 24.0848 },
   },
 ];
 

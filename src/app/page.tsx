@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CITIES } from "@/lib/cities";
 import { HeroSearch } from "@/components/marketing/hero-search";
 import { TrustStrip } from "@/components/marketing/trust-strip";
 import { VehicleTypeRow } from "@/components/marketing/vehicle-type-row";
@@ -15,7 +14,7 @@ export default function HomePage() {
     <>
       <Hero />
       <TrustStrip />
-      <CitiesRow />
+      <HowItWorks />
       <VehicleTypeRow />
       <FeaturedRentals />
       <ForOwnersStrip />
@@ -57,16 +56,13 @@ function Hero() {
 
         <div className="mx-auto w-full max-w-7xl px-6 pt-16 pb-16 lg:px-8 lg:pt-24 lg:pb-24">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-200">
-              Riga · Tallinn · Vilnius
-            </p>
             <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[3.6rem]">
               Find your best
-              <br className="hidden sm:block" /> local car rent company.
+              <br className="hidden sm:block" /> local car rental.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-brand-100 sm:text-lg">
-              Independent local rentals across the Baltics. Direct contact,
-              fair prices, no commission.
+              Independent local rentals. Direct contact,
+              fair prices, no middleman.
             </p>
 
             <HeroSearch />
@@ -77,60 +73,68 @@ function Hero() {
   );
 }
 
-function CitiesRow() {
-  return (
-    <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8">
-      <div className="flex items-end justify-between gap-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-brand-950 sm:text-3xl">
-          Browse by city
-        </h2>
-        <Link
-          href="/all"
-          className="hidden text-sm font-medium text-brand-700 hover:text-brand-900 sm:inline"
-        >
-          All cities →
-        </Link>
-      </div>
+const HOW_IT_WORKS = [
+  {
+    step: "1",
+    title: "Search your city",
+    description: "Browse verified independent rental companies near you. Filter by vehicle type, size, and location.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+      </svg>
+    ),
+  },
+  {
+    step: "2",
+    title: "Compare & choose",
+    description: "See real fleet details, services and contact info. No fake reviews, no inflated prices — just honest listings.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+      </svg>
+    ),
+  },
+  {
+    step: "3",
+    title: "Contact directly",
+    description: "Call, WhatsApp or email the rental company directly. No booking fees, no middleman — deal straight with the owner.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+      </svg>
+    ),
+  },
+];
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CITIES.map((c) => (
-          <Link
-            key={c.slug}
-            href={`/${c.slug}`}
-            className="group relative isolate flex aspect-[16/10] flex-col justify-end overflow-hidden rounded-xl text-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
-            style={{ background: c.gradient }}
-          >
-            <div
-              aria-hidden
-              className="absolute inset-0 -z-10 bg-cover bg-center transition-transform duration-500 group-hover:scale-[1.04]"
-              style={{ backgroundImage: `url('${c.photoUrl}')` }}
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/15"
-            />
-            <div className="relative z-10 p-5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
-                {c.country}
-              </p>
-              <h3 className="mt-0.5 text-2xl font-semibold tracking-tight">
-                {c.name}
-              </h3>
-              <p className="mt-1 line-clamp-1 text-sm text-white/85">
-                {c.tagline}
-              </p>
-              <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium">
-                {c.placeholderCount} rentals
-                <span
-                  aria-hidden
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  →
-                </span>
-              </p>
+function HowItWorks() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-6 py-14 lg:px-8">
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold tracking-tight text-brand-950 sm:text-3xl">
+          How CarRentDesk works
+        </h2>
+        <p className="mt-3 text-base text-neutral-500">
+          Skip the big platforms. Find and contact local rentals directly.
+        </p>
+      </div>
+      <div className="mt-12 grid gap-8 sm:grid-cols-3">
+        {HOW_IT_WORKS.map((item) => (
+          <div key={item.step} className="flex flex-col items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+              {item.icon}
             </div>
-          </Link>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">Step {item.step}</p>
+              <h3 className="mt-1 text-lg font-semibold text-brand-950">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-neutral-500">{item.description}</p>
+            </div>
+          </div>
         ))}
+      </div>
+      <div className="mt-10 text-center">
+        <Link href="/all" className="text-sm font-medium text-brand-700 hover:text-brand-900">
+          Browse all cities →
+        </Link>
       </div>
     </section>
   );
