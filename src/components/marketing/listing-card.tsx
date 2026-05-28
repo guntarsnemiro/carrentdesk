@@ -83,11 +83,19 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <h3 className="truncate text-base font-semibold text-brand-950 group-hover:text-brand-700">
             {listing.name}
           </h3>
-          {listing.foundedYear && (
+          {listing.googleRating ? (
+            <span className="shrink-0 flex items-center gap-1 text-xs font-medium text-neutral-600">
+              <span className="text-amber-400">★</span>
+              {listing.googleRating.toFixed(1)}
+              {listing.googleReviews && (
+                <span className="text-neutral-400">({listing.googleReviews})</span>
+              )}
+            </span>
+          ) : listing.foundedYear ? (
             <span className="shrink-0 text-xs font-medium text-neutral-500">
               Since {listing.foundedYear}
             </span>
-          )}
+          ) : null}
         </div>
         {listing.address && (
           <p className="mt-0.5 truncate text-xs text-neutral-500">

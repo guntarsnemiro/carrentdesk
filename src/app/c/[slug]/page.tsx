@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CITIES } from "@/lib/cities";
+import { haversineKm } from "@/lib/geo";
 import {
   AMENITY_LABELS,
   getAllListingSlugs,
@@ -154,7 +155,28 @@ export default async function CompanyPage({ params }: PageProps) {
               {listing.address && (
                 <p className="mt-2 text-base text-neutral-600">{listing.address}</p>
               )}
-              {listing.description && claimed && (
+              {listing.googleRating && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-sm font-medium text-neutral-800 shadow-sm ring-1 ring-border">
+                    <span className="text-amber-400">★</span>
+                    <span>{listing.googleRating.toFixed(1)}</span>
+                    {listing.googleReviews && (
+                      <span className="text-neutral-500">({listing.googleReviews} reviews)</span>
+                    )}
+                  </div>
+                  {listing.googleUrl && (
+                    <a
+                      href={listing.googleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neutral-500 hover:text-brand-700 hover:underline"
+                    >
+                      View on Google Maps →
+                    </a>
+                  )}
+                </div>
+              )}
+              {listing.description && (
                 <p className="mt-4 max-w-2xl text-lg leading-7 text-neutral-700">
                   {listing.description}
                 </p>
@@ -230,6 +252,26 @@ export default async function CompanyPage({ params }: PageProps) {
               <p className="text-sm text-neutral-700">
                 {listing.address ?? `${city?.name}, ${city?.country}`}
               </p>
+              {listing.coordinates && city && (
+                <div className="mt-3 flex flex-wrap gap-3 text-xs text-neutral-500">
+                  {(() => {
+                    const distCenter = haversineKm(
+                      listing.coordinates,
+                      { lat: city.center[0], lng: city.center[1] },
+                    );
+                    const distAirport = haversineKm(
+                      listing.coordinates,
+                      { lat: city.airport.lat, lng: city.airport.lng },
+                    );
+                    return (
+                      <>
+                        <span>🏙️ {distCenter.toFixed(1)} km from city centre</span>
+                        <span>✈️ {distAirport.toFixed(1)} km from {city.airport.code}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
               {listing.coordinates ? (
                 <LocationMapLoader
                   lat={listing.coordinates.lat}

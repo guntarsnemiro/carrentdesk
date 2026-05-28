@@ -279,6 +279,7 @@ for (const r of raw) {
     google_rating: r.totalScore ?? null,
     google_reviews: r.reviewsCount ?? null,
     google_url: r.url ?? null,
+    description: r.description ?? null,
   });
 }
 
@@ -307,28 +308,45 @@ sqlLines.push(`-- Records: ${normalized.length}`);
 sqlLines.push("");
 sqlLines.push("begin;");
 sqlLines.push("");
-sqlLines.push("-- 1. Companies");
+sqlLines.push("-- 1. Companies (insert new, update enrichment fields on existing)");
 sqlLines.push(
-  "insert into public.companies (slug, name, city, country, status, phone, website, vehicle_types) values"
+  "insert into public.companies (slug, name, city, country, status, phone, website, vehicle_types, google_rating, google_reviews, google_url, description, address) values"
 );
 sqlLines.push(
   normalized
     .map(
       (n) =>
-        `  (${sqlEscape(n.slug)}, ${sqlEscape(n.name)}, ${sqlEscape(n.city)}, ${sqlEscape(n.country)}, 'unclaimed', ${sqlEscape(n.phone)}, ${sqlEscape(n.website)}, ${sqlEscape(n.vehicle_types)})`
+        `  (${sqlEscape(n.slug)}, ${sqlEscape(n.name)}, ${sqlEscape(n.city)}, ${sqlEscape(n.country)}, 'unclaimed', ${sqlEscape(n.phone)}, ${sqlEscape(n.website)}, ${sqlEscape(n.vehicle_types)}, ${sqlEscape(n.google_rating)}, ${sqlEscape(n.google_reviews)}, ${sqlEscape(n.google_url)}, ${sqlEscape(n.description)}, ${sqlEscape(n.address)})`
     )
     .join(",\n")
 );
-sqlLines.push("on conflict (slug) do nothing;");
+sqlLines.push(
+  "on conflict (slug) do update set" +
+  "\n  google_rating = excluded.google_rating," +
+  "\n  google_reviews = excluded.google_reviews," +
+  "\n  google_url = excluded.google_url," +
+  "\n  description = coalesce(excluded.description, public.companies.description)," +
+  "\n  address = coalesce(excluded.address, public.companies.address);"
+);
 sqlLines.push("");
-sqlLines.push("-- 2. Primary locations (one per company)");
+sqlLines.push("-- 2. Update lat/lng on existing primary locations");
 for (const n of normalized) {
-  if (!n.address) continue;
+  if (!n.lat || !n.lng) continue;
+  sqlLines.push(
+    `update public.locations set lat = ${n.lat}, lng = ${n.lng}` +
+    (n.address ? `, address = coalesce(address, ${sqlEscape(n.address)})` : ``) +
+    ` where is_primary = true and company_id = (select id from public.companies where slug = ${sqlEscape(n.slug)});`
+  );
+}
+sqlLines.push("");
+sqlLines.push("-- 3. Insert primary location for companies that have none");
+for (const n of normalized) {
+  if (!n.lat || !n.lng) continue;
   sqlLines.push(
     `insert into public.locations (company_id, address, is_primary, lat, lng) ` +
-      `select id, ${sqlEscape(n.address)}, true, ${sqlEscape(n.lat)}, ${sqlEscape(n.lng)} ` +
+      `select id, ${sqlEscape(n.address)}, true, ${n.lat}, ${n.lng} ` +
       `from public.companies where slug = ${sqlEscape(n.slug)} ` +
-      `and not exists (select 1 from public.locations where company_id = public.companies.id and is_primary);`
+      `and not exists (select 1 from public.locations where company_id = public.companies.id and is_primary = true);`
   );
 }
 sqlLines.push("");

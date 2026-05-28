@@ -42,6 +42,12 @@ export type Listing = {
   /** Year the operator was founded. Surfaced in list rows as "Since 2012". */
   foundedYear?: number;
   coordinates?: { lat: number; lng: number };
+  /** Google Maps rating (1–5) from Apify scrape */
+  googleRating?: number;
+  /** Number of Google reviews */
+  googleReviews?: number;
+  /** Direct Google Maps URL for this business */
+  googleUrl?: string;
   fleet: {
     countMin: number;
     countMax: number;

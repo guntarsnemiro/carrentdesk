@@ -61,6 +61,18 @@ export function ListingRow({ listing }: { listing: Listing }) {
           <span className="font-semibold text-brand-950 group-hover:text-brand-700">
             {listing.name}
           </span>
+          {listing.googleRating && (
+            <>
+              <Sep />
+              <span className="text-neutral-600">
+                <span className="text-amber-400">★</span>{" "}
+                {listing.googleRating.toFixed(1)}
+                {listing.googleReviews && (
+                  <span className="text-neutral-400"> ({listing.googleReviews})</span>
+                )}
+              </span>
+            </>
+          )}
           {listing.foundedYear && (
             <>
               <Sep />

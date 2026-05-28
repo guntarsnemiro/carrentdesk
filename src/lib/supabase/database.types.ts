@@ -64,30 +64,38 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           city: Database["public"]["Enums"]["city_slug"]; claimed_at: string | null; claimed_by_user_id: string | null
           contact_person: string | null
           country: Database["public"]["Enums"]["country_code"]; created_at: string; default_depreciation_rate: number | null; fleet_size: number | null
-          description: string | null; email: string | null; founded_year: number | null; id: string; last_active_at: string | null
+          description: string | null; email: string | null; founded_year: number | null
+          google_rating: number | null; google_reviews: number | null; google_url: string | null
+          id: string; last_active_at: string | null
           logo_url: string | null; name: string; next_followup_at: string | null; outreach_notes: string | null; phone: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status: Database["public"]["Enums"]["company_status"]; updated_at: string; vehicle_types: string[]
           verified_at: string | null; website: string | null; whatsapp: string | null
         }
         Insert: {
+          address?: string | null
           city: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
           contact_person?: string | null
           country: Database["public"]["Enums"]["country_code"]; created_at?: string; default_depreciation_rate?: number | null; fleet_size?: number | null
-          description?: string | null; email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
+          description?: string | null; email?: string | null; founded_year?: number | null
+          google_rating?: number | null; google_reviews?: number | null; google_url?: string | null
+          id?: string; last_active_at?: string | null
           logo_url?: string | null; name: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
         }
         Update: {
+          address?: string | null
           city?: Database["public"]["Enums"]["city_slug"]; claimed_at?: string | null; claimed_by_user_id?: string | null
           contact_person?: string | null; default_depreciation_rate?: number | null; fleet_size?: number | null
           country?: Database["public"]["Enums"]["country_code"]; created_at?: string; description?: string | null
           email?: string | null; founded_year?: number | null; id?: string; last_active_at?: string | null
+          google_rating?: number | null; google_reviews?: number | null; google_url?: string | null
           logo_url?: string | null; name?: string; next_followup_at?: string | null; outreach_notes?: string | null; phone?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug?: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
