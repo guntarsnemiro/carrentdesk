@@ -70,16 +70,21 @@ export default async function NewInvoicePage({
       const vehicleLabel = vehicle ? `${vehicle.make} ${vehicle.model} ${vehicle.year} (${vehicle.plate})` : "Vehicle";
 
       if (booking.booking_price) {
+        // booking_price is VAT-inclusive, so back-calculate the ex-VAT unit price:
+        // unit_price_excl = total_incl / (1 + vat/100) / days
+        // → invoice subtotal + VAT will equal booking_price exactly
+        const unitPriceExcl = (booking.booking_price / (1 + vat / 100)) / days;
         bookingItems.push({
           sort_order: 0,
           description: `Car rental — ${vehicleLabel} (${days} day${days !== 1 ? "s" : ""})`,
           quantity: days,
-          unit_price: booking.booking_price / days,
+          unit_price: Math.round(unitPriceExcl * 100) / 100,
           vat_rate: vat,
-          line_total: booking.booking_price,
+          line_total: Math.round((unitPriceExcl * days) * 100) / 100,
         });
       }
       if (booking.deposit_amount) {
+        // Deposit is VAT-exempt (0%)
         bookingItems.push({
           sort_order: bookingItems.length,
           description: `Security deposit`,

@@ -210,6 +210,7 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
 
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   /* ── Derived totals ── */
@@ -319,6 +320,22 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
         );
       }
       return data.id;
+    }
+  }
+
+  async function handleDelete() {
+    if (!invoice?.id) return;
+    if (!confirm(`Delete invoice ${invoice.invoice_number}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      const supabase = getAuthBrowserClient();
+      const { error: err } = await supabase.from("invoices").delete().eq("id", invoice.id);
+      if (err) throw err;
+      router.push(`/app/invoices/${companyId}`);
+      router.refresh();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+      setDeleting(false);
     }
   }
 
@@ -568,37 +585,50 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={handleSave} disabled={saving || sending}
-          className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-          {saving ? "Saving…" : isEdit ? "Save changes" : "Save draft"}
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={handleSave} disabled={saving || sending || deleting}
+            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Save draft"}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (!form.buyer_email) {
-              setError("Add buyer email first — it's needed to send the invoice.");
-              return;
-            }
-            handleSendEmail();
-          }}
-          disabled={saving || sending}
-          className="rounded-lg border border-brand-700 px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-        >
-          {sending ? "Sending…" : "Save & send by email"}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!form.buyer_email) {
+                setError("Add buyer email first — it's needed to send the invoice.");
+                return;
+              }
+              handleSendEmail();
+            }}
+            disabled={saving || sending || deleting}
+            className="rounded-lg border border-brand-700 px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+          >
+            {sending ? "Sending…" : "Save & send by email"}
+          </button>
+
+          {isEdit && invoice?.id && (
+            <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank"
+              className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+              Download PDF
+            </a>
+          )}
+          <a href={`/app/invoices/${companyId}`}
+            className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
+            Cancel
+          </a>
+        </div>
 
         {isEdit && invoice?.id && (
-          <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank"
-            className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
-            Download PDF
-          </a>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving || sending || deleting}
+            className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete invoice"}
+          </button>
         )}
-        <a href={`/app/invoices/${companyId}`}
-          className="text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline">
-          Cancel
-        </a>
       </div>
     </div>
   );
