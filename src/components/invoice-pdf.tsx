@@ -2,6 +2,7 @@
  * Server-side PDF template for invoices.
  * Rendered via @react-pdf/renderer in the /api/invoices/[id]/pdf route.
  */
+import path from "path";
 import {
   Document,
   Page,
@@ -11,13 +12,24 @@ import {
   Font,
 } from "@react-pdf/renderer";
 
+// Register NotoSans which supports Latvian (Latin Extended-A) and all common scripts.
+// Fonts are stored in /public/fonts/ so they're included in the Vercel deployment.
+const FONTS_DIR = path.join(process.cwd(), "public", "fonts");
+Font.register({
+  family: "NotoSans",
+  fonts: [
+    { src: path.join(FONTS_DIR, "NotoSans-Regular.ttf"), fontWeight: "normal" },
+    { src: path.join(FONTS_DIR, "NotoSans-Bold.ttf"),    fontWeight: "bold"   },
+  ],
+});
+
 const BRAND = "#1d4ed8";
 const GRAY  = "#6b7280";
 const LIGHT = "#f3f4f6";
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSans",
     fontSize: 10,
     color: "#111827",
     padding: 48,
@@ -25,21 +37,21 @@ const styles = StyleSheet.create({
   },
   /* Header */
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 32 },
-  brandName: { fontSize: 20, fontFamily: "Helvetica-Bold", color: BRAND },
+  brandName: { fontSize: 20, fontFamily: "NotoSans", fontWeight: "bold", color: BRAND },
   headerRight: { textAlign: "right" },
-  invoiceTitle: { fontSize: 24, fontFamily: "Helvetica-Bold", color: BRAND, marginBottom: 4 },
+  invoiceTitle: { fontSize: 24, fontFamily: "NotoSans", fontWeight: "bold", color: BRAND, marginBottom: 4 },
   invoiceNumber: { fontSize: 11, color: GRAY },
   /* Parties */
   parties: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   partyBlock: { width: "46%" },
-  partyLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  partyName: { fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  partyLabel: { fontSize: 8, fontFamily: "NotoSans", fontWeight: "bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
+  partyName: { fontFamily: "NotoSans", fontWeight: "bold", marginBottom: 2 },
   partyLine: { color: GRAY, marginBottom: 1 },
   /* Meta row */
   metaRow: { flexDirection: "row", gap: 16, marginBottom: 24, backgroundColor: LIGHT, padding: 10, borderRadius: 4 },
   metaCell: { flex: 1 },
-  metaLabel: { fontSize: 8, color: GRAY, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-  metaValue: { fontFamily: "Helvetica-Bold" },
+  metaLabel: { fontSize: 8, color: GRAY, fontFamily: "NotoSans", fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
+  metaValue: { fontFamily: "NotoSans", fontWeight: "bold" },
   /* Table */
   tableHeader: { flexDirection: "row", backgroundColor: BRAND, color: "white", padding: "6 8", borderRadius: 3, marginBottom: 2 },
   tableRow: { flexDirection: "row", padding: "5 8", borderBottomWidth: 1, borderBottomColor: LIGHT },
@@ -53,14 +65,14 @@ const styles = StyleSheet.create({
   totalsLabel: { color: GRAY },
   totalsValue: {},
   totalRowFinal: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#d1d5db", paddingTop: 6, marginTop: 4 },
-  totalFinalLabel: { fontFamily: "Helvetica-Bold", fontSize: 12 },
-  totalFinalValue: { fontFamily: "Helvetica-Bold", fontSize: 12, color: BRAND },
+  totalFinalLabel: { fontFamily: "NotoSans", fontWeight: "bold", fontSize: 12 },
+  totalFinalValue: { fontFamily: "NotoSans", fontWeight: "bold", fontSize: 12, color: BRAND },
   /* Footer */
   footer: { position: "absolute", bottom: 32, left: 48, right: 48, borderTopWidth: 1, borderTopColor: LIGHT, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 8, color: GRAY },
   /* Notes */
   notes: { marginTop: 24, backgroundColor: LIGHT, padding: 10, borderRadius: 4 },
-  notesLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+  notesLabel: { fontSize: 8, fontFamily: "NotoSans", fontWeight: "bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   notesText: { color: GRAY, fontSize: 9 },
 });
 
@@ -195,11 +207,11 @@ export function InvoicePdf({ invoice, items }: { invoice: InvoiceRow; items: Ite
         {/* Banking */}
         {(invoice.seller_bank_name || invoice.seller_iban) && (
           <View style={{ marginTop: 20 }}>
-            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "NotoSans", fontWeight: "bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
               Bank transfer details
             </Text>
             {invoice.seller_bank_name && <Text style={{ color: GRAY }}>{invoice.seller_bank_name}</Text>}
-            {invoice.seller_iban && <Text style={{ color: GRAY, fontFamily: "Helvetica-Bold" }}>IBAN: {invoice.seller_iban}</Text>}
+            {invoice.seller_iban && <Text style={{ color: GRAY, fontFamily: "NotoSans", fontWeight: "bold" }}>IBAN: {invoice.seller_iban}</Text>}
             {invoice.seller_swift && <Text style={{ color: GRAY }}>SWIFT: {invoice.seller_swift}</Text>}
           </View>
         )}

@@ -573,12 +573,22 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
           className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
           {saving ? "Saving…" : isEdit ? "Save changes" : "Save draft"}
         </button>
-        {form.buyer_email && (
-          <button type="button" onClick={handleSendEmail} disabled={saving || sending}
-            className="rounded-lg border border-brand-700 px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50">
-            {sending ? "Sending…" : "Save & send by email"}
-          </button>
-        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!form.buyer_email) {
+              setError("Add buyer email first — it's needed to send the invoice.");
+              return;
+            }
+            handleSendEmail();
+          }}
+          disabled={saving || sending}
+          className="rounded-lg border border-brand-700 px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+        >
+          {sending ? "Sending…" : "Save & send by email"}
+        </button>
+
         {isEdit && invoice?.id && (
           <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank"
             className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
