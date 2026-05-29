@@ -22,6 +22,11 @@ interface Customer {
   blacklisted: boolean;
   blacklist_reason: string | null;
   notes: string | null;
+  customer_type?: string | null;
+  company_name?: string | null;
+  company_reg_number?: string | null;
+  company_vat_number?: string | null;
+  billing_address?: string | null;
 }
 
 interface Props { companyId: string; customer?: Customer; }
@@ -44,6 +49,11 @@ export function CustomerForm({ companyId, customer }: Props) {
     blacklisted:            customer?.blacklisted ?? false,
     blacklist_reason:       customer?.blacklist_reason ?? "",
     notes:                  customer?.notes ?? "",
+    customer_type:          (customer?.customer_type ?? "person") as "person" | "company",
+    company_name:           customer?.company_name ?? "",
+    company_reg_number:     customer?.company_reg_number ?? "",
+    company_vat_number:     customer?.company_vat_number ?? "",
+    billing_address:        customer?.billing_address ?? "",
   });
 
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
@@ -74,6 +84,7 @@ export function CustomerForm({ companyId, customer }: Props) {
     }
 
     const supabase = getAuthBrowserClient();
+    const isCompany = form.customer_type === "company";
     const payload = {
       company_id:             companyId,
       full_name:              form.full_name.trim(),
@@ -89,6 +100,11 @@ export function CustomerForm({ companyId, customer }: Props) {
       blacklisted:            form.blacklisted,
       blacklist_reason:       form.blacklisted ? (form.blacklist_reason.trim() || null) : null,
       notes:                  form.notes.trim() || null,
+      customer_type:          form.customer_type,
+      company_name:           isCompany ? (form.company_name.trim() || null) : null,
+      company_reg_number:     isCompany ? (form.company_reg_number.trim() || null) : null,
+      company_vat_number:     isCompany ? (form.company_vat_number.trim() || null) : null,
+      billing_address:        form.billing_address.trim() || null,
       updated_at:             new Date().toISOString(),
     };
 
@@ -112,8 +128,50 @@ export function CustomerForm({ companyId, customer }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
 
+      {/* ── Customer type ── */}
+      <div className="rounded-2xl border border-border bg-white p-6">
+        <h2 className="mb-3 text-base font-semibold text-neutral-900">Customer type</h2>
+        <div className="flex gap-3">
+          {(["person", "company"] as const).map((t) => (
+            <button key={t} type="button"
+              onClick={() => setForm((p) => ({ ...p, customer_type: t }))}
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
+                form.customer_type === t
+                  ? "border-brand-700 bg-brand-50 text-brand-700"
+                  : "border-border text-neutral-500 hover:bg-slate-50"
+              }`}>
+              {t === "person" ? "👤 Private person" : "🏢 Company"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Company B2B fields ── */}
+      {form.customer_type === "company" && (
+        <Section title="Company details">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Company name *">
+              <input name="company_name" required value={form.company_name} onChange={set}
+                placeholder="SIA Example Company" className={inp} />
+            </Field>
+            <Field label="Registration number *">
+              <input name="company_reg_number" required value={form.company_reg_number} onChange={set}
+                placeholder="LV40003123456" className={`${inp} font-mono`} />
+            </Field>
+            <Field label="VAT number">
+              <input name="company_vat_number" value={form.company_vat_number} onChange={set}
+                placeholder="LV40003123456" className={`${inp} font-mono`} />
+            </Field>
+            <Field label="Billing address">
+              <input name="billing_address" value={form.billing_address} onChange={set}
+                placeholder="Street, City, Country" className={inp} />
+            </Field>
+          </div>
+        </Section>
+      )}
+
       {/* ── Identity ── */}
-      <Section title="Customer details">
+      <Section title={form.customer_type === "company" ? "Contact person" : "Customer details"}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Full name *">
             <input name="full_name" required value={form.full_name} onChange={set}

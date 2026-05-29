@@ -39,11 +39,44 @@ export default async function EditBookingPage({
     .eq("id", booking.customer_id)
     .maybeSingle() : { data: null };
 
+  // Check if invoice already exists for this booking
+  const { data: existingInvoice } = await db
+    .from("invoices")
+    .select("id, invoice_number, status")
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
   return (
     <div className="px-8 py-8">
-      <div className="mb-6">
-        <Link href={`/app/rentals/${companyId}`} className="text-sm text-neutral-500 hover:text-neutral-700">← Rentals</Link>
-        <h1 className="mt-2 text-2xl font-bold text-neutral-900">Edit booking</h1>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <Link href={`/app/rentals/${companyId}`} className="text-sm text-neutral-500 hover:text-neutral-700">← Rentals</Link>
+          <h1 className="mt-2 text-2xl font-bold text-neutral-900">Edit booking</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {existingInvoice ? (
+            <Link
+              href={`/app/invoices/${companyId}/${existingInvoice.id}`}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              📄 {existingInvoice.invoice_number}
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                existingInvoice.status === "paid"
+                  ? "bg-green-50 text-green-700"
+                  : existingInvoice.status === "sent"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-neutral-100 text-neutral-600"
+              }`}>{existingInvoice.status}</span>
+            </Link>
+          ) : (
+            <Link
+              href={`/app/invoices/${companyId}/new?bookingId=${bookingId}`}
+              className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+            >
+              + Create invoice
+            </Link>
+          )}
+        </div>
       </div>
       <BookingForm
         companyId={companyId}

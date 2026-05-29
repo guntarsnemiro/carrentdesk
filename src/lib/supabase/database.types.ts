@@ -75,6 +75,10 @@ export type Database = {
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status: Database["public"]["Enums"]["company_status"]; updated_at: string; vehicle_types: string[]
           verified_at: string | null; website: string | null; whatsapp: string | null
+          invoice_legal_name: string | null; invoice_reg_number: string | null; invoice_vat_number: string | null
+          invoice_address: string | null; invoice_bank_name: string | null; invoice_iban: string | null; invoice_swift: string | null
+          invoice_default_vat: number | null; invoice_prefix: string | null; invoice_payment_terms: string | null
+          invoice_footer_notes: string | null; invoice_next_number: number | null
         }
         Insert: {
           address?: string | null
@@ -88,6 +92,10 @@ export type Database = {
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
+          invoice_legal_name?: string | null; invoice_reg_number?: string | null; invoice_vat_number?: string | null
+          invoice_address?: string | null; invoice_bank_name?: string | null; invoice_iban?: string | null; invoice_swift?: string | null
+          invoice_default_vat?: number | null; invoice_prefix?: string | null; invoice_payment_terms?: string | null
+          invoice_footer_notes?: string | null; invoice_next_number?: number | null
         }
         Update: {
           address?: string | null
@@ -100,6 +108,10 @@ export type Database = {
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]; slug?: string
           status?: Database["public"]["Enums"]["company_status"]; updated_at?: string; vehicle_types?: string[]
           verified_at?: string | null; website?: string | null; whatsapp?: string | null
+          invoice_legal_name?: string | null; invoice_reg_number?: string | null; invoice_vat_number?: string | null
+          invoice_address?: string | null; invoice_bank_name?: string | null; invoice_iban?: string | null; invoice_swift?: string | null
+          invoice_default_vat?: number | null; invoice_prefix?: string | null; invoice_payment_terms?: string | null
+          invoice_footer_notes?: string | null; invoice_next_number?: number | null
         }
         Relationships: []
       }
@@ -134,6 +146,8 @@ export type Database = {
           driver_license_number: string | null; email: string | null; full_name: string; id: string
           id_expiry: string | null; id_number: string | null; language: string | null; notes: string | null
           phone: string; updated_at: string
+          customer_type: string | null; company_name: string | null; company_reg_number: string | null
+          company_vat_number: string | null; billing_address: string | null
         }
         Insert: {
           address?: string | null; blacklist_reason?: string | null; blacklisted?: boolean; company_id: string
@@ -141,6 +155,8 @@ export type Database = {
           driver_license_number?: string | null; email?: string | null; full_name: string; id?: string
           id_expiry?: string | null; id_number?: string | null; language?: string | null; notes?: string | null
           phone: string; updated_at?: string
+          customer_type?: string | null; company_name?: string | null; company_reg_number?: string | null
+          company_vat_number?: string | null; billing_address?: string | null
         }
         Update: {
           address?: string | null; blacklist_reason?: string | null; blacklisted?: boolean; company_id?: string
@@ -148,8 +164,67 @@ export type Database = {
           driver_license_number?: string | null; email?: string | null; full_name?: string; id?: string
           id_expiry?: string | null; id_number?: string | null; language?: string | null; notes?: string | null
           phone?: string; updated_at?: string
+          customer_type?: string | null; company_name?: string | null; company_reg_number?: string | null
+          company_vat_number?: string | null; billing_address?: string | null
         }
         Relationships: [{ foreignKeyName: "customers_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
+      }
+      invoices: {
+        Row: {
+          id: string; company_id: string; booking_id: string | null; customer_id: string | null
+          invoice_number: string; status: string; issue_date: string; due_date: string | null
+          seller_name: string; seller_reg_number: string | null; seller_vat_number: string | null
+          seller_address: string | null; seller_bank_name: string | null; seller_iban: string | null; seller_swift: string | null
+          buyer_type: string; buyer_name: string; buyer_reg_number: string | null; buyer_vat_number: string | null
+          buyer_address: string | null; buyer_email: string | null
+          currency: string; subtotal: number; vat_amount: number; total: number
+          payment_terms: string | null; notes: string | null
+          sent_at: string | null; paid_at: string | null; cancelled_at: string | null
+          created_at: string; updated_at: string
+        }
+        Insert: {
+          id?: string; company_id: string; booking_id?: string | null; customer_id?: string | null
+          invoice_number: string; status?: string; issue_date: string; due_date?: string | null
+          seller_name: string; seller_reg_number?: string | null; seller_vat_number?: string | null
+          seller_address?: string | null; seller_bank_name?: string | null; seller_iban?: string | null; seller_swift?: string | null
+          buyer_type?: string; buyer_name: string; buyer_reg_number?: string | null; buyer_vat_number?: string | null
+          buyer_address?: string | null; buyer_email?: string | null
+          currency?: string; subtotal?: number; vat_amount?: number; total?: number
+          payment_terms?: string | null; notes?: string | null
+          sent_at?: string | null; paid_at?: string | null; cancelled_at?: string | null
+          created_at?: string; updated_at?: string
+        }
+        Update: {
+          id?: string; company_id?: string; booking_id?: string | null; customer_id?: string | null
+          invoice_number?: string; status?: string; issue_date?: string; due_date?: string | null
+          seller_name?: string; seller_reg_number?: string | null; seller_vat_number?: string | null
+          seller_address?: string | null; seller_bank_name?: string | null; seller_iban?: string | null; seller_swift?: string | null
+          buyer_type?: string; buyer_name?: string; buyer_reg_number?: string | null; buyer_vat_number?: string | null
+          buyer_address?: string | null; buyer_email?: string | null
+          currency?: string; subtotal?: number; vat_amount?: number; total?: number
+          payment_terms?: string | null; notes?: string | null
+          sent_at?: string | null; paid_at?: string | null; cancelled_at?: string | null
+          created_at?: string; updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "invoices_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "invoices_booking_id_fkey"; columns: ["booking_id"]; isOneToOne: false; referencedRelation: "bookings"; referencedColumns: ["id"] },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          id: string; invoice_id: string; sort_order: number; description: string
+          quantity: number; unit_price: number; vat_rate: number; line_total: number; created_at: string
+        }
+        Insert: {
+          id?: string; invoice_id: string; sort_order?: number; description: string
+          quantity?: number; unit_price?: number; vat_rate?: number; line_total?: number; created_at?: string
+        }
+        Update: {
+          id?: string; invoice_id?: string; sort_order?: number; description?: string
+          quantity?: number; unit_price?: number; vat_rate?: number; line_total?: number; created_at?: string
+        }
+        Relationships: [{ foreignKeyName: "invoice_items_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"] }]
       }
       demo_requests: {
         Row: {

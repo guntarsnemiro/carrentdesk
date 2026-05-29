@@ -24,7 +24,12 @@ export default async function SettingsPage({
   if (!membership) notFound();
 
   const { data: company } = await db
-    .from("companies").select("id, name")
+    .from("companies").select(`
+      id, name,
+      invoice_legal_name, invoice_reg_number, invoice_vat_number, invoice_address,
+      invoice_bank_name, invoice_iban, invoice_swift,
+      invoice_default_vat, invoice_prefix, invoice_payment_terms, invoice_footer_notes
+    `)
     .eq("id", companyId).maybeSingle();
   if (!company) notFound();
 
@@ -34,7 +39,7 @@ export default async function SettingsPage({
         <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
         <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
       </div>
-      <SettingsForm companyId={companyId} />
+      <SettingsForm companyId={companyId} invoiceDefaults={company} />
     </div>
   );
 }
