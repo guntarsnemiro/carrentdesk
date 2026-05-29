@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { renderToBuffer, Document } from "@react-pdf/renderer";
+import type { DocumentProps } from "@react-pdf/renderer";
+import { InvoicePdf } from "@/components/invoice-pdf";
+import React from "react";
 
 export async function POST(
   _req: NextRequest,
@@ -35,21 +39,25 @@ export async function POST(
     return NextResponse.json({ error: "No buyer email on invoice" }, { status: 400 });
   }
 
-  // Fetch PDF
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const pdfRes = await fetch(`${baseUrl}/api/invoices/${invoiceId}/pdf`, {
-    headers: { cookie: _req.headers.get("cookie") ?? "" },
-  });
-  if (!pdfRes.ok) {
-    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
-  }
-  const pdfBuffer = await pdfRes.arrayBuffer();
+  const { data: items } = await db
+    .from("invoice_items")
+    .select("*")
+    .eq("invoice_id", invoiceId)
+    .order("sort_order");
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
     return NextResponse.json({ error: "Email not configured" }, { status: 500 });
+  }
+
+  // Generate PDF directly (no self-fetch)
+  let pdfBuffer: Buffer;
+  try {
+    const element = React.createElement(InvoicePdf, { invoice, items: items ?? [] }) as React.ReactElement<DocumentProps>;
+    pdfBuffer = await renderToBuffer(element);
+  } catch (err) {
+    console.error("[send] PDF generation error:", err);
+    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
   }
 
   const resend = new Resend(resendKey);
@@ -73,7 +81,7 @@ export async function POST(
     attachments: [
       {
         filename: `${invoice.invoice_number}.pdf`,
-        content: Buffer.from(pdfBuffer),
+        content: pdfBuffer,
       },
     ],
   });
@@ -82,7 +90,6 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Update status to sent
   await db.from("invoices")
     .update({ status: "sent", sent_at: new Date().toISOString() })
     .eq("id", invoiceId);

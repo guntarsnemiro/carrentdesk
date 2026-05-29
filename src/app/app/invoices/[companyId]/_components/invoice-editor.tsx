@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 
@@ -40,13 +40,135 @@ export interface InvoiceData {
   currency: string;
 }
 
+interface CustomerOption {
+  id: string;
+  full_name: string;
+  email: string | null;
+  customer_type?: string | null;
+  company_name?: string | null;
+  company_reg_number?: string | null;
+  company_vat_number?: string | null;
+  billing_address?: string | null;
+  address?: string | null;
+}
+
 interface Props {
   companyId: string;
   invoice?: InvoiceData;
   items?: InvoiceItem[];
   defaultVat?: number;
-  customers?: { id: string; full_name: string; email: string | null; customer_type?: string | null; company_name?: string | null; company_reg_number?: string | null; company_vat_number?: string | null; billing_address?: string | null; address?: string | null }[];
+  customers?: CustomerOption[];
   bookingId?: string;
+}
+
+/* ── Buyer search combobox ──────────────────────────────────────────── */
+
+function BuyerSearch({
+  companyId,
+  customers,
+  buyerName,
+  buyerType,
+  onSelect,
+  onChange,
+}: {
+  companyId: string;
+  customers: CustomerOption[];
+  buyerName: string;
+  buyerType: "person" | "company";
+  onSelect: (c: CustomerOption) => void;
+  onChange: (val: string) => void;
+}) {
+  const [query, setQuery] = useState(buyerName);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Keep local query in sync when parent resets
+  useEffect(() => { setQuery(buyerName); }, [buyerName]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = query.trim().length === 0 ? [] : customers.filter((c) => {
+    const q = query.toLowerCase();
+    return (
+      c.full_name.toLowerCase().includes(q) ||
+      (c.company_name ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q)
+    );
+  }).slice(0, 8);
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setQuery(v);
+    onChange(v);
+    setOpen(true);
+  }
+
+  function pick(c: CustomerOption) {
+    const isCompany = c.customer_type === "company";
+    const displayName = isCompany ? (c.company_name ?? c.full_name) : c.full_name;
+    setQuery(displayName);
+    setOpen(false);
+    onSelect(c);
+  }
+
+  const createUrl = `/app/customers/${companyId}/add`;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={handleInput}
+        onFocus={() => query.trim().length > 0 && setOpen(true)}
+        placeholder={buyerType === "company" ? "Search company name…" : "Search customer name…"}
+        className={inp}
+      />
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+          {filtered.length > 0 ? (
+            <ul>
+              {filtered.map((c) => {
+                const isCompany = c.customer_type === "company";
+                const label = isCompany ? (c.company_name ?? c.full_name) : c.full_name;
+                const sub = isCompany ? c.full_name : c.email;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onMouseDown={() => pick(c)}
+                      className="flex w-full flex-col px-4 py-2.5 text-left hover:bg-neutral-50"
+                    >
+                      <span className="text-sm font-medium text-neutral-900">{label}</span>
+                      {sub && <span className="text-xs text-neutral-400">{sub}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="px-4 py-3 text-sm text-neutral-500">No customers found.</div>
+          )}
+          <div className="border-t border-border px-4 py-2.5">
+            <a
+              href={createUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-brand-700 hover:underline"
+            >
+              + Create new customer
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Component ──────────────────────────────────────────────────────── */
@@ -86,7 +208,6 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
     ]
   );
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -125,10 +246,7 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
     setLineItems((p) => p.filter((_, i) => i !== idx).map((it, i) => ({ ...it, sort_order: i })));
   }
 
-  function fillFromCustomer(customerId: string) {
-    setSelectedCustomerId(customerId);
-    const c = customers.find((x) => x.id === customerId);
-    if (!c) return;
+  function fillFromCustomer(c: CustomerOption) {
     const isCompany = c.customer_type === "company";
     setForm((p) => ({
       ...p,
@@ -171,10 +289,10 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
   }), [form, subtotal, vatAmount, total, companyId, bookingId]);
 
   async function save(extraStatus?: string) {
-    if (!form.invoice_number.trim()) { setError("Invoice number is required"); return; }
-    if (!form.buyer_name.trim())     { setError("Buyer name is required"); return; }
+    if (!form.invoice_number.trim()) { setError("Invoice number is required"); return null; }
+    if (!form.buyer_name.trim())     { setError("Buyer name is required"); return null; }
     if (form.buyer_type === "company" && !form.buyer_reg_number.trim()) {
-      setError("Company registration number is required for company invoices"); return;
+      setError("Company registration number is required for company invoices"); return null;
     }
     setError("");
 
@@ -182,10 +300,9 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
     const payload = { ...buildPayload(), ...(extraStatus ? { status: extraStatus } : {}) };
 
     if (isEdit && invoice?.id) {
-      const { error: err } = await supabase.from("invoices").update(payload).eq("id", invoice.id);
+      const invId = invoice.id;
+      const { error: err } = await supabase.from("invoices").update(payload).eq("id", invId);
       if (err) throw err;
-      // upsert items
-      const invId = invoice.id!;
       await supabase.from("invoice_items").delete().eq("invoice_id", invId);
       if (lineItems.length) {
         await supabase.from("invoice_items").insert(
@@ -198,7 +315,7 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
       if (err) throw err;
       if (lineItems.length) {
         await supabase.from("invoice_items").insert(
-          lineItems.map((it, i) => ({ ...it, invoice_id: data.id, sort_order: i, id: undefined }))
+          lineItems.map((it, i) => ({ description: it.description, quantity: it.quantity, unit_price: it.unit_price, vat_rate: it.vat_rate, line_total: it.line_total, invoice_id: data.id, sort_order: i }))
         );
       }
       return data.id;
@@ -209,6 +326,7 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
     setSaving(true);
     try {
       const id = await save();
+      if (!id) return;
       router.push(`/app/invoices/${companyId}/${id}`);
       router.refresh();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Save failed"); }
@@ -219,8 +337,12 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
     setSending(true);
     try {
       const id = await save("sent");
+      if (!id) return;
       const res = await fetch(`/api/invoices/${id}/send`, { method: "POST" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Send failed");
+      }
       router.push(`/app/invoices/${companyId}/${id}`);
       router.refresh();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Send failed"); }
@@ -307,21 +429,7 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
 
       {/* Buyer block */}
       <div className="rounded-2xl border border-border bg-white p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-900">To (buyer)</h2>
-          {customers.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-neutral-500">Fill from customer:</label>
-              <select value={selectedCustomerId} onChange={(e) => fillFromCustomer(e.target.value)}
-                className="rounded-lg border border-border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="">— select —</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.full_name}{c.company_name ? ` (${c.company_name})` : ""}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+        <h2 className="mb-4 text-base font-semibold text-neutral-900">To (buyer)</h2>
 
         {/* Type toggle */}
         <div className="mb-4 flex gap-3">
@@ -339,10 +447,22 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={form.buyer_type === "company" ? "Company name *" : "Full name *"}>
-            <input name="buyer_name" required value={form.buyer_name} onChange={setField}
-              placeholder={form.buyer_type === "company" ? "SIA Example Company" : "John Smith"} className={inp} />
-          </Field>
+          {/* Searchable buyer name — single field, searches customers */}
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-neutral-700 mb-1">
+              {form.buyer_type === "company" ? "Company name *" : "Full name *"}
+              <span className="ml-1 font-normal text-neutral-400 text-xs">— type to search existing customers</span>
+            </label>
+            <BuyerSearch
+              companyId={companyId}
+              customers={customers}
+              buyerName={form.buyer_name}
+              buyerType={form.buyer_type}
+              onSelect={fillFromCustomer}
+              onChange={(v) => setForm((p) => ({ ...p, buyer_name: v }))}
+            />
+          </div>
+
           {form.buyer_type === "company" && (
             <>
               <Field label="Registration number *">
@@ -355,11 +475,13 @@ export function InvoiceEditor({ companyId, invoice, items: initItems, defaultVat
               </Field>
             </>
           )}
+
           <Field label="Email">
             <input name="buyer_email" type="email" value={form.buyer_email} onChange={setField}
               placeholder="customer@example.com" className={inp} />
           </Field>
-          <div className={form.buyer_type === "company" ? "" : "sm:col-span-2"}>
+
+          <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">
               {form.buyer_type === "company" ? "Billing address" : "Address"}
             </label>
