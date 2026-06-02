@@ -12,9 +12,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Pipeline", href: "/admin/pipeline", icon: <PipelineIcon /> },
-  { label: "Analytics", href: "/admin/analytics", icon: <ChartIcon />, soon: true },
-  { label: "Operators", href: "/admin/operators", icon: <UsersIcon />, soon: true },
+  { label: "Pipeline",   href: "/admin/pipeline",   icon: <PipelineIcon /> },
+  { label: "Blacklist",  href: "/admin/blacklist",  icon: <BlacklistIcon /> },
+  { label: "Analytics",  href: "/admin/analytics",  icon: <ChartIcon />, soon: true },
+  { label: "Operators",  href: "/admin/operators",  icon: <UsersIcon />,  soon: true },
 ];
 
 export function AdminSidebar({ userEmail }: { userEmail: string }) {
@@ -105,6 +106,9 @@ export function AdminSidebar({ userEmail }: { userEmail: string }) {
   );
 }
 
+function BlacklistIcon() {
+  return <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>;
+}
 function PipelineIcon() {
   return <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>;
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { BookingForm } from "../_components/booking-form";
+import { checkGlobalBlacklist } from "@/lib/blacklist";
+import { REASON_LABELS, SEVERITY_LABELS } from "@/lib/blacklist-shared";
 
 export const metadata: Metadata = { title: "Edit Booking" };
 
@@ -35,9 +37,13 @@ export default async function EditBookingPage({
 
   const { data: customer } = booking.customer_id ? await db
     .from("customers")
-    .select("id, full_name, phone, blacklisted, blacklist_reason")
+    .select("id, full_name, phone, blacklisted, blacklist_reason, id_number, driver_license_number")
     .eq("id", booking.customer_id)
     .maybeSingle() : { data: null };
+
+  const globalMatches = customer
+    ? await checkGlobalBlacklist(customer.id_number, customer.driver_license_number)
+    : [];
 
   // Check if invoice already exists for this booking
   const { data: existingInvoice } = await db
@@ -78,6 +84,32 @@ export default async function EditBookingPage({
           )}
         </div>
       </div>
+      {/* Global blacklist warning */}
+      {globalMatches.length > 0 && customer && (
+        <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+          <p className="text-sm font-semibold text-orange-900 mb-2">
+            ⚠ {customer.full_name} is flagged on the CarRentDesk global blacklist
+          </p>
+          <div className="space-y-1.5">
+            {globalMatches.map((m) => {
+              const sev = SEVERITY_LABELS[m.severity as 1|2|3];
+              return (
+                <div key={m.id} className="flex items-center gap-2 text-sm text-orange-800">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${sev.cls}`}>
+                    {sev.label}
+                  </span>
+                  <span>{REASON_LABELS[m.reason_category] ?? m.reason_category}{m.country ? ` · ${m.country}` : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-orange-600">
+            Reported by {globalMatches.length} other {globalMatches.length === 1 ? "company" : "companies"} in the network.
+            <a href={`/app/customers/${companyId}/${customer.id}`} className="ml-1 underline">View customer →</a>
+          </p>
+        </div>
+      )}
+
       <BookingForm
         companyId={companyId}
         vehicles={vehicles ?? []}

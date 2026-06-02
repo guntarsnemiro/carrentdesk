@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { DateInput } from "@/components/ui/date-input";
+import { submitGlobalBlacklistReport } from "@/app/actions/blacklist";
+import { REASON_LABELS } from "@/lib/blacklist-shared";
 
 type Language = "en" | "lv" | "ru" | "other";
 
@@ -59,6 +61,17 @@ export function CustomerForm({ companyId, customer }: Props) {
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Global blacklist report (only shown when blacklisting an existing customer)
+  const [globalReport, setGlobalReport] = useState({
+    enabled:         false,
+    reason_category: "property_damage",
+    severity:        2,
+    country:         "",
+    notes_public:    "",
+  });
+  const [globalStatus, setGlobalStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [globalError, setGlobalError] = useState("");
+
   function set(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
@@ -113,6 +126,28 @@ export function CustomerForm({ companyId, customer }: Props) {
       : await supabase.from("customers").insert(payload);
 
     if (error) { setStatus("error"); setErrorMsg(error.message); return; }
+
+    // Submit global blacklist report if requested
+    if (isEdit && customer && form.blacklisted && globalReport.enabled) {
+      setGlobalStatus("sending");
+      const result = await submitGlobalBlacklistReport({
+        companyId,
+        customerId: customer.id,
+        idNumber:      form.id_number.trim() || null,
+        licenseNumber: form.driver_license_number.trim() || null,
+        reasonCategory: globalReport.reason_category,
+        severity:       globalReport.severity,
+        country:        globalReport.country,
+        notesPublic:    globalReport.notes_public,
+      });
+      if (!result.ok) {
+        setGlobalError(result.error);
+        setGlobalStatus("error");
+      } else {
+        setGlobalStatus("sent");
+      }
+    }
+
     router.push(`/app/customers/${companyId}`);
     router.refresh();
   }
@@ -243,19 +278,105 @@ export function CustomerForm({ companyId, customer }: Props) {
           <input type="checkbox" name="blacklisted" checked={form.blacklisted} onChange={set}
             className="h-4 w-4 rounded border-border text-red-600 focus:ring-red-500" />
           <span className="text-sm font-medium text-neutral-700">
-            Flag this customer as blacklisted
+            Flag this customer as blacklisted (your company only)
           </span>
         </label>
         {form.blacklisted && (
-          <div className="mt-3">
-            <div className="mb-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-3 space-y-4">
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
               This customer will trigger a warning when selected in a new booking.
             </div>
-            <Field label="Reason for blacklisting">
+            <Field label="Internal reason">
               <input name="blacklist_reason" value={form.blacklist_reason} onChange={set}
                 placeholder="e.g. Returned car with unreported damage, refused to pay"
                 className={inp} />
             </Field>
+
+            {/* Global network report — only for existing customers with a document on file */}
+            {isEdit && (form.id_number || form.driver_license_number) && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={globalReport.enabled}
+                    onChange={(e) => setGlobalReport((p) => ({ ...p, enabled: e.target.checked }))}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
+                  />
+                  <div>
+                    <span className="text-sm font-semibold text-orange-800">
+                      Also report to CarRentDesk global blacklist
+                    </span>
+                    <p className="mt-0.5 text-xs text-orange-700">
+                      Document numbers are hashed — no personal data is shared. Other rental companies will see a warning but not the customer's identity.
+                      Report goes to admin for approval before it becomes visible.
+                    </p>
+                  </div>
+                </label>
+
+                {globalReport.enabled && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-orange-800 mb-1">Reason category *</label>
+                        <select
+                          value={globalReport.reason_category}
+                          onChange={(e) => setGlobalReport((p) => ({ ...p, reason_category: e.target.value }))}
+                          className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        >
+                          {Object.entries(REASON_LABELS).map(([k, v]) => (
+                            <option key={k} value={k}>{v}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-orange-800 mb-1">Severity *</label>
+                        <select
+                          value={globalReport.severity}
+                          onChange={(e) => setGlobalReport((p) => ({ ...p, severity: Number(e.target.value) }))}
+                          className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        >
+                          <option value={1}>1 — Minor</option>
+                          <option value={2}>2 — Serious</option>
+                          <option value={3}>3 — Critical</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-orange-800 mb-1">Country where incident happened</label>
+                        <input
+                          type="text"
+                          value={globalReport.country}
+                          onChange={(e) => setGlobalReport((p) => ({ ...p, country: e.target.value }))}
+                          placeholder="LV, EE, LT…"
+                          className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-orange-800 mb-1">Public note (no names, no document numbers)</label>
+                      <textarea
+                        value={globalReport.notes_public}
+                        onChange={(e) => setGlobalReport((p) => ({ ...p, notes_public: e.target.value }))}
+                        rows={2}
+                        placeholder="e.g. Vehicle returned with serious undisclosed damage to undercarriage. Police report filed."
+                        className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      />
+                    </div>
+                    {globalStatus === "error" && (
+                      <p className="text-xs text-red-600">{globalError}</p>
+                    )}
+                    {globalStatus === "sent" && (
+                      <p className="text-xs text-green-700">✓ Report submitted — pending admin review.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isEdit && !form.id_number && !form.driver_license_number && (
+              <p className="text-xs text-neutral-400">
+                To report to the global network, add an ID or driver&apos;s license number to this customer's profile first.
+              </p>
+            )}
           </div>
         )}
       </Section>

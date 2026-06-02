@@ -169,6 +169,32 @@ export type Database = {
         }
         Relationships: [{ foreignKeyName: "customers_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }]
       }
+      global_blacklist: {
+        Row: {
+          id: string; submitted_by_company_id: string; local_customer_id: string | null
+          id_hash: string | null; license_hash: string | null
+          reason_category: string; severity: number; country: string | null; notes_public: string | null
+          status: string; reviewed_at: string | null; reviewed_by_user_id: string | null; reject_reason: string | null
+          submitted_at: string; created_at: string
+        }
+        Insert: {
+          id?: string; submitted_by_company_id: string; local_customer_id?: string | null
+          id_hash?: string | null; license_hash?: string | null
+          reason_category: string; severity?: number; country?: string | null; notes_public?: string | null
+          status?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; reject_reason?: string | null
+          submitted_at?: string; created_at?: string
+        }
+        Update: {
+          id?: string; submitted_by_company_id?: string; local_customer_id?: string | null
+          id_hash?: string | null; license_hash?: string | null
+          reason_category?: string; severity?: number; country?: string | null; notes_public?: string | null
+          status?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; reject_reason?: string | null
+          submitted_at?: string; created_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "global_blacklist_submitted_by_company_id_fkey"; columns: ["submitted_by_company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }
+        ]
+      }
       invoices: {
         Row: {
           id: string; company_id: string; booking_id: string | null; customer_id: string | null
