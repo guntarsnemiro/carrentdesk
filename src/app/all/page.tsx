@@ -14,9 +14,9 @@ import { ListingRowList } from "@/components/marketing/listing-row";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "All car rentals across the Baltics",
+  title: "All car rentals — Baltics & Scandinavia",
   description:
-    "Browse every independent car rental on CarRentDesk — Riga, Tallinn, and Vilnius. Direct contact, no commission.",
+    "Browse every independent car rental on CarRentDesk across the Baltics and Scandinavia. Direct contact, no commission.",
   alternates: { canonical: "/all" },
 };
 
@@ -48,14 +48,13 @@ export default async function AllPage({ searchParams }: PageProps) {
                 {CITIES.map((c) => c.name).join(" · ")}
               </p>
               <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-                All Baltic car rentals
+                All car rentals
                 {activeMeta && (
                   <span className="text-neutral-400"> · {activeMeta.label}</span>
                 )}
               </h1>
               <p className="mt-2 max-w-2xl text-base text-neutral-600">
-                Every independent rental on CarRentDesk, across Riga, Tallinn,
-                and Vilnius.
+                Every independent rental on CarRentDesk, across the Baltics and Scandinavia. Direct contact, no commission.
               </p>
             </div>
           </div>
@@ -104,8 +103,8 @@ export default async function AllPage({ searchParams }: PageProps) {
                     listings={rest}
                     title={
                       verified.length > 0
-                        ? "Other rentals across the Baltics"
-                        : "Rentals across the Baltics"
+                        ? "Other rentals"
+                        : "Rentals across the Baltics & Scandinavia"
                     }
                     subtitle="Independent operators we've listed. Contact them directly."
                   />

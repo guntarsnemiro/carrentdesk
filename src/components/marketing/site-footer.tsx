@@ -4,6 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CITIES } from "@/lib/cities";
 
+// Group cities by country for display
+const CITY_GROUPS = Object.entries(
+  CITIES.reduce<Record<string, typeof CITIES>>((acc, city) => {
+    if (!acc[city.country]) acc[city.country] = [];
+    acc[city.country].push(city);
+    return acc;
+  }, {})
+).sort(([a], [b]) => a.localeCompare(b));
+
 export function SiteFooter() {
   const pathname = usePathname();
   if (pathname.startsWith("/app") || pathname.startsWith("/join")) return null;
@@ -22,28 +31,35 @@ export function SiteFooter() {
             <span className="text-[15px] text-brand-900">CarRentDesk</span>
           </div>
           <p className="max-w-xs text-sm leading-6 text-neutral-600">
-            Compare local, independent car rentals across the Baltics.
+            Compare local, independent car rentals across the Baltics and Scandinavia.
           </p>
         </div>
 
-        <div>
+        <div className="sm:col-span-1 lg:col-span-1">
           <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
             Cities
           </h4>
-          <ul className="mt-3 space-y-1.5 text-sm text-neutral-700">
-            {CITIES.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/${c.slug}`} className="hover:text-brand-900">
-                  {c.name}, {c.country}
-                </Link>
-              </li>
+          <div className="mt-3 space-y-3 text-sm text-neutral-700">
+            {CITY_GROUPS.map(([country, cities]) => (
+              <div key={country}>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                  {country}
+                </p>
+                <ul className="space-y-1">
+                  {cities.map((c) => (
+                    <li key={c.slug}>
+                      <Link href={`/${c.slug}`} className="hover:text-brand-900">
+                        {c.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-            <li>
-              <Link href="/all" className="hover:text-brand-900">
-                All rentals
-              </Link>
-            </li>
-          </ul>
+            <Link href="/all" className="inline-block pt-1 font-medium text-brand-700 hover:text-brand-900">
+              All cities →
+            </Link>
+          </div>
         </div>
 
         <div>
@@ -100,7 +116,7 @@ export function SiteFooter() {
 
       <div className="border-t border-border">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-2 px-6 py-4 text-xs text-neutral-500 lg:flex-row lg:items-center lg:px-8">
-          <p>© {new Date().getFullYear()} CarRentDesk. Riga · Tallinn · Vilnius.</p>
+          <p>© {new Date().getFullYear()} CarRentDesk. Baltics &amp; Scandinavia.</p>
           <p>
             Need help? Email{" "}
             <a
