@@ -144,7 +144,7 @@ export type Database = {
           address: string | null; blacklist_reason: string | null; blacklisted: boolean; company_id: string
           created_at: string; date_of_birth: string | null; driver_license_expiry: string | null
           driver_license_number: string | null; email: string | null; full_name: string; id: string
-          id_expiry: string | null; id_number: string | null; language: string | null; notes: string | null
+          id_expiry: string | null; id_number: string | null; passport_number: string | null; language: string | null; notes: string | null
           phone: string; updated_at: string
           customer_type: string | null; company_name: string | null; company_reg_number: string | null
           company_vat_number: string | null; billing_address: string | null
@@ -153,7 +153,7 @@ export type Database = {
           address?: string | null; blacklist_reason?: string | null; blacklisted?: boolean; company_id: string
           created_at?: string; date_of_birth?: string | null; driver_license_expiry?: string | null
           driver_license_number?: string | null; email?: string | null; full_name: string; id?: string
-          id_expiry?: string | null; id_number?: string | null; language?: string | null; notes?: string | null
+          id_expiry?: string | null; id_number?: string | null; passport_number?: string | null; language?: string | null; notes?: string | null
           phone: string; updated_at?: string
           customer_type?: string | null; company_name?: string | null; company_reg_number?: string | null
           company_vat_number?: string | null; billing_address?: string | null
@@ -162,7 +162,7 @@ export type Database = {
           address?: string | null; blacklist_reason?: string | null; blacklisted?: boolean; company_id?: string
           created_at?: string; date_of_birth?: string | null; driver_license_expiry?: string | null
           driver_license_number?: string | null; email?: string | null; full_name?: string; id?: string
-          id_expiry?: string | null; id_number?: string | null; language?: string | null; notes?: string | null
+          id_expiry?: string | null; id_number?: string | null; passport_number?: string | null; language?: string | null; notes?: string | null
           phone?: string; updated_at?: string
           customer_type?: string | null; company_name?: string | null; company_reg_number?: string | null
           company_vat_number?: string | null; billing_address?: string | null
@@ -172,21 +172,21 @@ export type Database = {
       global_blacklist: {
         Row: {
           id: string; submitted_by_company_id: string; local_customer_id: string | null
-          id_hash: string | null; license_hash: string | null
+          id_hash: string | null; license_hash: string | null; passport_hash: string | null; name_dob_hash: string | null
           reason_category: string; severity: number; country: string | null; notes_public: string | null
           status: string; reviewed_at: string | null; reviewed_by_user_id: string | null; reject_reason: string | null
           submitted_at: string; created_at: string
         }
         Insert: {
           id?: string; submitted_by_company_id: string; local_customer_id?: string | null
-          id_hash?: string | null; license_hash?: string | null
+          id_hash?: string | null; license_hash?: string | null; passport_hash?: string | null; name_dob_hash?: string | null
           reason_category: string; severity?: number; country?: string | null; notes_public?: string | null
           status?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; reject_reason?: string | null
           submitted_at?: string; created_at?: string
         }
         Update: {
           id?: string; submitted_by_company_id?: string; local_customer_id?: string | null
-          id_hash?: string | null; license_hash?: string | null
+          id_hash?: string | null; license_hash?: string | null; passport_hash?: string | null; name_dob_hash?: string | null
           reason_category?: string; severity?: number; country?: string | null; notes_public?: string | null
           status?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; reject_reason?: string | null
           submitted_at?: string; created_at?: string

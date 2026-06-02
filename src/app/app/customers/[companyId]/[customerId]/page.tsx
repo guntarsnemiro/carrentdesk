@@ -37,10 +37,13 @@ export default async function EditCustomerPage({
     .maybeSingle();
   if (!customer) notFound();
 
-  const globalMatches = await checkGlobalBlacklist(
-    customer.id_number,
-    customer.driver_license_number
-  );
+  const globalMatches = await checkGlobalBlacklist({
+    idNumber:       customer.id_number,
+    licenseNumber:  customer.driver_license_number,
+    passportNumber: (customer as { passport_number?: string | null }).passport_number,
+    fullName:       customer.full_name,
+    dateOfBirth:    customer.date_of_birth,
+  });
   const worstSeverity = globalMatches.length
     ? Math.max(...globalMatches.map((m) => m.severity)) as 1 | 2 | 3
     : null;
@@ -76,15 +79,24 @@ export default async function EditCustomerPage({
           <div className="space-y-2">
             {globalMatches.map((m) => {
               const sev = SEVERITY_LABELS[m.severity as 1|2|3];
+              const isStrong = m.strength === "strong";
               return (
-                <div key={m.id} className="flex items-start gap-3 rounded-lg bg-white/60 px-3 py-2.5">
-                  <span className={`mt-0.5 inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${sev.cls}`}>
-                    {sev.label}
-                  </span>
+                <div key={m.id} className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${isStrong ? "bg-red-50" : "bg-yellow-50"}`}>
+                  <div className="flex shrink-0 flex-col gap-1 pt-0.5">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${sev.cls}`}>
+                      {sev.label}
+                    </span>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${isStrong ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      {isStrong ? "Strong match" : "Soft match"}
+                    </span>
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-neutral-800">
                       {REASON_LABELS[m.reason_category] ?? m.reason_category}
                       {m.country ? ` · ${m.country}` : ""}
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      Matched on: <strong>{m.matched_on}</strong>
                     </p>
                     {m.notes_public && (
                       <p className="mt-0.5 text-xs text-neutral-600 italic">{m.notes_public}</p>
@@ -97,9 +109,17 @@ export default async function EditCustomerPage({
               );
             })}
           </div>
-          <p className="mt-3 text-xs text-orange-700">
-            Document numbers are hashed — this match was made without sharing personal data between companies.
-          </p>
+          <div className="mt-3 space-y-1">
+            <p className="text-xs text-orange-700">
+              <strong>Strong match</strong> — document number matched exactly. Near-certain same person.
+            </p>
+            <p className="text-xs text-orange-700">
+              <strong>Soft match</strong> — name + date of birth matched. Verify manually before proceeding.
+            </p>
+            <p className="text-xs text-orange-600 mt-1">
+              All matching is done via one-way hashes — no personal data is shared between companies.
+            </p>
+          </div>
         </div>
       )}
 

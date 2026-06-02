@@ -9,6 +9,7 @@ import {
   type VehicleType,
 } from "@/lib/vehicle-types";
 import { CityListingsView } from "@/components/marketing/city-listings-view";
+import { getIntentsForCity, YEAR } from "@/lib/seo/intents";
 
 // Re-render every 60s so DB updates surface without a manual redeploy.
 export const revalidate = 60;
@@ -137,7 +138,26 @@ export default async function CityPage({ params, searchParams }: PageProps) {
           />
         )}
 
-        <div className="mt-12 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">
+        {/* Intent landing pages for this city */}
+        <div className="mt-8 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+            {city.name} car rental guides
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {getIntentsForCity(city).map((intent) => (
+              <Link
+                key={intent.slug}
+                href={`/${city.slug}/${intent.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-1.5 text-sm font-medium text-brand-900 transition-colors hover:bg-brand-50"
+              >
+                {intent.h1(city, YEAR).replace(` ${YEAR}`, "")}
+                <span aria-hidden>→</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
             Other cities
           </p>

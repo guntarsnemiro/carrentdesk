@@ -19,6 +19,7 @@ interface Customer {
   date_of_birth: string | null;
   id_number: string | null;
   id_expiry: string | null;
+  passport_number?: string | null;
   driver_license_number: string | null;
   driver_license_expiry: string | null;
   blacklisted: boolean;
@@ -46,6 +47,7 @@ export function CustomerForm({ companyId, customer }: Props) {
     date_of_birth:          customer?.date_of_birth ?? "",
     id_number:              customer?.id_number ?? "",
     id_expiry:              customer?.id_expiry ?? "",
+    passport_number:        customer?.passport_number ?? "",
     driver_license_number:  customer?.driver_license_number ?? "",
     driver_license_expiry:  customer?.driver_license_expiry ?? "",
     blacklisted:            customer?.blacklisted ?? false,
@@ -108,6 +110,7 @@ export function CustomerForm({ companyId, customer }: Props) {
       date_of_birth:          form.date_of_birth || null,
       id_number:              form.id_number.trim() || null,
       id_expiry:              form.id_expiry || null,
+      passport_number:        form.passport_number.trim() || null,
       driver_license_number:  form.driver_license_number.trim() || null,
       driver_license_expiry:  form.driver_license_expiry || null,
       blacklisted:            form.blacklisted,
@@ -132,9 +135,12 @@ export function CustomerForm({ companyId, customer }: Props) {
       setGlobalStatus("sending");
       const result = await submitGlobalBlacklistReport({
         companyId,
-        customerId: customer.id,
-        idNumber:      form.id_number.trim() || null,
-        licenseNumber: form.driver_license_number.trim() || null,
+        customerId:     customer.id,
+        idNumber:       form.id_number.trim()             || null,
+        licenseNumber:  form.driver_license_number.trim() || null,
+        passportNumber: form.passport_number.trim()       || null,
+        fullName:       form.full_name.trim()             || null,
+        dateOfBirth:    form.date_of_birth                || null,
         reasonCategory: globalReport.reason_category,
         severity:       globalReport.severity,
         country:        globalReport.country,
@@ -243,21 +249,28 @@ export function CustomerForm({ companyId, customer }: Props) {
 
       {/* ── Documents ── */}
       <Section title="Identity documents">
+        <p className="text-xs text-neutral-400 -mt-2">
+          Fill in all available documents — more data means better global blacklist matching across document types.
+        </p>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="ID / Passport number">
+          <Field label="National ID card number">
             <input name="id_number" value={form.id_number} onChange={set}
               placeholder="PA1234567" className={`${inp} font-mono`} />
           </Field>
-          <Field label="ID expiry date" hint="DD.MM.YYYY">
+          <Field label="ID card expiry" hint="DD.MM.YYYY">
             <DateInput value={form.id_expiry} onChange={(v) => setForm((p) => ({ ...p, id_expiry: v }))} className={inp} />
           </Field>
         </div>
+        <Field label="Passport number">
+          <input name="passport_number" value={form.passport_number} onChange={set}
+            placeholder="AB1234567" className={`${inp} font-mono`} />
+        </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Driver license number">
+          <Field label="Driver's license number">
             <input name="driver_license_number" value={form.driver_license_number} onChange={set}
               placeholder="LV12345678" className={`${inp} font-mono`} />
           </Field>
-          <Field label="Driver license expiry" hint="DD.MM.YYYY">
+          <Field label="License expiry" hint="DD.MM.YYYY">
             <DateInput value={form.driver_license_expiry} onChange={(v) => setForm((p) => ({ ...p, driver_license_expiry: v }))} className={inp} />
           </Field>
         </div>
@@ -292,8 +305,8 @@ export function CustomerForm({ companyId, customer }: Props) {
                 className={inp} />
             </Field>
 
-            {/* Global network report — only for existing customers with a document on file */}
-            {isEdit && (form.id_number || form.driver_license_number) && (
+            {/* Global network report — available when any identifier exists */}
+            {isEdit && (form.id_number || form.driver_license_number || form.passport_number || (form.full_name && form.date_of_birth)) && (
               <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
@@ -372,9 +385,9 @@ export function CustomerForm({ companyId, customer }: Props) {
               </div>
             )}
 
-            {isEdit && !form.id_number && !form.driver_license_number && (
+            {isEdit && !form.id_number && !form.driver_license_number && !form.passport_number && !(form.full_name && form.date_of_birth) && (
               <p className="text-xs text-neutral-400">
-                To report to the global network, add an ID or driver&apos;s license number to this customer's profile first.
+                To report to the global network, add at least one document number (ID, passport, or driver&apos;s license) or ensure full name and date of birth are filled in.
               </p>
             )}
           </div>

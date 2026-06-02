@@ -37,12 +37,18 @@ export default async function EditBookingPage({
 
   const { data: customer } = booking.customer_id ? await db
     .from("customers")
-    .select("id, full_name, phone, blacklisted, blacklist_reason, id_number, driver_license_number")
+    .select("id, full_name, phone, blacklisted, blacklist_reason, id_number, driver_license_number, passport_number, date_of_birth")
     .eq("id", booking.customer_id)
     .maybeSingle() : { data: null };
 
   const globalMatches = customer
-    ? await checkGlobalBlacklist(customer.id_number, customer.driver_license_number)
+    ? await checkGlobalBlacklist({
+        idNumber:       customer.id_number,
+        licenseNumber:  customer.driver_license_number,
+        passportNumber: (customer as { passport_number?: string | null }).passport_number,
+        fullName:       customer.full_name,
+        dateOfBirth:    (customer as { date_of_birth?: string | null }).date_of_birth,
+      })
     : [];
 
   // Check if invoice already exists for this booking
@@ -93,18 +99,24 @@ export default async function EditBookingPage({
           <div className="space-y-1.5">
             {globalMatches.map((m) => {
               const sev = SEVERITY_LABELS[m.severity as 1|2|3];
+              const isStrong = m.strength === "strong";
               return (
                 <div key={m.id} className="flex items-center gap-2 text-sm text-orange-800">
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${sev.cls}`}>
                     {sev.label}
                   </span>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${isStrong ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                    {isStrong ? "Strong" : "Soft"}
+                  </span>
                   <span>{REASON_LABELS[m.reason_category] ?? m.reason_category}{m.country ? ` · ${m.country}` : ""}</span>
+                  <span className="text-xs text-orange-500">via {m.matched_on}</span>
                 </div>
               );
             })}
           </div>
           <p className="mt-2 text-xs text-orange-600">
-            Reported by {globalMatches.length} other {globalMatches.length === 1 ? "company" : "companies"} in the network.
+            {globalMatches.some(m => m.strength === "soft") && "Soft match = name + date of birth — verify manually. "}
+            Reported by {globalMatches.length} {globalMatches.length === 1 ? "company" : "companies"} in the network.
             <a href={`/app/customers/${companyId}/${customer.id}`} className="ml-1 underline">View customer →</a>
           </p>
         </div>

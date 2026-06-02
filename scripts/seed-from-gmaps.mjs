@@ -27,12 +27,13 @@ const sqlPath = path.join(here, "raw", "listings-seed.sql");
 // ---------------------------------------------------------------------------
 
 const BIG_CHAIN_PATTERNS = [
+  // Global chains
   /\bsixt\b/i,
   /\bhertz\b/i,
   /\bavis\b/i,
   /\beuropcar\b/i,
   /\benterprise\b/i,
-  /\b(budget rent|budget car)/i,
+  /\bbudget\b/i,
   /\balamo\b/i,
   /\bnational\s*car/i,
   /\bthrifty\b/i,
@@ -54,6 +55,22 @@ const BIG_CHAIN_PATTERNS = [
   /\bgoldcar\b/i,
   /\bcentauro\b/i,
   /\binterrent\b/i,
+  /\bdollar\b/i,                  // Dollar Car Rental (Hertz group)
+  // Car-sharing apps / peer-to-peer platforms — not rental companies
+  /\bgomore\b/i,
+  /\bgreenmobility\b/i,
+  /\bkinto\s*share\b/i,
+  /\bsnappcar\b/i,
+  /\bhyre\b/i,
+  /\bcircle\s*k\s*biluthyrning\b/i,
+  /\bbilleje\.info\b/i,
+  // Scandinavian-specific chains
+  /\brent.?a.?wreck\b/i,
+  /\bstarcar\b/i,
+  /\bflexfly\b/i,
+  /\bhybrid\s*car\s*rental\b/i,
+  /\bcaloo\b/i,
+  /\bdrivelink\b/i,
 ];
 
 // Categories we keep (anything else is dropped — usually leasing, dealers, etc.)
@@ -62,6 +79,10 @@ const ALLOWED_CATEGORIES = new Set([
   "Truck rental agency",
   "Van rental agency",
   "Motor vehicle dealer",
+  // Variants that appear in Scandinavian Google Maps results
+  "Car leasing service",      // some local operators appear under this
+  "RV rental agency",
+  "Minibus taxi service",
 ]);
 
 // Slugs already in the database — don't double-insert.
@@ -82,9 +103,37 @@ const EXISTING_SLUGS = new Set([
 // Uses city name first (more specific), falls back to country code
 function inferCity(record) {
   const city = (record.city || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+
+  // ── Baltics ─────────────────────────────────────────────────────
   if (city.includes("parnu") || city.includes("pärnu")) return "parnu";
   if (city.includes("kaunas") || city.includes("karmelava") || city.includes("karmėlava")) return "kaunas";
-  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius" };
+
+  // ── Sweden ───────────────────────────────────────────────────────
+  if (city.includes("stockholm") || city.includes("solna") || city.includes("sundbyberg") || city.includes("sigtuna")) return "stockholm";
+  if (city.includes("goteborg") || city.includes("gothenburg") || city.includes("molndal") || city.includes("mölndal") || city.includes("partille")) return "gothenburg";
+  if (city.includes("malmo") || city.includes("malmö") || city.includes("vellinge") || city.includes("burlöv") || city.includes("arlov") || city.includes("arlöv") || city.includes("limhamn") || city.includes("husie")) return "malmo";
+
+  // ── Norway ───────────────────────────────────────────────────────
+  // Check title too — Apify often returns suburb names (e.g. "Blomsterdalen") not "Bergen"
+  const title = (record.title || "").toLowerCase();
+  if (city.includes("bergen") || city.includes("flesland") || city.includes("askøy") ||
+      city.includes("blomsterdalen") || city.includes("nesttun") || city.includes("loddefjord") ||
+      title.includes("bergen")) return "bergen";
+  if (city.includes("oslo") || city.includes("bærum") || city.includes("barum") || city.includes("sandvika") || city.includes("jessheim") || city.includes("gardermoen") || city.includes("lillestrøm") || city.includes("lillestrøm")) return "oslo";
+
+  // ── Denmark ──────────────────────────────────────────────────────
+  if (city.includes("copenhagen") || city.includes("kobenhavn") || city.includes("københavn") || city.includes("kastrup") || city.includes("taarnby") || city.includes("tårnby") || city.includes("frederiksberg")) return "copenhagen";
+  if (city.includes("aarhus") || city.includes("arhus") || city.includes("Å rhus")) return "aarhus";
+
+  // ── Finland ──────────────────────────────────────────────────────
+  if (city.includes("helsinki") || city.includes("vantaa") || city.includes("espoo") || city.includes("kerava")) return "helsinki";
+  if (city.includes("tampere") || city.includes("pirkkala") || city.includes("ylöjärvi")) return "tampere";
+
+  // ── Iceland ──────────────────────────────────────────────────────
+  if (city.includes("reykjavik") || city.includes("reykjavík") || city.includes("keflavik") || city.includes("kópavogur") || city.includes("kopavogur")) return "reykjavik";
+
+  // ── Fallback by country code ──────────────────────────────────────
+  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius", SE: "stockholm", NO: "oslo", DK: "copenhagen", FI: "helsinki", IS: "reykjavik" };
   return byCountry[record.countryCode] ?? null;
 }
 

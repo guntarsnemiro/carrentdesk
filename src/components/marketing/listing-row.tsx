@@ -34,7 +34,7 @@ export function ListingRow({ listing }: { listing: Listing }) {
         })
       : undefined;
   const distanceFromAirportKm =
-    city && listing.coordinates
+    city?.airport && listing.coordinates
       ? haversineKm(listing.coordinates, city.airport)
       : undefined;
 
@@ -113,7 +113,7 @@ export function ListingRow({ listing }: { listing: Listing }) {
               {formatKm(distanceFromCenterKm)} centre
             </span>
           )}
-          {distanceFromAirportKm != null && city && (
+          {distanceFromAirportKm != null && city?.airport && (
             <span className="text-neutral-500">
               {formatKm(distanceFromAirportKm)} {city.airport.code}
             </span>

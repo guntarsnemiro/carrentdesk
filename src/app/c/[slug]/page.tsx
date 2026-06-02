@@ -259,14 +259,12 @@ export default async function CompanyPage({ params }: PageProps) {
                       listing.coordinates,
                       { lat: city.center[0], lng: city.center[1] },
                     );
-                    const distAirport = haversineKm(
-                      listing.coordinates,
-                      { lat: city.airport.lat, lng: city.airport.lng },
-                    );
                     return (
                       <>
                         <span>🏙️ {distCenter.toFixed(1)} km from city centre</span>
-                        <span>✈️ {distAirport.toFixed(1)} km from {city.airport.code}</span>
+                        {city.airport && (
+                          <span>✈️ {haversineKm(listing.coordinates, { lat: city.airport.lat, lng: city.airport.lng }).toFixed(1)} km from {city.airport.code}</span>
+                        )}
                       </>
                     );
                   })()}
