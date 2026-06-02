@@ -4,14 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CITIES } from "@/lib/cities";
 
-// Group cities by country for display
-const CITY_GROUPS = Object.entries(
-  CITIES.reduce<Record<string, typeof CITIES>>((acc, city) => {
-    if (!acc[city.country]) acc[city.country] = [];
-    acc[city.country].push(city);
-    return acc;
-  }, {})
-).sort(([a], [b]) => a.localeCompare(b));
+// Sort cities alphabetically for the footer grid
+const SORTED_CITIES = [...CITIES].sort((a, b) => a.name.localeCompare(b.name));
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -39,27 +33,18 @@ export function SiteFooter() {
           <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
             Cities
           </h4>
-          <div className="mt-3 space-y-3 text-sm text-neutral-700">
-            {CITY_GROUPS.map(([country, cities]) => (
-              <div key={country}>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                  {country}
-                </p>
-                <ul className="space-y-1">
-                  {cities.map((c) => (
-                    <li key={c.slug}>
-                      <Link href={`/${c.slug}`} className="hover:text-brand-900">
-                        {c.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-neutral-700">
+            {SORTED_CITIES.map((c) => (
+              <li key={c.slug}>
+                <Link href={`/${c.slug}`} className="hover:text-brand-900">
+                  {c.name}
+                </Link>
+              </li>
             ))}
-            <Link href="/all" className="inline-block pt-1 font-medium text-brand-700 hover:text-brand-900">
-              All cities →
-            </Link>
-          </div>
+          </ul>
+          <Link href="/all" className="mt-3 inline-block text-sm font-medium text-brand-700 hover:text-brand-900">
+            All cities →
+          </Link>
         </div>
 
         <div>

@@ -5,7 +5,7 @@ export function TrustStrip() {
 
   const items = [
     { value: `${totalListings}+`, label: "local rentals" },
-    { value: String(CITIES.length), label: "Baltic cities" },
+    { value: String(CITIES.length), label: "cities in Europe" },
     { value: "0%", label: "commission" },
     { value: "Direct", label: "phone, WhatsApp, email" },
   ];

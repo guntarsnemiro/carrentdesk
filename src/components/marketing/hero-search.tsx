@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { CITIES } from "@/lib/cities";
 import { VEHICLE_TYPES } from "@/lib/vehicle-types";
 
@@ -14,25 +15,52 @@ const CITY_GROUPS = Object.entries(
   }, {})
 ).sort(([a], [b]) => a.localeCompare(b));
 
-const ALL_OPTION = { slug: "all", name: "All cities", country: "" };
-
 export function HeroSearch() {
   const router = useRouter();
   const [citySlug, setCitySlug] = useState("riga");
   const [type, setType] = useState("any");
   const [query, setQuery] = useState("Riga");
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [mounted, setMounted] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const cityLabel = (slug: string) => {
+  useEffect(() => { setMounted(true); }, []);
+
+  const cityLabel = useCallback((slug: string) => {
     if (slug === "all") return "All cities";
     const c = CITIES.find((c) => c.slug === slug);
     return c ? `${c.name}, ${c.country}` : "";
-  };
+  }, []);
 
-  const filteredGroups = CITY_GROUPS.map(([country, cities]) => ({
+  // Recalculate dropdown position whenever it opens or the page scrolls
+  const updateDropdownPos = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: "fixed",
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updateDropdownPos();
+    window.addEventListener("scroll", updateDropdownPos, { passive: true });
+    window.addEventListener("resize", updateDropdownPos, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", updateDropdownPos);
+      window.removeEventListener("resize", updateDropdownPos);
+    };
+  }, [open, updateDropdownPos]);
+
+  const filteredGroups = CITY_GROUPS.map(({ 0: country, 1: cities }) => ({
     country,
     cities: cities.filter(
       (c) =>
@@ -41,13 +69,12 @@ export function HeroSearch() {
     ),
   })).filter((g) => g.cities.length > 0);
 
-  const showAll = "all cities".includes(query.toLowerCase()) || query === "";
+  const showAll = query === "" || "all cities".includes(query.toLowerCase());
 
   function selectCity(slug: string) {
     setCitySlug(slug);
     setQuery(cityLabel(slug));
     setOpen(false);
-    inputRef.current?.blur();
   }
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -61,22 +88,23 @@ export function HeroSearch() {
   }
 
   function onBlur() {
-    // Delay so clicks in the list register first
     setTimeout(() => {
-      if (!listRef.current?.contains(document.activeElement)) {
+      if (document.activeElement !== inputRef.current && !listRef.current?.contains(document.activeElement)) {
         setQuery(cityLabel(citySlug));
         setOpen(false);
       }
     }, 150);
   }
 
-  // Close on outside click
   const handleOutsideClick = useCallback((e: MouseEvent) => {
-    if (!containerRef.current?.contains(e.target as Node)) {
+    if (
+      !containerRef.current?.contains(e.target as Node) &&
+      !listRef.current?.contains(e.target as Node)
+    ) {
       setQuery(cityLabel(citySlug));
       setOpen(false);
     }
-  }, [citySlug]);
+  }, [citySlug, cityLabel]);
 
   useEffect(() => {
     document.addEventListener("mousedown", handleOutsideClick);
@@ -89,6 +117,46 @@ export function HeroSearch() {
     const params = type !== "any" ? `?type=${type}` : "";
     router.push(`${path}${params}`);
   }
+
+  const dropdown = mounted && open ? createPortal(
+    <div
+      ref={listRef}
+      style={dropdownStyle}
+      className="max-h-72 overflow-y-auto rounded-xl border border-border bg-white shadow-2xl"
+    >
+      {showAll && (
+        <button
+          type="button"
+          onMouseDown={() => selectCity("all")}
+          className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-soft ${citySlug === "all" ? "font-semibold text-brand-900" : "text-neutral-700"}`}
+        >
+          All cities
+        </button>
+      )}
+      {filteredGroups.length === 0 && !showAll ? (
+        <p className="px-4 py-3 text-sm text-neutral-400">No cities found</p>
+      ) : (
+        filteredGroups.map(({ country, cities }) => (
+          <div key={country}>
+            <p className="sticky top-0 bg-surface-soft px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+              {country}
+            </p>
+            {cities.map((c) => (
+              <button
+                key={c.slug}
+                type="button"
+                onMouseDown={() => selectCity(c.slug)}
+                className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug ? "font-semibold text-brand-900" : "text-neutral-700"}`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        ))
+      )}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <form
@@ -118,46 +186,9 @@ export function HeroSearch() {
             </span>
           </span>
         </label>
-
-        {open && (
-          <div
-            ref={listRef}
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-xl border border-border bg-white shadow-xl"
-          >
-            {showAll && (
-              <button
-                type="button"
-                onMouseDown={() => selectCity("all")}
-                className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-soft ${citySlug === "all" ? "font-semibold text-brand-900" : "text-neutral-700"}`}
-              >
-                All cities
-              </button>
-            )}
-
-            {filteredGroups.length === 0 && !showAll ? (
-              <p className="px-4 py-3 text-sm text-neutral-400">No cities found</p>
-            ) : (
-              filteredGroups.map(({ country, cities }) => (
-                <div key={country}>
-                  <p className="sticky top-0 bg-surface-soft px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                    {country}
-                  </p>
-                    {cities.map((c) => (
-                    <button
-                      key={c.slug}
-                      type="button"
-                      onMouseDown={() => selectCity(c.slug)}
-                      className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug ? "font-semibold text-brand-900" : "text-neutral-700"}`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-        )}
       </div>
+
+      {dropdown}
 
       <Divider />
 
