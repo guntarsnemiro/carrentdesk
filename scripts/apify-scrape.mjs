@@ -26,45 +26,105 @@ if (!APIFY_TOKEN) {
 // Apify actor: compass/crawler-google-places (Google Maps Scraper)
 const ACTOR_ID = "compass~crawler-google-places";
 
-// All search queries — English + local language for each city
+// All search queries — English + local language for each city.
+// Weak cities (Bergen 1, Stockholm 4, Aarhus 3, Copenhagen 5, Helsinki 5)
+// get extra query variants to surface more independents.
 const SEARCH_QUERIES = [
-  // ── Baltics (English only — already covered, but refresh ratings) ──
+  // ── Baltics (refresh ratings only) ───────────────────────────────
   "car rental Riga",
+  "auto noma Rīga",
   "car rental Tallinn",
+  "autorent Tallinn",
   "car rental Vilnius",
+  "automobiliu nuoma Vilnius",
   "car rental Kaunas",
   "car rental Pärnu",
 
-  // ── Sweden ──────────────────────────────────────────────────────
+  // ── Sweden ───────────────────────────────────────────────────────
+  // Stockholm — currently only 4 listings, push hard
   "car rental Stockholm",
   "biluthyrning Stockholm",
+  "hyr bil Stockholm",
+  "biluthyrning Arlanda",
+  "car rental Stockholm airport",
+  // Gothenburg
   "car rental Gothenburg",
   "biluthyrning Göteborg",
+  "hyr bil Göteborg",
+  // Malmö
   "car rental Malmö",
   "biluthyrning Malmö",
 
   // ── Norway ───────────────────────────────────────────────────────
+  // Oslo
   "car rental Oslo",
   "bilutleie Oslo",
   "leiebil Oslo",
+  "car rental Oslo airport",
+  "bilutleie Gardermoen",
+  // Bergen — currently only 1 listing, many extra queries
   "car rental Bergen",
   "bilutleie Bergen",
+  "leiebil Bergen",
+  "car rental Bergen airport",
+  "bilutleie Flesland",
+  "leiebil Flesland",
+  // Stavanger — new city
+  "car rental Stavanger",
+  "bilutleie Stavanger",
+  "leiebil Stavanger",
+  "car rental Sola airport",
+  // Trondheim — new city
+  "car rental Trondheim",
+  "bilutleie Trondheim",
+  "leiebil Trondheim",
+  "car rental Trondheim airport",
+  // Tromsø — new city
+  "car rental Tromsø",
+  "bilutleie Tromsø",
+  "leiebil Tromsø",
+  "car rental Tromso",
 
   // ── Denmark ──────────────────────────────────────────────────────
+  // Copenhagen — currently only 5
   "car rental Copenhagen",
   "biludlejning København",
+  "biludlejning Kastrup",
+  "car rental Copenhagen airport",
+  "lejebil København",
+  // Aarhus — currently only 3
   "car rental Aarhus",
   "biludlejning Aarhus",
+  "lejebil Aarhus",
+  // Odense — new city
+  "car rental Odense",
+  "biludlejning Odense",
+  "lejebil Odense",
 
   // ── Finland ──────────────────────────────────────────────────────
+  // Helsinki — currently only 5
   "car rental Helsinki",
   "autonvuokraus Helsinki",
+  "car rental Helsinki airport",
+  "autonvuokraus Vantaa",
+  "vuokra-auto Helsinki",
+  // Tampere
   "car rental Tampere",
   "autonvuokraus Tampere",
+  "vuokra-auto Tampere",
+  // Turku — new city
+  "car rental Turku",
+  "autonvuokraus Turku",
+  "vuokra-auto Turku",
 
   // ── Iceland ──────────────────────────────────────────────────────
+  // Reykjavik — already strong (17), but refresh
   "car rental Reykjavik",
   "bílaleiga Reykjavík",
+  "car rental Keflavik airport",
+  // Akureyri — new city, small market but high intent
+  "car rental Akureyri",
+  "bílaleiga Akureyri",
 ];
 
 const ACTOR_INPUT = {

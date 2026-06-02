@@ -116,20 +116,31 @@ function inferCity(record) {
   // ── Norway ───────────────────────────────────────────────────────
   // Check title too — Apify often returns suburb names (e.g. "Blomsterdalen") not "Bergen"
   const title = (record.title || "").toLowerCase();
+  // Tromsø — check before generic NO fallback
+  if (city.includes("tromso") || city.includes("tromsø") || city.includes("tromsø")) return "tromso";
+  // Stavanger / Sola airport
+  if (city.includes("stavanger") || city.includes("sola") || city.includes("sandnes")) return "stavanger";
+  // Trondheim / Værnes airport
+  if (city.includes("trondheim") || city.includes("vaernes") || city.includes("værnes") || city.includes("stjordal") || city.includes("stjørdal")) return "trondheim";
+  // Bergen
   if (city.includes("bergen") || city.includes("flesland") || city.includes("askøy") ||
       city.includes("blomsterdalen") || city.includes("nesttun") || city.includes("loddefjord") ||
       title.includes("bergen")) return "bergen";
-  if (city.includes("oslo") || city.includes("bærum") || city.includes("barum") || city.includes("sandvika") || city.includes("jessheim") || city.includes("gardermoen") || city.includes("lillestrøm") || city.includes("lillestrøm")) return "oslo";
+  // Oslo
+  if (city.includes("oslo") || city.includes("bærum") || city.includes("barum") || city.includes("sandvika") || city.includes("jessheim") || city.includes("gardermoen") || city.includes("lillestrøm")) return "oslo";
 
   // ── Denmark ──────────────────────────────────────────────────────
   if (city.includes("copenhagen") || city.includes("kobenhavn") || city.includes("københavn") || city.includes("kastrup") || city.includes("taarnby") || city.includes("tårnby") || city.includes("frederiksberg")) return "copenhagen";
-  if (city.includes("aarhus") || city.includes("arhus") || city.includes("Å rhus")) return "aarhus";
+  if (city.includes("aarhus") || city.includes("arhus")) return "aarhus";
+  if (city.includes("odense")) return "odense";
 
   // ── Finland ──────────────────────────────────────────────────────
   if (city.includes("helsinki") || city.includes("vantaa") || city.includes("espoo") || city.includes("kerava")) return "helsinki";
   if (city.includes("tampere") || city.includes("pirkkala") || city.includes("ylöjärvi")) return "tampere";
+  if (city.includes("turku") || city.includes("åbo") || city.includes("abo")) return "turku";
 
   // ── Iceland ──────────────────────────────────────────────────────
+  if (city.includes("akureyri")) return "akureyri";
   if (city.includes("reykjavik") || city.includes("reykjavík") || city.includes("keflavik") || city.includes("kópavogur") || city.includes("kopavogur")) return "reykjavik";
 
   // ── Fallback by country code ──────────────────────────────────────
