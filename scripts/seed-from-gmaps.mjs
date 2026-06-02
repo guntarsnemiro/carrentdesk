@@ -117,11 +117,11 @@ function inferCity(record) {
   // Check title too — Apify often returns suburb names (e.g. "Blomsterdalen") not "Bergen"
   const title = (record.title || "").toLowerCase();
   // Tromsø — check before generic NO fallback
-  if (city.includes("tromso") || city.includes("tromsø") || city.includes("tromsø")) return "tromso";
+  if (city.includes("tromso") || city.includes("tromsø") || city.includes("tomasjord") || city.includes("kvaløya")) return "tromso";
   // Stavanger / Sola airport
   if (city.includes("stavanger") || city.includes("sola") || city.includes("sandnes")) return "stavanger";
   // Trondheim / Værnes airport
-  if (city.includes("trondheim") || city.includes("vaernes") || city.includes("værnes") || city.includes("stjordal") || city.includes("stjørdal")) return "trondheim";
+  if (city.includes("trondheim") || city.includes("vaernes") || city.includes("værnes") || city.includes("stjordal") || city.includes("stjørdal") || city.includes("malvik") || city.includes("klaebu") || city.includes("klæbu")) return "trondheim";
   // Bergen
   if (city.includes("bergen") || city.includes("flesland") || city.includes("askøy") ||
       city.includes("blomsterdalen") || city.includes("nesttun") || city.includes("loddefjord") ||
