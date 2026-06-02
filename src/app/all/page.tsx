@@ -21,14 +21,16 @@ export const metadata: Metadata = {
 };
 
 type PageProps = {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; city?: string }>;
 };
 
 export default async function AllPage({ searchParams }: PageProps) {
-  const { type } = await searchParams;
+  const { type, city } = await searchParams;
   const activeType = isValidVehicleType(type) ? type : undefined;
-  const listings = await filterListings({ vehicleType: activeType });
+  const activeCity = CITIES.find((c) => c.slug === city)?.slug;
+  const listings = await filterListings({ vehicleType: activeType, city: activeCity });
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
+  const activeCityMeta = CITIES.find((c) => c.slug === activeCity);
 
   return (
     <>
@@ -44,22 +46,24 @@ export default async function AllPage({ searchParams }: PageProps) {
 
           <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-                {CITIES.map((c) => c.name).join(" · ")}
-              </p>
               <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-                All car rentals
+                {activeCityMeta
+                  ? `Car rentals in ${activeCityMeta.name}`
+                  : "All car rentals"}
                 {activeMeta && (
                   <span className="text-neutral-400"> · {activeMeta.label}</span>
                 )}
               </h1>
               <p className="mt-2 max-w-2xl text-base text-neutral-600">
-                Every independent rental on CarRentDesk, across the Baltics and Scandinavia. Direct contact, no commission.
+                {activeCityMeta
+                  ? `Independent local rentals in ${activeCityMeta.name}. Direct contact, no commission.`
+                  : "Every independent rental on CarRentDesk, across the Baltics and Scandinavia. Direct contact, no commission."}
               </p>
             </div>
           </div>
 
-          <FilterChips activeType={activeType} />
+          <CityChips activeCity={activeCity} activeType={activeType} />
+          <FilterChips activeType={activeType} activeCity={activeCity} />
         </div>
       </section>
 
@@ -104,7 +108,9 @@ export default async function AllPage({ searchParams }: PageProps) {
                     title={
                       verified.length > 0
                         ? "Other rentals"
-                        : "Rentals across the Baltics & Scandinavia"
+                        : activeCityMeta
+                          ? `Rentals in ${activeCityMeta.name}`
+                          : "Rentals across the Baltics & Scandinavia"
                     }
                     subtitle="Independent operators we've listed. Contact them directly."
                   />
@@ -136,16 +142,59 @@ export default async function AllPage({ searchParams }: PageProps) {
   );
 }
 
-function FilterChips({ activeType }: { activeType?: VehicleType }) {
+// Group cities by region for the filter row
+const BALTIC_SLUGS = new Set(["riga", "tallinn", "vilnius", "parnu", "kaunas"]);
+
+function CityChips({ activeCity, activeType }: { activeCity?: string; activeType?: VehicleType }) {
+  const typeParam = activeType ? `&type=${activeType}` : "";
+
+  const baltic = CITIES.filter((c) => BALTIC_SLUGS.has(c.slug));
+  const scandi = CITIES.filter((c) => !BALTIC_SLUGS.has(c.slug));
+
   return (
-    <div className="mt-5 -mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1">
-      <Chip href="/all" active={!activeType}>
+    <div className="mt-5 -mx-1 overflow-x-auto px-1 pb-1">
+      <div className="flex min-w-max items-center gap-1.5">
+        <Chip href={`/all${activeType ? `?type=${activeType}` : ""}`} active={!activeCity}>
+          All cities
+        </Chip>
+        <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <span className="mr-1 shrink-0 text-[10px] font-bold uppercase tracking-widest text-neutral-400">Baltics</span>
+        {baltic.map((c) => (
+          <Chip
+            key={c.slug}
+            href={`/all?city=${c.slug}${typeParam}`}
+            active={activeCity === c.slug}
+          >
+            {c.name}
+          </Chip>
+        ))}
+        <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <span className="mr-1 shrink-0 text-[10px] font-bold uppercase tracking-widest text-neutral-400">Scandinavia</span>
+        {scandi.map((c) => (
+          <Chip
+            key={c.slug}
+            href={`/all?city=${c.slug}${typeParam}`}
+            active={activeCity === c.slug}
+          >
+            {c.name}
+          </Chip>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FilterChips({ activeType, activeCity }: { activeType?: VehicleType; activeCity?: string }) {
+  const cityParam = activeCity ? `&city=${activeCity}` : "";
+  return (
+    <div className="mt-2 -mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1">
+      <Chip href={`/all${activeCity ? `?city=${activeCity}` : ""}`} active={!activeType}>
         All types
       </Chip>
       {VEHICLE_TYPES.map((v) => (
         <Chip
           key={v.key}
-          href={`/all?type=${v.key}`}
+          href={`/all?type=${v.key}${cityParam}`}
           active={activeType === v.key}
         >
           {v.label}
