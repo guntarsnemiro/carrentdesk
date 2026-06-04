@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { BookingForm } from "../_components/booking-form";
+import { EndRentalDialog } from "../_components/end-rental-dialog";
 import { checkGlobalBlacklist } from "@/lib/blacklist";
 import { REASON_LABELS, SEVERITY_LABELS } from "@/lib/blacklist-shared";
 
@@ -66,6 +67,19 @@ export default async function EditBookingPage({
           <h1 className="mt-2 text-2xl font-bold text-neutral-900">Edit booking</h1>
         </div>
         <div className="flex items-center gap-2">
+          {/* End rental — only for active long-term or active short-term bookings */}
+          {(booking.status === "active" || booking.status === "confirmed") && (
+            <EndRentalDialog
+              bookingId={bookingId}
+              companyId={companyId}
+              currentEndAt={booking.end_at}
+              startAt={booking.start_at}
+              periodPrice={booking.booking_price}
+              renewalPeriodDays={booking.renewal_period_days}
+              depositAmount={booking.deposit_amount}
+              depositReturned={Boolean(booking.deposit_returned_at)}
+            />
+          )}
           {existingInvoice ? (
             <Link
               href={`/app/invoices/${companyId}/${existingInvoice.id}`}
