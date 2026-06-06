@@ -100,7 +100,7 @@ export function JoinForm() {
       </button>
 
       <p className="text-center text-xs text-neutral-400">
-        No credit card required · Free during beta
+        No credit card required · Cancel anytime
       </p>
     </form>
   );

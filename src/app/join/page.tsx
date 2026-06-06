@@ -6,9 +6,9 @@ import { FAQ } from "@/app/for-rentals/_components/faq";
 /* ── SEO metadata ───────────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
-  title: "Car Rental Management Software — Free Trial | CarRentDesk",
+  title: "Car Rental Management Software — Pricing & Free Trial | CarRentDesk",
   description:
-    "Car rental management software for independent operators. Fleet management, booking calendar, customer CRM, invoicing, and real P&L — all in one platform. Free during beta. No credit card, 30-second setup.",
+    "Car rental management software for independent operators. Fleet management, booking calendar, customer CRM, invoicing, and real P&L — all in one platform from €29/month. Start your free trial, no credit card required.",
   keywords: [
     "car rental management software",
     "car rental software",
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://carrentdesk.com/join" },
   openGraph: {
-    title: "Car Rental Management Software — Free Trial | CarRentDesk",
+    title: "Car Rental Management Software — Pricing & Free Trial | CarRentDesk",
     description:
-      "Fleet management, booking calendar, customer CRM, invoicing, and real P&L in one platform. Built for independent car rental companies. Free during beta.",
+      "Fleet management, booking calendar, customer CRM, invoicing, and real P&L in one platform from €29/month. Built for independent car rental companies.",
     url: "https://carrentdesk.com/join",
     siteName: "CarRentDesk",
     type: "website",
@@ -40,7 +40,13 @@ const schemaMarkup = {
   name: "CarRentDesk",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", description: "Free during beta" },
+  offers: {
+    "@type": "AggregateOffer",
+    lowPrice: "29",
+    highPrice: "90",
+    priceCurrency: "EUR",
+    offerCount: "3",
+  },
   description: "Car rental management software for independent operators.",
   url: "https://carrentdesk.com/join",
   featureList: [
@@ -60,8 +66,44 @@ const INCLUDED = [
   "Real P&L — revenue, costs, depreciation",
   "Marketplace listing — 0% commission",
   "Excel import — cars & customers",
-  "Early-adopter pricing locked forever",
-  "No commission, no booking middleman",
+  "Unlimited team members",
+  "Export your data anytime",
+];
+
+const PLANS = [
+  {
+    name: "Starter",
+    fleet: "Up to 10 vehicles",
+    monthly: 29,
+    yearly: 290,
+    popular: false,
+  },
+  {
+    name: "Growth",
+    fleet: "11–25 vehicles",
+    monthly: 49,
+    yearly: 490,
+    popular: true,
+  },
+  {
+    name: "Pro",
+    fleet: "26–40 vehicles",
+    monthly: 90,
+    yearly: 900,
+    popular: false,
+  },
+];
+
+const PLAN_FEATURES = [
+  "Booking & availability calendar",
+  "Fleet management & reminders",
+  "Customer CRM",
+  "Global blacklist network",
+  "PDF invoicing with email send",
+  "Revenue & P&L reporting",
+  "Marketplace listing — 0% commission",
+  "Excel import",
+  "Unlimited team members",
 ];
 
 /* ── Page ────────────────────────────────────────────────────────────── */
@@ -80,6 +122,7 @@ export default function JoinPage() {
         <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur px-6 py-4 flex items-center justify-between">
           <Link href="/" className="text-sm font-bold text-brand-950">CarRentDesk</Link>
           <div className="flex items-center gap-4">
+            <Link href="#pricing" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Pricing</Link>
             <Link href="#faq" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">FAQ</Link>
             <Link href="/app/login" className="text-sm font-medium text-brand-700 hover:underline">Sign in →</Link>
           </div>
@@ -90,7 +133,7 @@ export default function JoinPage() {
           <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-16">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-                Free during beta · No credit card · 30-second setup
+                Free trial · No credit card · Set up in 30 seconds
               </p>
               <h1 className="mt-3 text-4xl font-bold leading-[1.08] tracking-tight text-brand-950 sm:text-5xl">
                 Car Rental Management
@@ -107,7 +150,7 @@ export default function JoinPage() {
                 ))}
               </div>
               <div className="mt-10 rounded-2xl border border-border bg-surface-soft p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-4">What&apos;s included — free</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-4">What&apos;s included in every plan</p>
                 <ul className="space-y-2.5">
                   {INCLUDED.map((item) => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-neutral-700">
@@ -304,8 +347,92 @@ export default function JoinPage() {
           </div>
         </section>
 
+        {/* ── Pricing ── */}
+        <section id="pricing" className="bg-surface-soft py-16 lg:py-24">
+          <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Pricing</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+                Simple pricing that scales with your fleet.
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-neutral-600">
+                One plan, every feature. Pay only for the size of your fleet — no per-module fees,
+                no commission, no surprises. Two months free when you pay yearly.
+              </p>
+            </div>
+
+            {/* Plan cards */}
+            <div className="mt-12 grid gap-6 lg:grid-cols-4">
+              {PLANS.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`relative flex flex-col rounded-2xl bg-white p-6 ${
+                    plan.popular ? "ring-2 ring-brand-600 shadow-lg" : "ring-1 ring-border"
+                  }`}
+                >
+                  {plan.popular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-[11px] font-semibold text-white">
+                      Most popular
+                    </span>
+                  )}
+                  <h3 className="text-lg font-semibold text-brand-950">{plan.name}</h3>
+                  <p className="mt-1 text-sm text-neutral-500">{plan.fleet}</p>
+                  <div className="mt-5">
+                    <span className="text-4xl font-bold tracking-tight text-brand-950">€{plan.monthly}</span>
+                    <span className="text-sm text-neutral-500"> /month</span>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-400">or €{plan.yearly}/year — 2 months free</p>
+                  <Link
+                    href="#signup"
+                    className={`mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      plan.popular
+                        ? "bg-brand-700 text-white hover:bg-brand-800"
+                        : "border border-border text-brand-700 hover:bg-surface-soft"
+                    }`}
+                  >
+                    Start free trial
+                  </Link>
+                </div>
+              ))}
+
+              {/* Custom / Fleet */}
+              <div className="flex flex-col rounded-2xl bg-brand-950 p-6 text-white">
+                <h3 className="text-lg font-semibold">Fleet</h3>
+                <p className="mt-1 text-sm text-brand-300">40+ vehicles</p>
+                <div className="mt-5">
+                  <span className="text-4xl font-bold tracking-tight">Custom</span>
+                </div>
+                <p className="mt-1 text-xs text-brand-400">Volume pricing for larger fleets</p>
+                <a
+                  href="mailto:info@carrentdesk.com?subject=Fleet%20plan%20enquiry"
+                  className="mt-6 inline-flex items-center justify-center rounded-lg border border-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-900"
+                >
+                  Talk to us
+                </a>
+              </div>
+            </div>
+
+            {/* Everything included */}
+            <div className="mx-auto mt-12 max-w-4xl rounded-2xl bg-white p-6 ring-1 ring-border sm:p-8">
+              <p className="text-center text-sm font-semibold text-brand-950">Every plan includes everything</p>
+              <div className="mt-5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                {PLAN_FEATURES.map((f) => (
+                  <div key={f} className="flex items-start gap-2.5 text-sm text-neutral-700">
+                    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">✓</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="mt-6 text-center text-xs text-neutral-400">
+              All prices in EUR, excluding VAT. Cancel anytime. Your data is always yours to export.
+            </p>
+          </div>
+        </section>
+
         {/* ── FAQ ── */}
-        <section id="faq" className="bg-surface-soft py-16 lg:py-20">
+        <section id="faq" className="bg-white py-16 lg:py-20">
           <div className="mx-auto w-full max-w-4xl px-6 lg:px-8">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Frequently asked</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
@@ -319,7 +446,7 @@ export default function JoinPage() {
         <section id="signup" className="border-t border-border py-16 lg:py-20">
           <div className="mx-auto w-full max-w-lg px-6 text-center lg:px-8">
             <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to manage your rental like a pro?</h2>
-            <p className="mt-3 text-sm text-neutral-500">Free during beta. No credit card. Takes 30 seconds.</p>
+            <p className="mt-3 text-sm text-neutral-500">Start your free trial. No credit card. Takes 30 seconds.</p>
             <div className="mt-8 rounded-2xl border border-border bg-white p-7 shadow-sm text-left">
               <JoinForm />
             </div>

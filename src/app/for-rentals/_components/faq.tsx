@@ -5,8 +5,8 @@ type Item = {
 
 const ITEMS: Item[] = [
   {
-    q: "What does this cost during MVP?",
-    a: "Free for the rental companies we're working most closely with. Founding-partner pricing — favorable, locked in, with a money-back guarantee — applies once we exit MVP. Concrete numbers are walked through in the demo, tailored to your fleet size and city.",
+    q: "How much does CarRentDesk cost?",
+    a: "One simple plan priced by fleet size, with every feature included: Starter (up to 10 vehicles) €29/month, Growth (11–25 vehicles) €49/month, and Pro (26–40 vehicles) €90/month. Larger fleets get custom pricing. Pay yearly and get two months free. Start with a free trial — no credit card required.",
   },
   {
     q: "Do you take a commission on bookings?",
@@ -30,11 +30,11 @@ const ITEMS: Item[] = [
   },
   {
     q: "What if my staff isn't tech-savvy?",
-    a: "The platform is designed for the parking lot, not the office. Phone-first, with simple, clear screens for the daily flows your staff actually uses. We train your team during onboarding, and direct WhatsApp support is included throughout MVP. If a feature is too complex, that's a bug we fix — not your problem.",
+    a: "The platform is designed for the parking lot, not the office. Phone-first, with simple, clear screens for the daily flows your staff actually uses. We train your team during onboarding, and direct WhatsApp support is included. If a feature is too complex, that's a bug we fix — not your problem.",
   },
   {
     q: "What's the catch?",
-    a: "There isn't one. The bet is simple: if we save you ten hours a week on operations and bring you a meaningful flow of new customers, you'll happily pay a small monthly fee after MVP. If we don't, we're not worth your money — and you'll leave. We have to earn it every month.",
+    a: "There isn't one. Pricing is simple and transparent — a flat monthly fee based on your fleet size, with every feature included and no commission on bookings. Cancel anytime and export your data. We have to earn your subscription every month.",
   },
 ];
 
