@@ -4,142 +4,283 @@ import { JoinForm } from "./_components/join-form";
 
 export const metadata: Metadata = {
   title: "Start free trial · CarRentDesk",
-  description: "Manage your fleet, bookings and customers in one place. Free during beta.",
+  description:
+    "Fleet management, bookings, customer records, invoicing, and marketplace listing — all in one platform. Free during beta. No credit card, 30-second setup.",
 };
 
-const BENEFITS = [
+/* ─────────────────────────────────────────────────────────────────── */
+
+const MODULES = [
   {
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
-    ),
+    icon: "📅",
+    title: "Booking & availability calendar",
+    body: "Visual Gantt calendar — every car, every day. Create bookings in seconds, spot conflicts at a glance, manage short-term and long-term rentals in one view.",
+  },
+  {
+    icon: "🚗",
     title: "Fleet management",
-    desc: "All your cars in one place — fuel, inspections, insurance, odometer. Never miss a service date.",
+    body: "Full vehicle records — fuel type, insurance dates, inspection history, odometer, purchase price. Set reminders so nothing falls through the cracks.",
   },
   {
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-      </svg>
-    ),
-    title: "Bookings & availability calendar",
-    desc: "Visual Gantt calendar, drag to create bookings, see every car's availability at a glance.",
+    icon: "👥",
+    title: "Customer database",
+    body: "Store driver details, licence numbers, rental history and notes. Instant blacklist check on every booking — protect yourself and alert others in the network.",
   },
   {
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-      </svg>
-    ),
-    title: "Customer database & risk tracking",
-    desc: "Store driver history, licence details and flag problem customers so your whole team is protected.",
+    icon: "📄",
+    title: "PDF invoicing",
+    body: "Generate professional invoices in one click. Edit any field before sending, email them directly from the platform, and track paid / unpaid status.",
   },
   {
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-      </svg>
-    ),
-    title: "Revenue overview",
-    desc: "Monthly and yearly revenue, average booking value, per-car breakdown — always know your numbers.",
+    icon: "📊",
+    title: "Revenue & P&L",
+    body: "Pro-rata daily revenue, expense tracking, amortised costs, per-vehicle depreciation. See real net profit — not just bookings counted.",
   },
   {
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 0 0 .284 2.253" />
-      </svg>
-    ),
-    title: "More customers from the marketplace",
-    desc: "Your company gets listed on CarRentDesk — customers across the Baltics find you directly, no commission.",
+    icon: "🌍",
+    title: "Marketplace listing included",
+    body: "Your company appears on CarRentDesk.com — customers in your city find you directly. Phone, WhatsApp, email contact. Zero commission, no middleman.",
   },
 ];
 
+const STEPS = [
+  {
+    n: "1",
+    title: "Sign up in 30 seconds",
+    body: "Enter your company name and email. We send a magic link — click it and you're straight in your dashboard. No sales call, no waiting, no credit card.",
+  },
+  {
+    n: "2",
+    title: "Import your existing data",
+    body: "Upload your cars and customers from an Excel file using our template. Most companies are fully set up in under an hour.",
+  },
+  {
+    n: "3",
+    title: "Run your rental from day one",
+    body: "Add bookings, use the calendar, track maintenance, send invoices, see your revenue. Everything works the moment you log in.",
+  },
+];
+
+const INCLUDED = [
+  "All modules — fleet, bookings, customers, calendar, finance",
+  "PDF invoicing with email send",
+  "Marketplace listing in your city",
+  "Excel import — cars & customers",
+  "Global blacklist network access",
+  "Early-adopter pricing locked in forever",
+  "Direct line to the founder",
+  "No commission, no booking middleman",
+];
+
+/* ─────────────────────────────────────────────────────────────────── */
+
 export default function JoinPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      {/* Top bar */}
-      <header className="border-b border-border px-6 py-4">
+    <div className="min-h-screen bg-white">
+      {/* ── Top bar ── */}
+      <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur px-6 py-4 flex items-center justify-between">
         <Link href="/" className="text-sm font-bold text-brand-950">
           CarRentDesk
         </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/for-rentals" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">
+            Learn more
+          </Link>
+          <Link href="/app/login" className="text-sm font-medium text-brand-700 hover:underline">
+            Sign in →
+          </Link>
+        </div>
       </header>
 
-      <main className="flex flex-1 items-stretch">
-        {/* ── Left: pitch ── */}
-        <div className="hidden w-1/2 flex-col justify-center bg-brand-950 px-12 py-16 lg:flex xl:px-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
-            Free during beta
-          </p>
-          <h1 className="mt-3 text-3xl font-bold leading-tight text-white xl:text-4xl">
-            Run your rental
-            <br />like a pro.
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-brand-200">
-            One platform for everything — cars, bookings,
-            customers, and revenue. Built for independent
-            rental companies in the Baltics.
-          </p>
+      {/* ── Hero + form ── */}
+      <section className="mx-auto w-full max-w-7xl px-6 py-14 lg:px-8 lg:py-20">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-16">
 
-          <ul className="mt-10 space-y-6">
-            {BENEFITS.map((b) => (
-              <li key={b.title} className="flex gap-4">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-800 text-brand-200">
-                  {b.icon}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-white">{b.title}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-brand-300">{b.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-10 border-t border-brand-800 pt-6">
-            <p className="text-xs text-brand-400">
-              Already have an account?{" "}
-              <Link href="/app/login" className="font-medium text-brand-200 underline-offset-2 hover:underline">
-                Sign in →
-              </Link>
+          {/* Left: pitch */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+              Free during beta · No credit card · 30-second setup
             </p>
+            <h1 className="mt-3 text-4xl font-bold leading-[1.08] tracking-tight text-brand-950 sm:text-5xl">
+              Run your car rental
+              <br className="hidden sm:block" /> like a pro — for free.
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-neutral-600 sm:text-lg">
+              One platform for fleet, bookings, customers, invoicing, and revenue.
+              Built by a rental owner, for rental owners. Free during beta — with pricing locked in for early adopters.
+            </p>
+
+            {/* Trust signals */}
+            <div className="mt-7 flex flex-wrap gap-3">
+              {["EU-hosted · GDPR", "0% commission", "Founder-owned rental", "Cancel anytime"].map((t) => (
+                <span key={t} className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs font-medium text-neutral-600">
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            {/* What's included checklist */}
+            <div className="mt-10 rounded-2xl border border-border bg-surface-soft p-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-4">What's included — free</p>
+              <ul className="space-y-2.5">
+                {INCLUDED.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-neutral-700">
+                    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Right: form */}
+          <div className="lg:sticky lg:top-24">
+            <div className="rounded-2xl border border-border bg-white p-7 shadow-sm">
+              <h2 className="text-xl font-bold text-neutral-900">Create your account</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Set up in 30 seconds. No credit card needed.
+              </p>
+              <div className="mt-6">
+                <JoinForm />
+              </div>
+            </div>
+
+            {/* Founder note under the form */}
+            <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-5">
+              <p className="text-sm leading-6 text-neutral-600">
+                <span className="font-semibold text-neutral-800">Built by a rental owner.</span>{" "}
+                I've run Baltic Car Rent in Riga for 15 years. CarRentDesk is the platform I needed and never had. If you run an independent rental — this is for you.
+              </p>
+              <p className="mt-2 text-xs text-neutral-400">— Guntars Nemiro, Founder</p>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* ── Right: form ── */}
-        <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-12 xl:px-16">
-          <div className="mx-auto w-full max-w-sm">
-            {/* Mobile headline */}
-            <div className="mb-7 lg:hidden">
-              <h1 className="text-2xl font-bold text-neutral-900">Start your free trial</h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                Fleet, bookings, customers & revenue — free during beta.
-              </p>
-            </div>
+      {/* ── What you get ── */}
+      <section className="bg-surface-soft py-16 lg:py-20">
+        <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Everything you need — live today</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+            One platform. Every tool your rental actually uses.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
+            No demo call required. Sign up and start using it today — all modules are included from day one.
+          </p>
 
-            {/* Desktop form heading */}
-            <div className="mb-7 hidden lg:block">
-              <h2 className="text-xl font-bold text-neutral-900">Create your account</h2>
-              <p className="mt-1 text-sm text-neutral-500">Set up in 30 seconds. No credit card needed.</p>
-            </div>
-
-            <JoinForm />
-
-            <div className="mt-6 lg:hidden">
-              <div className="relative flex items-center gap-3">
-                <div className="flex-1 border-t border-border" />
-                <span className="text-xs text-neutral-400">already have an account?</span>
-                <div className="flex-1 border-t border-border" />
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {MODULES.map((m) => (
+              <div key={m.title} className="rounded-2xl bg-white p-6 ring-1 ring-border">
+                <span className="text-2xl">{m.icon}</span>
+                <h3 className="mt-3 text-base font-semibold text-brand-950">{m.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-neutral-600">{m.body}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Finance highlight ── */}
+      <section className="bg-brand-950 py-16 lg:py-20">
+        <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">Finance intelligence</p>
+              <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+                The first rental platform that shows you real profit — not just bookings.
+              </h2>
+              <p className="mt-4 text-base leading-7 text-brand-200">
+                Pro-rata daily revenue, amortised insurance costs, per-vehicle depreciation.
+                The monthly P&L number your accountant would recognise.
+              </p>
               <Link
-                href="/app/login"
-                className="mt-3 flex w-full items-center justify-center rounded-xl border border-border bg-white py-3 text-sm font-semibold text-brand-700 hover:bg-slate-50"
+                href="/join#form"
+                className="mt-7 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
               >
-                Sign in →
+                Start free trial →
               </Link>
             </div>
+
+            <div className="rounded-2xl bg-white/[0.06] p-6 ring-1 ring-white/15">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">Illustrative P&L · 10-car fleet</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-brand-400">
+                    <th className="pb-2 pr-3 font-medium">Month</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Revenue</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Costs</th>
+                    <th className="pb-2 text-right font-medium">Net profit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-brand-100">
+                  {[
+                    ["Mar 2026", "€4,280", "−€1,400", "€2,880"],
+                    ["Apr 2026", "€5,100", "−€1,540", "€3,560"],
+                    ["May 2026", "€6,340", "−€1,470", "€4,870"],
+                  ].map(([m, r, c, n]) => (
+                    <tr key={m}>
+                      <td className="py-2 pr-3 text-brand-300">{m}</td>
+                      <td className="py-2 pr-3 text-right">{r}</td>
+                      <td className="py-2 pr-3 text-right text-red-400">{c}</td>
+                      <td className="py-2 text-right font-bold text-emerald-300">{n}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-3 text-[11px] text-brand-500">Costs include maintenance, insurance amortisation & depreciation.</p>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-8 lg:py-20">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Getting started</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+          From sign-up to fully running in under an hour.
+        </h2>
+
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
+          {STEPS.map((s) => (
+            <div key={s.n} className="rounded-2xl bg-surface-soft p-6 ring-1 ring-border">
+              <span className="grid size-9 place-items-center rounded-full bg-brand-900 text-sm font-semibold text-white">
+                {s.n}
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-brand-950">{s.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-neutral-600">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Bottom CTA ── */}
+      <section id="form" className="border-t border-border bg-surface-soft py-16 lg:py-20">
+        <div className="mx-auto w-full max-w-lg px-6 text-center lg:px-8">
+          <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to start?</h2>
+          <p className="mt-3 text-sm text-neutral-500">
+            Free during beta. No credit card. Takes 30 seconds.
+          </p>
+          <div className="mt-8 rounded-2xl border border-border bg-white p-7 shadow-sm text-left">
+            <JoinForm />
+          </div>
+          <p className="mt-5 text-xs text-neutral-400">
+            Questions? Email us at{" "}
+            <a href="mailto:info@carrentdesk.com" className="text-brand-700 hover:underline">
+              info@carrentdesk.com
+            </a>
+          </p>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-border px-6 py-6 text-center">
+        <p className="text-xs text-neutral-400">
+          © {new Date().getFullYear()} CarRentDesk ·{" "}
+          <Link href="/for-rentals" className="hover:underline">For rental owners</Link>{" "}
+          ·{" "}
+          <Link href="/" className="hover:underline">Marketplace</Link>
+        </p>
+      </footer>
     </div>
   );
 }
