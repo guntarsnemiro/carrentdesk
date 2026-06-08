@@ -27,104 +27,74 @@ if (!APIFY_TOKEN) {
 const ACTOR_ID = "compass~crawler-google-places";
 
 // All search queries — English + local language for each city.
-// Weak cities (Bergen 1, Stockholm 4, Aarhus 3, Copenhagen 5, Helsinki 5)
-// get extra query variants to surface more independents.
+// This run targets the Southern Europe expansion (ES, PT, IT, GR, HR).
+// To refresh Northern Europe instead, swap in the previous query set.
 const SEARCH_QUERIES = [
-  // ── Baltics (refresh ratings only) ───────────────────────────────
-  "car rental Riga",
-  "auto noma Rīga",
-  "car rental Tallinn",
-  "autorent Tallinn",
-  "car rental Vilnius",
-  "automobiliu nuoma Vilnius",
-  "car rental Kaunas",
-  "car rental Pärnu",
+  // ── Spain ────────────────────────────────────────────────────────
+  "car rental Madrid",
+  "alquiler de coches Madrid",
+  "car rental Madrid airport",
+  "car rental Barcelona",
+  "alquiler de coches Barcelona",
+  "car rental Barcelona airport",
+  "car rental Malaga",
+  "alquiler de coches Málaga",
+  "car rental Malaga airport",
+  "car rental Palma de Mallorca",
+  "alquiler de coches Palma de Mallorca",
+  "car rental Mallorca airport",
+  "car rental Alicante",
+  "alquiler de coches Alicante",
+  "car rental Alicante airport",
 
-  // ── Sweden ───────────────────────────────────────────────────────
-  // Stockholm — currently only 4 listings, push hard
-  "car rental Stockholm",
-  "biluthyrning Stockholm",
-  "hyr bil Stockholm",
-  "biluthyrning Arlanda",
-  "car rental Stockholm airport",
-  // Gothenburg
-  "car rental Gothenburg",
-  "biluthyrning Göteborg",
-  "hyr bil Göteborg",
-  // Malmö
-  "car rental Malmö",
-  "biluthyrning Malmö",
+  // ── Portugal ─────────────────────────────────────────────────────
+  "car rental Lisbon",
+  "aluguer de carros Lisboa",
+  "car rental Lisbon airport",
+  "car rental Porto",
+  "aluguer de carros Porto",
+  "car rental Porto airport",
+  "car rental Faro",
+  "aluguer de carros Faro",
+  "car rental Faro airport Algarve",
 
-  // ── Norway ───────────────────────────────────────────────────────
-  // Oslo
-  "car rental Oslo",
-  "bilutleie Oslo",
-  "leiebil Oslo",
-  "car rental Oslo airport",
-  "bilutleie Gardermoen",
-  // Bergen — currently only 1 listing, many extra queries
-  "car rental Bergen",
-  "bilutleie Bergen",
-  "leiebil Bergen",
-  "car rental Bergen airport",
-  "bilutleie Flesland",
-  "leiebil Flesland",
-  // Stavanger — new city
-  "car rental Stavanger",
-  "bilutleie Stavanger",
-  "leiebil Stavanger",
-  "car rental Sola airport",
-  // Trondheim — new city
-  "car rental Trondheim",
-  "bilutleie Trondheim",
-  "leiebil Trondheim",
-  "car rental Trondheim airport",
-  // Tromsø — new city
-  "car rental Tromsø",
-  "bilutleie Tromsø",
-  "leiebil Tromsø",
-  "car rental Tromso",
+  // ── Italy ────────────────────────────────────────────────────────
+  "car rental Rome",
+  "autonoleggio Roma",
+  "car rental Rome Fiumicino airport",
+  "car rental Milan",
+  "autonoleggio Milano",
+  "car rental Milan Malpensa airport",
+  "car rental Naples",
+  "autonoleggio Napoli",
+  "car rental Naples airport",
+  "car rental Catania",
+  "autonoleggio Catania",
+  "car rental Catania airport",
 
-  // ── Denmark ──────────────────────────────────────────────────────
-  // Copenhagen — currently only 5
-  "car rental Copenhagen",
-  "biludlejning København",
-  "biludlejning Kastrup",
-  "car rental Copenhagen airport",
-  "lejebil København",
-  // Aarhus — currently only 3
-  "car rental Aarhus",
-  "biludlejning Aarhus",
-  "lejebil Aarhus",
-  // Odense — new city
-  "car rental Odense",
-  "biludlejning Odense",
-  "lejebil Odense",
+  // ── Greece ───────────────────────────────────────────────────────
+  "car rental Athens",
+  "ενοικιάσεις αυτοκινήτων Αθήνα",
+  "car rental Athens airport",
+  "car rental Heraklion Crete",
+  "ενοικιάσεις αυτοκινήτων Ηράκλειο",
+  "car rental Heraklion airport",
+  "car rental Thessaloniki",
+  "car rental Thessaloniki airport",
+  "car rental Rhodes",
+  "car rental Rhodes airport",
 
-  // ── Finland ──────────────────────────────────────────────────────
-  // Helsinki — currently only 5
-  "car rental Helsinki",
-  "autonvuokraus Helsinki",
-  "car rental Helsinki airport",
-  "autonvuokraus Vantaa",
-  "vuokra-auto Helsinki",
-  // Tampere
-  "car rental Tampere",
-  "autonvuokraus Tampere",
-  "vuokra-auto Tampere",
-  // Turku — new city
-  "car rental Turku",
-  "autonvuokraus Turku",
-  "vuokra-auto Turku",
-
-  // ── Iceland ──────────────────────────────────────────────────────
-  // Reykjavik — already strong (17), but refresh
-  "car rental Reykjavik",
-  "bílaleiga Reykjavík",
-  "car rental Keflavik airport",
-  // Akureyri — new city, small market but high intent
-  "car rental Akureyri",
-  "bílaleiga Akureyri",
+  // ── Croatia ──────────────────────────────────────────────────────
+  "rent a car Split",
+  "najam automobila Split",
+  "car rental Split airport",
+  "rent a car Dubrovnik",
+  "car rental Dubrovnik airport",
+  "rent a car Zagreb",
+  "najam automobila Zagreb",
+  "car rental Zagreb airport",
+  "rent a car Zadar",
+  "car rental Zadar airport",
 ];
 
 const ACTOR_INPUT = {

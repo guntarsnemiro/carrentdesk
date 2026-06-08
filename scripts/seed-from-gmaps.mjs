@@ -99,6 +99,22 @@ const EXISTING_SLUGS = new Set([
   "vitarent","wheego-rent-a-car-vilnius-airport",
 ]);
 
+// Expected country for each city slug. Used to reject same-name cities in the
+// wrong country (e.g. "Naples" Florida, "Athens" Georgia, "Rome" New York).
+const CITY_COUNTRY = {
+  riga: "LV", tallinn: "EE", vilnius: "LT", parnu: "EE", kaunas: "LT",
+  stockholm: "SE", gothenburg: "SE", malmo: "SE",
+  oslo: "NO", bergen: "NO", stavanger: "NO", trondheim: "NO", tromso: "NO",
+  copenhagen: "DK", aarhus: "DK", odense: "DK",
+  helsinki: "FI", tampere: "FI", turku: "FI",
+  reykjavik: "IS", akureyri: "IS",
+  madrid: "ES", barcelona: "ES", malaga: "ES", palma: "ES", alicante: "ES",
+  lisbon: "PT", porto: "PT", faro: "PT",
+  rome: "IT", milan: "IT", naples: "IT", catania: "IT",
+  athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
+  split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR",
+};
+
 // Map Apify record → our city_slug enum
 // Uses city name first (more specific), falls back to country code
 function inferCity(record) {
@@ -143,8 +159,38 @@ function inferCity(record) {
   if (city.includes("akureyri")) return "akureyri";
   if (city.includes("reykjavik") || city.includes("reykjavík") || city.includes("keflavik") || city.includes("kópavogur") || city.includes("kopavogur")) return "reykjavik";
 
+  // ── Spain ─────────────────────────────────────────────────────────
+  if (city.includes("malaga") || city.includes("málaga") || city.includes("torremolinos") || city.includes("marbella") || city.includes("fuengirola")) return "malaga";
+  if (city.includes("palma") || city.includes("mallorca") || city.includes("majorca") || city.includes("calvia") || city.includes("calvià")) return "palma";
+  if (city.includes("alicante") || city.includes("alacant") || city.includes("elche") || city.includes("benidorm")) return "alicante";
+  if (city.includes("barcelona") || city.includes("prat de llobregat") || city.includes("el prat") || city.includes("hospitalet") || city.includes("badalona")) return "barcelona";
+  if (city.includes("madrid") || city.includes("barajas") || city.includes("alcobendas") || city.includes("getafe") || city.includes("mostoles") || city.includes("móstoles")) return "madrid";
+
+  // ── Portugal ──────────────────────────────────────────────────────
+  if (city.includes("faro") || city.includes("algarve") || city.includes("loule") || city.includes("loulé") || city.includes("albufeira") || city.includes("portimao") || city.includes("portimão")) return "faro";
+  if (city.includes("porto") || city.includes("oporto") || city.includes("matosinhos") || city.includes("maia") || city.includes("gaia")) return "porto";
+  if (city.includes("lisbon") || city.includes("lisboa") || city.includes("amadora") || city.includes("loures") || city.includes("oeiras") || city.includes("cascais")) return "lisbon";
+
+  // ── Italy ─────────────────────────────────────────────────────────
+  if (city.includes("catania") || city.includes("sicilia") || city.includes("sicily") || city.includes("fontanarossa")) return "catania";
+  if (city.includes("naples") || city.includes("napoli") || city.includes("capodichino") || city.includes("pozzuoli")) return "naples";
+  if (city.includes("milan") || city.includes("milano") || city.includes("malpensa") || city.includes("linate") || city.includes("sesto")) return "milan";
+  if (city.includes("rome") || city.includes("roma") || city.includes("fiumicino") || city.includes("ciampino")) return "rome";
+
+  // ── Greece ────────────────────────────────────────────────────────
+  if (city.includes("heraklion") || city.includes("iraklion") || city.includes("irakleio") || city.includes("ηρακλειο") || city.includes("crete") || city.includes("kreta")) return "heraklion";
+  if (city.includes("thessaloniki") || city.includes("salonika") || city.includes("θεσσαλονικη")) return "thessaloniki";
+  if (city.includes("rhodes") || city.includes("rodos") || city.includes("ροδος")) return "rhodes";
+  if (city.includes("athens") || city.includes("athina") || city.includes("αθηνα") || city.includes("spata") || city.includes("glyfada") || city.includes("piraeus")) return "athens";
+
+  // ── Croatia ───────────────────────────────────────────────────────
+  if (city.includes("split") || city.includes("kastela") || city.includes("kaštela") || city.includes("solin") || city.includes("trogir")) return "split";
+  if (city.includes("dubrovnik")) return "dubrovnik";
+  if (city.includes("zadar")) return "zadar";
+  if (city.includes("zagreb") || city.includes("velika gorica")) return "zagreb";
+
   // ── Fallback by country code ──────────────────────────────────────
-  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius", SE: "stockholm", NO: "oslo", DK: "copenhagen", FI: "helsinki", IS: "reykjavik" };
+  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius", SE: "stockholm", NO: "oslo", DK: "copenhagen", FI: "helsinki", IS: "reykjavik", ES: "madrid", PT: "lisbon", IT: "rome", GR: "athens", HR: "zagreb" };
   return byCountry[record.countryCode] ?? null;
 }
 
@@ -243,6 +289,7 @@ const dropped = {
   duplicate_phone: 0,
   duplicate_website: 0,
   no_country: 0,
+  wrong_country: 0,
 };
 
 const seenSlugs = new Set(EXISTING_SLUGS);
@@ -284,6 +331,11 @@ for (const r of raw) {
   const city = inferCity(r);
   if (!city) {
     dropped.no_country++;
+    continue;
+  }
+  // Reject same-name cities in the wrong country (e.g. Naples FL, Athens GA)
+  if (CITY_COUNTRY[city] && r.countryCode !== CITY_COUNTRY[city]) {
+    dropped.wrong_country++;
     continue;
   }
 
