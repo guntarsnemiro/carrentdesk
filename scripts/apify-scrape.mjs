@@ -111,6 +111,20 @@ const BATCHES = {
       "car rental Koper", "car rental Portoroz", "car rental Piran", "car rental Maribor",
     ],
   },
+  // Spain mainland coast — new cities + boost existing
+  "spain-mainland": {
+    countryCode: "es",
+    queries: [
+      "car rental Valencia", "alquiler de coches Valencia", "car rental Valencia airport",
+      "car rental Seville", "alquiler de coches Sevilla", "car rental Seville airport",
+      "car rental Bilbao", "alquiler de coches Bilbao", "car rental Bilbao airport",
+      "car rental Girona", "car rental Girona airport", "car rental Costa Brava", "car rental Lloret de Mar",
+      "car rental Barcelona", "alquiler de coches Barcelona", "car rental Barcelona airport",
+      "car rental Madrid", "alquiler de coches Madrid", "car rental Madrid airport",
+      "car rental Malaga", "car rental Malaga airport",
+      "car rental Alicante", "car rental Alicante airport",
+    ],
+  },
   // France — Corsica + Cote d'Azur + majors
   france: {
     countryCode: "fr",

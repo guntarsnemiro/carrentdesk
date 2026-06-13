@@ -119,6 +119,7 @@ const CITY_COUNTRY = {
   helsinki: "FI", tampere: "FI", turku: "FI",
   reykjavik: "IS", akureyri: "IS",
   madrid: "ES", barcelona: "ES", malaga: "ES", palma: "ES", alicante: "ES",
+  valencia: "ES", seville: "ES", bilbao: "ES", girona: "ES",
   lisbon: "PT", porto: "PT", faro: "PT",
   rome: "IT", milan: "IT", naples: "IT", catania: "IT",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
@@ -277,8 +278,13 @@ function inferCity(record) {
   if (city.includes("malaga") || city.includes("málaga") || city.includes("torremolinos") || city.includes("marbella") || city.includes("fuengirola")) return "malaga";
   if (city.includes("palma") || city.includes("mallorca") || city.includes("majorca") || city.includes("calvia") || city.includes("calvià")) return "palma";
   if (city.includes("alicante") || city.includes("alacant") || city.includes("elche") || city.includes("benidorm")) return "alicante";
-  if (city.includes("barcelona") || city.includes("prat de llobregat") || city.includes("el prat") || city.includes("hospitalet") || city.includes("badalona")) return "barcelona";
+  // Girona / Costa Brava — check before Barcelona (both Catalonia)
+  if (city.includes("girona") || city.includes("gerona") || city.includes("salt") || city.includes("figueres") || city.includes("lloret de mar") || city.includes("blanes") || city.includes("costa brava")) return "girona";
+  if (city.includes("barcelona") || city.includes("prat de llobregat") || city.includes("el prat") || city.includes("hospitalet") || city.includes("badalona") || city.includes("sabadell")) return "barcelona";
   if (city.includes("madrid") || city.includes("barajas") || city.includes("alcobendas") || city.includes("getafe") || city.includes("mostoles") || city.includes("móstoles")) return "madrid";
+  if (city.includes("valencia") || city.includes("valència") || city.includes("paterna") || city.includes("manises") || city.includes("torrent") || city.includes("gandia")) return "valencia";
+  if (city.includes("seville") || city.includes("sevilla") || city.includes("dos hermanas") || city.includes("san pablo")) return "seville";
+  if (city.includes("bilbao") || city.includes("barakaldo") || city.includes("getxo") || city.includes("loiu") || city.includes("sondika") || city.includes("santurtzi")) return "bilbao";
 
   // ── Portugal — Madeira (check before mainland) ────────────────────
   if (city.includes("funchal") || city.includes("madeira") || city.includes("canico") || city.includes("caniço") || city.includes("machico") || city.includes("camara de lobos") || city.includes("câmara de lobos") || city.includes("santa cruz") && record.countryCode === "PT") return "funchal";
