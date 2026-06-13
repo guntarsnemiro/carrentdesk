@@ -26,85 +26,91 @@ if (!APIFY_TOKEN) {
 // Apify actor: compass/crawler-google-places (Google Maps Scraper)
 const ACTOR_ID = "compass~crawler-google-places";
 
-// All search queries — English + local language for each city.
-// This run targets the Southern Europe expansion (ES, PT, IT, GR, HR).
-// To refresh Northern Europe instead, swap in the previous query set.
-const SEARCH_QUERIES = [
-  // ── Spain ────────────────────────────────────────────────────────
-  "car rental Madrid",
-  "alquiler de coches Madrid",
-  "car rental Madrid airport",
-  "car rental Barcelona",
-  "alquiler de coches Barcelona",
-  "car rental Barcelona airport",
-  "car rental Malaga",
-  "alquiler de coches Málaga",
-  "car rental Malaga airport",
-  "car rental Palma de Mallorca",
-  "alquiler de coches Palma de Mallorca",
-  "car rental Mallorca airport",
-  "car rental Alicante",
-  "alquiler de coches Alicante",
-  "car rental Alicante airport",
+// ── Batches ─────────────────────────────────────────────────────────
+// Each batch is ONE country so we can geo-constrain the whole run with
+// `countryCode` (the actor scopes all searches to that country). This kills
+// the wrong-country waste we saw last time (Naples FL, Milan US, etc.) and
+// keeps cost/quality controllable — run one batch, review, then the next.
+//
+// Pick a batch with:  APIFY_BATCH=canaries node --env-file=.env.local scripts/apify-scrape.mjs
+//
+// Tier-1 island expansion. Local-language + English + airport per island.
+const BATCHES = {
+  // Spain — Canary Islands + Ibiza
+  canaries: {
+    countryCode: "es",
+    queries: [
+      "car rental Tenerife", "alquiler de coches Tenerife", "car rental Tenerife South airport", "car rental Tenerife North airport",
+      "car rental Gran Canaria", "alquiler de coches Gran Canaria", "car rental Las Palmas airport",
+      "car rental Lanzarote", "alquiler de coches Lanzarote", "car rental Lanzarote airport",
+      "car rental Fuerteventura", "alquiler de coches Fuerteventura", "car rental Fuerteventura airport",
+      "car rental Ibiza", "alquiler de coches Ibiza", "car rental Ibiza airport",
+    ],
+  },
+  // Portugal — Madeira
+  madeira: {
+    countryCode: "pt",
+    queries: [
+      "car rental Funchal Madeira", "aluguer de carros Funchal", "aluguer de carros Madeira", "car rental Madeira airport",
+    ],
+  },
+  // Italy — Sardinia + Sicily
+  "sardinia-sicily": {
+    countryCode: "it",
+    queries: [
+      "car rental Olbia", "autonoleggio Olbia", "car rental Olbia airport Costa Smeralda",
+      "car rental Cagliari", "autonoleggio Cagliari", "car rental Cagliari airport",
+      "car rental Palermo", "autonoleggio Palermo", "car rental Palermo airport",
+    ],
+  },
+  // Greece — islands
+  "greek-islands": {
+    countryCode: "gr",
+    queries: [
+      "car rental Corfu", "ενοικιάσεις αυτοκινήτων Κέρκυρα", "car rental Corfu airport",
+      "car rental Santorini", "car rental Santorini airport",
+      "car rental Mykonos", "car rental Mykonos airport",
+      "car rental Kos", "car rental Kos airport",
+      "car rental Zakynthos", "car rental Zakynthos airport",
+      "car rental Chania Crete", "ενοικιάσεις αυτοκινήτων Χανιά", "car rental Chania airport",
+    ],
+  },
+  // Cyprus
+  cyprus: {
+    countryCode: "cy",
+    queries: [
+      "car rental Larnaca", "car rental Larnaca airport",
+      "car rental Paphos", "car rental Paphos airport",
+      "car rental Cyprus",
+    ],
+  },
+  // Malta
+  malta: {
+    countryCode: "mt",
+    queries: [
+      "car rental Malta", "car rental Malta airport", "car hire Malta",
+    ],
+  },
+};
 
-  // ── Portugal ─────────────────────────────────────────────────────
-  "car rental Lisbon",
-  "aluguer de carros Lisboa",
-  "car rental Lisbon airport",
-  "car rental Porto",
-  "aluguer de carros Porto",
-  "car rental Porto airport",
-  "car rental Faro",
-  "aluguer de carros Faro",
-  "car rental Faro airport Algarve",
-
-  // ── Italy ────────────────────────────────────────────────────────
-  "car rental Rome",
-  "autonoleggio Roma",
-  "car rental Rome Fiumicino airport",
-  "car rental Milan",
-  "autonoleggio Milano",
-  "car rental Milan Malpensa airport",
-  "car rental Naples",
-  "autonoleggio Napoli",
-  "car rental Naples airport",
-  "car rental Catania",
-  "autonoleggio Catania",
-  "car rental Catania airport",
-
-  // ── Greece ───────────────────────────────────────────────────────
-  "car rental Athens",
-  "ενοικιάσεις αυτοκινήτων Αθήνα",
-  "car rental Athens airport",
-  "car rental Heraklion Crete",
-  "ενοικιάσεις αυτοκινήτων Ηράκλειο",
-  "car rental Heraklion airport",
-  "car rental Thessaloniki",
-  "car rental Thessaloniki airport",
-  "car rental Rhodes",
-  "car rental Rhodes airport",
-
-  // ── Croatia ──────────────────────────────────────────────────────
-  "rent a car Split",
-  "najam automobila Split",
-  "car rental Split airport",
-  "rent a car Dubrovnik",
-  "car rental Dubrovnik airport",
-  "rent a car Zagreb",
-  "najam automobila Zagreb",
-  "car rental Zagreb airport",
-  "rent a car Zadar",
-  "car rental Zadar airport",
-];
+const BATCH = process.env.APIFY_BATCH || "canaries";
+const selected = BATCHES[BATCH];
+if (!selected) {
+  console.error(`❌  Unknown batch "${BATCH}". Available: ${Object.keys(BATCHES).join(", ")}`);
+  process.exit(1);
+}
+const SEARCH_QUERIES = selected.queries;
 
 const ACTOR_INPUT = {
   searchStringsArray: SEARCH_QUERIES,
+  countryCode: selected.countryCode,   // geo-scope the whole run to one country
   language: "en",          // UI language — results still include native listings
-  maxCrawledPlacesPerSearch: 60,
+  maxCrawledPlacesPerSearch: parseInt(process.env.APIFY_MAX || "120", 10), // per-search cap (~Google's practical ceiling; override with APIFY_MAX)
   includeHistogram: false,
   includeOpeningHours: false,
   includePeopleAlsoSearch: false,
   maxReviews: 0,           // skip fetching individual reviews (faster + cheaper)
+  scrapePlaceDetailPage: false, // keep us on the cheap $/1k base tier
   exportPlaceUrls: false,
   additionalInfo: false,
   scrapeDirectories: false,
@@ -130,8 +136,9 @@ async function sleep(ms) {
 }
 
 async function main() {
-  console.log(`🚀  Starting Apify run with ${SEARCH_QUERIES.length} search queries…`);
+  console.log(`🚀  Starting Apify run — batch "${BATCH}" (countryCode: ${selected.countryCode}) with ${SEARCH_QUERIES.length} queries…`);
   console.log(`    Actor: ${ACTOR_ID}`);
+  console.log(`    Cap: ${ACTOR_INPUT.maxCrawledPlacesPerSearch}/search · est. max ${SEARCH_QUERIES.length * ACTOR_INPUT.maxCrawledPlacesPerSearch} results`);
   console.log(`    Queries:\n${SEARCH_QUERIES.map((q) => `      · ${q}`).join("\n")}\n`);
 
   // 1. Start the actor run
@@ -172,10 +179,14 @@ async function main() {
   const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1"));
   const rawDir = path.join(here, "raw");
   mkdirSync(rawDir, { recursive: true });
+  // Canonical file the seed script reads, plus a per-batch archive copy.
   const outPath = path.join(rawDir, "gmaps-rentals.json");
+  const archivePath = path.join(rawDir, `gmaps-rentals-${BATCH}.json`);
   writeFileSync(outPath, JSON.stringify(items, null, 2));
+  writeFileSync(archivePath, JSON.stringify(items, null, 2));
   console.log(`💾  Saved → ${outPath}`);
-  console.log(`\n🎯  Next step: node scripts/seed-from-gmaps.mjs`);
+  console.log(`💾  Archive → ${archivePath}`);
+  console.log(`\n🎯  Next step: node scripts/seed-from-gmaps.mjs   (then load into Supabase)`);
 }
 
 main().catch((err) => {

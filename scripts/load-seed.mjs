@@ -55,19 +55,24 @@ console.log(`✅  Upserted ${upserted.length} companies.`);
 
 const idBySlug = new Map(upserted.map((c) => [c.slug, c.id]));
 
-// 2. Find which companies already have a primary location
+// 2. Find which companies already have a primary location.
+// Chunk the .in() lookup — a single 600+ id filter blows past PostgREST's URL limit.
 const ids = [...idBySlug.values()];
-const { data: existingLocs, error: locErr } = await db
-  .from("locations")
-  .select("company_id")
-  .in("company_id", ids)
-  .eq("is_primary", true);
-
-if (locErr) {
-  console.error("❌  Location lookup failed:", locErr.message);
-  process.exit(1);
+const hasPrimary = new Set();
+const CHUNK = 100;
+for (let i = 0; i < ids.length; i += CHUNK) {
+  const slice = ids.slice(i, i + CHUNK);
+  const { data: existingLocs, error: locErr } = await db
+    .from("locations")
+    .select("company_id")
+    .in("company_id", slice)
+    .eq("is_primary", true);
+  if (locErr) {
+    console.error("❌  Location lookup failed:", locErr.message);
+    process.exit(1);
+  }
+  for (const l of existingLocs ?? []) hasPrimary.add(l.company_id);
 }
-const hasPrimary = new Set((existingLocs ?? []).map((l) => l.company_id));
 
 // 3. Insert primary locations for companies that have coords but no location
 const newLocations = [];
@@ -85,10 +90,12 @@ for (const n of rows) {
 }
 
 if (newLocations.length) {
-  const { error: insErr } = await db.from("locations").insert(newLocations);
-  if (insErr) {
-    console.error("❌  Location insert failed:", insErr.message);
-    process.exit(1);
+  for (let i = 0; i < newLocations.length; i += CHUNK) {
+    const { error: insErr } = await db.from("locations").insert(newLocations.slice(i, i + CHUNK));
+    if (insErr) {
+      console.error("❌  Location insert failed:", insErr.message);
+      process.exit(1);
+    }
   }
   console.log(`✅  Inserted ${newLocations.length} primary locations.`);
 } else {
