@@ -163,6 +163,32 @@ const BATCHES = {
       "car rental Zakynthos", "car rental Zakynthos airport", "rent a car Zante",
     ],
   },
+  // United Kingdom — major cities + airports
+  uk: {
+    countryCode: "gb",
+    queries: [
+      "car rental London", "car hire London", "car rental Heathrow airport", "car rental Gatwick airport",
+      "car rental Manchester", "car hire Manchester airport",
+      "car rental Birmingham", "car hire Birmingham airport",
+      "car rental Edinburgh", "car hire Edinburgh airport",
+      "car rental Glasgow", "car hire Glasgow airport",
+      "car rental Bristol", "car hire Bristol airport",
+      "car rental Liverpool", "car hire Liverpool airport",
+      "car rental Leeds", "car rental Newcastle",
+      "car rental Cardiff", "car rental Aberdeen",
+      "car rental Belfast", "car hire Belfast airport",
+    ],
+  },
+  // Ireland — major cities + airports
+  ireland: {
+    countryCode: "ie",
+    queries: [
+      "car rental Dublin", "car hire Dublin airport", "car hire Dublin",
+      "car rental Cork", "car hire Cork airport",
+      "car rental Shannon airport", "car hire Limerick",
+      "car rental Galway", "car hire Galway",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",

@@ -124,6 +124,9 @@ const CITY_COUNTRY = {
   rome: "IT", milan: "IT", naples: "IT", catania: "IT",
   venice: "IT", florence: "IT", pisa: "IT", bari: "IT", brindisi: "IT",
   "ponta-delgada": "PT", kefalonia: "GR", naxos: "GR", paros: "GR",
+  london: "GB", manchester: "GB", birmingham: "GB", edinburgh: "GB", glasgow: "GB", bristol: "GB",
+  liverpool: "GB", leeds: "GB", newcastle: "GB", cardiff: "GB", aberdeen: "GB", belfast: "GB",
+  dublin: "IE", cork: "IE", shannon: "IE", galway: "IE",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -374,6 +377,32 @@ function inferCity(record) {
   if (city.includes("bordeaux") || city.includes("merignac") || city.includes("pessac") || city.includes("le haillan")) return "bordeaux";
   if (city.includes("lyon") || city.includes("villeurbanne") || city.includes("bron") || city.includes("saint-priest") || city.includes("vaulx-en-velin")) return "lyon";
   if (city.includes("paris") || city.includes("roissy") || city.includes("orly") || city.includes("charles de gaulle") || city.includes("le bourget") || city.includes("nanterre") || city.includes("boulogne-billancourt")) return "paris";
+
+  // ── United Kingdom (guarded by country) — name-matched, drop noise ─
+  if (record.countryCode === "GB") {
+    if (city.includes("heathrow") || city.includes("gatwick") || city.includes("stansted") || city.includes("luton") || city.includes("london") || city.includes("croydon") || city.includes("wembley") || city.includes("ilford") || city.includes("barking") || city.includes("hounslow") || city.includes("hayes") || city.includes("uxbridge") || city.includes("romford") || city.includes("enfield") || city.includes("watford") || city.includes("harrow") || city.includes("twickenham") || city.includes("kingston upon thames")) return "london";
+    if (city.includes("manchester") || city.includes("salford") || city.includes("stockport") || city.includes("bolton") || city.includes("oldham") || city.includes("rochdale") || city.includes("trafford") || city.includes("altrincham")) return "manchester";
+    if (city.includes("birmingham") || city.includes("solihull") || city.includes("wolverhampton") || city.includes("dudley") || city.includes("walsall") || city.includes("west bromwich") || city.includes("coventry")) return "birmingham";
+    if (city.includes("edinburgh") || city.includes("leith") || city.includes("livingston") || city.includes("musselburgh") || city.includes("dalkeith")) return "edinburgh";
+    if (city.includes("glasgow") || city.includes("paisley") || city.includes("clydebank") || city.includes("renfrew") || city.includes("east kilbride") || city.includes("coatbridge")) return "glasgow";
+    if (city.includes("bristol") || city.includes("filton") || city.includes("bradley stoke") || city.includes("clevedon") || city.includes("kingswood")) return "bristol";
+    if (city.includes("liverpool") || city.includes("bootle") || city.includes("birkenhead") || city.includes("wallasey") || city.includes("st helens")) return "liverpool";
+    if (city.includes("leeds") || city.includes("bradford") || city.includes("wakefield") || city.includes("pudsey") || city.includes("morley")) return "leeds";
+    if (city.includes("newcastle") || city.includes("gateshead") || city.includes("sunderland") || city.includes("north shields") || city.includes("wallsend")) return "newcastle";
+    if (city.includes("cardiff") || city.includes("caerdydd") || city.includes("newport") || city.includes("barry") || city.includes("rhoose") || city.includes("penarth")) return "cardiff";
+    if (city.includes("aberdeen") || city.includes("dyce")) return "aberdeen";
+    if (city.includes("belfast") || city.includes("lisburn") || city.includes("newtownabbey") || city.includes("bangor") || city.includes("crumlin") || city.includes("aldergrove")) return "belfast";
+    return null; // drop unmatched GB (noise from a city-targeted run)
+  }
+
+  // ── Ireland (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "IE") {
+    if (city.includes("dublin") || city.includes("swords") || city.includes("dun laoghaire") || city.includes("tallaght") || city.includes("blanchardstown") || city.includes("dundrum") || city.includes("malahide") || city.includes("santry")) return "dublin";
+    if (city.includes("cork") || city.includes("carrigaline") || city.includes("ballincollig") || city.includes("mahon") || city.includes("douglas") || city.includes("little island")) return "cork";
+    if (city.includes("shannon") || city.includes("limerick") || city.includes("ennis")) return "shannon";
+    if (city.includes("galway") || city.includes("oranmore") || city.includes("salthill") || city.includes("knocknacarra")) return "galway";
+    return null; // drop unmatched IE
+  }
 
   // ── Montenegro (guarded by country — short tokens like "bar") ──────
   if (record.countryCode === "ME") {
