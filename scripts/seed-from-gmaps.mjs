@@ -129,6 +129,8 @@ const CITY_COUNTRY = {
   dublin: "IE", cork: "IE", shannon: "IE", galway: "IE",
   antalya: "TR", alanya: "TR", bodrum: "TR", dalaman: "TR", izmir: "TR", istanbul: "TR",
   ankara: "TR", trabzon: "TR", adana: "TR", cappadocia: "TR",
+  berlin: "DE", munich: "DE", frankfurt: "DE", hamburg: "DE", cologne: "DE", dusseldorf: "DE", stuttgart: "DE",
+  amsterdam: "NL", rotterdam: "NL", eindhoven: "NL", brussels: "BE", antwerp: "BE", luxembourg: "LU",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -405,6 +407,36 @@ function inferCity(record) {
     if (city.includes("galway") || city.includes("oranmore") || city.includes("salthill") || city.includes("knocknacarra")) return "galway";
     return null; // drop unmatched IE
   }
+
+  // ── Germany (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "DE") {
+    if (city.includes("berlin") || city.includes("schonefeld") || city.includes("potsdam")) return "berlin";
+    if (city.includes("munich") || city.includes("munchen") || city.includes("freising") || city.includes("garching") || city.includes("ismaning") || city.includes("oberschleissheim")) return "munich";
+    if (city.includes("frankfurt") || city.includes("offenbach") || city.includes("eschborn") || city.includes("neu-isenburg") || city.includes("kelsterbach") || city.includes("raunheim")) return "frankfurt";
+    if (city.includes("hamburg") || city.includes("norderstedt") || city.includes("fuhlsbuttel")) return "hamburg";
+    if (city.includes("cologne") || city.includes("koln") || city.includes("koeln") || city.includes("bonn") || city.includes("leverkusen") || city.includes("hurth")) return "cologne";
+    if (city.includes("dusseldorf") || city.includes("duesseldorf") || city.includes("neuss") || city.includes("ratingen") || city.includes("meerbusch")) return "dusseldorf";
+    if (city.includes("stuttgart") || city.includes("leinfelden") || city.includes("echterdingen") || city.includes("fellbach") || city.includes("esslingen") || city.includes("sindelfingen") || city.includes("boblingen")) return "stuttgart";
+    return null; // drop unmatched DE (noise from a city-targeted run)
+  }
+
+  // ── Netherlands (guarded by country) ──────────────────────────────
+  if (record.countryCode === "NL") {
+    if (city.includes("amsterdam") || city.includes("schiphol") || city.includes("haarlem") || city.includes("amstelveen") || city.includes("hoofddorp") || city.includes("badhoevedorp") || city.includes("diemen") || city.includes("zaandam")) return "amsterdam";
+    if (city.includes("rotterdam") || city.includes("schiedam") || city.includes("capelle") || city.includes("the hague") || city.includes("den haag") || city.includes("delft") || city.includes("dordrecht") || city.includes("vlaardingen")) return "rotterdam";
+    if (city.includes("eindhoven") || city.includes("veldhoven") || city.includes("helmond") || city.includes("best")) return "eindhoven";
+    return null; // drop unmatched NL
+  }
+
+  // ── Belgium (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "BE") {
+    if (city.includes("brussels") || city.includes("bruxelles") || city.includes("brussel") || city.includes("zaventem") || city.includes("diegem") || city.includes("vilvoorde") || city.includes("anderlecht") || city.includes("schaerbeek") || city.includes("ixelles") || city.includes("evere")) return "brussels";
+    if (city.includes("antwerp") || city.includes("antwerpen") || city.includes("anvers") || city.includes("berchem") || city.includes("mortsel") || city.includes("deurne")) return "antwerp";
+    return null; // drop unmatched BE
+  }
+
+  // ── Luxembourg (guarded by country — single city) ─────────────────
+  if (record.countryCode === "LU") return "luxembourg";
 
   // ── Turkey (guarded by country) — city var is already de-accented ──
   if (record.countryCode === "TR") {

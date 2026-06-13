@@ -205,6 +205,43 @@ const BATCHES = {
       "car rental Cappadocia", "car rental Nevsehir", "car rental Goreme",
     ],
   },
+  // Germany — major cities + airports
+  germany: {
+    countryCode: "de",
+    queries: [
+      "car rental Berlin", "Autovermietung Berlin", "car rental Berlin airport",
+      "car rental Munich", "Autovermietung Munchen", "car rental Munich airport",
+      "car rental Frankfurt", "car rental Frankfurt airport",
+      "car rental Hamburg", "car rental Hamburg airport",
+      "car rental Cologne", "car rental Cologne Bonn airport",
+      "car rental Dusseldorf", "car rental Dusseldorf airport",
+      "car rental Stuttgart", "car rental Stuttgart airport",
+    ],
+  },
+  // Netherlands — major cities + airports
+  netherlands: {
+    countryCode: "nl",
+    queries: [
+      "car rental Amsterdam", "autoverhuur Amsterdam", "car rental Schiphol airport",
+      "car rental Rotterdam", "car rental The Hague",
+      "car rental Eindhoven", "car rental Eindhoven airport",
+    ],
+  },
+  // Belgium — Brussels + Antwerp
+  belgium: {
+    countryCode: "be",
+    queries: [
+      "car rental Brussels", "autoverhuur Brussel", "car rental Brussels airport",
+      "car rental Antwerp", "autoverhuur Antwerpen",
+    ],
+  },
+  // Luxembourg — single market
+  luxembourg: {
+    countryCode: "lu",
+    queries: [
+      "car rental Luxembourg", "car rental Luxembourg airport", "location voiture Luxembourg",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",
