@@ -111,6 +111,19 @@ const BATCHES = {
       "car rental Koper", "car rental Portoroz", "car rental Piran", "car rental Maribor",
     ],
   },
+  // France — Corsica + Cote d'Azur + majors
+  france: {
+    countryCode: "fr",
+    queries: [
+      "car rental Nice", "location de voiture Nice", "car rental Nice airport", "car rental Cannes", "car rental Antibes",
+      "car rental Ajaccio", "location de voiture Ajaccio", "car rental Ajaccio airport", "car rental Porto-Vecchio",
+      "car rental Bastia", "car rental Bastia airport", "car rental Calvi",
+      "car rental Marseille", "location de voiture Marseille", "car rental Marseille airport", "car rental Aix-en-Provence",
+      "car rental Bordeaux", "location de voiture Bordeaux", "car rental Bordeaux airport",
+      "car rental Paris", "location de voiture Paris", "car rental Paris CDG airport", "car rental Paris Orly airport",
+      "car rental Lyon", "location de voiture Lyon", "car rental Lyon airport",
+    ],
+  },
 };
 
 const BATCH = process.env.APIFY_BATCH || "canaries";

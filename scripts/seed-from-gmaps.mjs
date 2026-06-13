@@ -124,6 +124,7 @@ const CITY_COUNTRY = {
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
+  nice: "FR", ajaccio: "FR", bastia: "FR", marseille: "FR", bordeaux: "FR", paris: "FR", lyon: "FR",
   // Islands
   tenerife: "ES", "gran-canaria": "ES", lanzarote: "ES", fuerteventura: "ES", ibiza: "ES",
   menorca: "ES", "la-palma": "ES", "la-gomera": "ES", "el-hierro": "ES",
@@ -178,6 +179,37 @@ function inferItalyIsland(record) {
   return null;
 }
 
+// France routed by department (first 2 digits of postal code), with town/state
+// for Corsica's 2A/2B split. Returns a target-city slug, or null for any other
+// region (noise from a city-targeted run, which we drop rather than dump into Paris).
+function inferFranceRegion(record) {
+  if (record.countryCode !== "FR") return null;
+  const pcStr = String(record.postalCode || "").replace(/\D/g, "");
+  const pc = parseInt(pcStr, 10);
+  const dep = pcStr.slice(0, 2);
+  const st = (record.state || "").toLowerCase();
+  const city = (record.city || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+
+  // Corsica (dep 20 / "2A"/"2B") — split by department: Corse-du-Sud → Ajaccio,
+  // Haute-Corse → Bastia. Postal 20000–20199 ≈ Corse-du-Sud, 20200+ ≈ Haute-Corse.
+  if (dep === "20" || st.includes("corse") || st.includes("corsica")) {
+    if (st.includes("haute-corse")) return "bastia";
+    if (st.includes("corse-du-sud")) return "ajaccio";
+    if (city.includes("bastia") || city.includes("calvi") || city.includes("corte") || city.includes("ile-rousse") || city.includes("ghisonaccia") || city.includes("lucciana") || city.includes("biguglia") || city.includes("furiani") || city.includes("borgo")) return "bastia";
+    if (city.includes("ajaccio") || city.includes("porto-vecchio") || city.includes("propriano") || city.includes("sartene") || city.includes("porticcio") || city.includes("bonifacio") || city.includes("grosseto")) return "ajaccio";
+    if (Number.isFinite(pc)) return pc >= 20200 ? "bastia" : "ajaccio";
+    return "ajaccio";
+  }
+
+  if (dep === "06") return "nice";        // Alpes-Maritimes (Côte d'Azur)
+  if (dep === "13") return "marseille";   // Bouches-du-Rhône
+  if (dep === "33") return "bordeaux";    // Gironde
+  if (dep === "69") return "lyon";        // Rhône
+  // Paris + Île-de-France departments
+  if (["75", "77", "78", "91", "92", "93", "94", "95"].includes(dep)) return "paris";
+  return null;
+}
+
 // Map Apify record → our city_slug enum
 // Uses city name first (more specific), falls back to country code
 function inferCity(record) {
@@ -190,6 +222,10 @@ function inferCity(record) {
   // ── Italy islands by postal code / region ─────────────────────────
   const itIsland = inferItalyIsland(record);
   if (itIsland) return itIsland;
+
+  // ── France by department (postal code) — most reliable ────────────
+  const frRegion = inferFranceRegion(record);
+  if (frRegion) return frRegion;
 
   // ── Baltics ─────────────────────────────────────────────────────
   if (city.includes("parnu") || city.includes("pärnu")) return "parnu";
@@ -276,6 +312,15 @@ function inferCity(record) {
   if (city.includes("thessaloniki") || city.includes("salonika") || city.includes("θεσσαλονικη")) return "thessaloniki";
   if (city.includes("rhodes") || city.includes("rodos") || city.includes("ροδος")) return "rhodes";
   if (city.includes("athens") || city.includes("athina") || city.includes("αθηνα") || city.includes("spata") || city.includes("glyfada") || city.includes("piraeus")) return "athens";
+
+  // ── France — town-name fallback (when postal code is missing) ──────
+  if (city.includes("ajaccio") || city.includes("porto-vecchio") || city.includes("propriano") || city.includes("sartene") || city.includes("porticcio") || city.includes("bonifacio")) return "ajaccio";
+  if (city.includes("bastia") || city.includes("calvi") || city.includes("corte") || city.includes("ile-rousse") || city.includes("ghisonaccia") || city.includes("lucciana")) return "bastia";
+  if (city.includes("nice") || city.includes("cannes") || city.includes("antibes") || city.includes("cagnes") || city.includes("saint-laurent-du-var") || city.includes("menton") || city.includes("grasse") || city.includes("mandelieu") || city.includes("villeneuve-loubet")) return "nice";
+  if (city.includes("marseille") || city.includes("aix-en-provence") || city.includes("marignane") || city.includes("aubagne") || city.includes("vitrolles")) return "marseille";
+  if (city.includes("bordeaux") || city.includes("merignac") || city.includes("pessac") || city.includes("le haillan")) return "bordeaux";
+  if (city.includes("lyon") || city.includes("villeurbanne") || city.includes("bron") || city.includes("saint-priest") || city.includes("vaulx-en-velin")) return "lyon";
+  if (city.includes("paris") || city.includes("roissy") || city.includes("orly") || city.includes("charles de gaulle") || city.includes("le bourget") || city.includes("nanterre") || city.includes("boulogne-billancourt")) return "paris";
 
   // ── Croatia ───────────────────────────────────────────────────────
   if (city.includes("split") || city.includes("kastela") || city.includes("kaštela") || city.includes("solin") || city.includes("trogir")) return "split";
