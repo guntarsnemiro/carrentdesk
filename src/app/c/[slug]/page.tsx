@@ -5,6 +5,7 @@ import { CITIES } from "@/lib/cities";
 import { haversineKm } from "@/lib/geo";
 import {
   AMENITY_LABELS,
+  getAllListingSlugs,
   getListingBySlug,
   type AmenityKey,
   type Listing,
@@ -13,18 +14,23 @@ import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 import { ClaimSidebarCard } from "./_components/claim-banner";
 
 // Company data only changes on re-scrape / operator edits (rare), so cache for
-// a week. Operator edits should trigger on-demand revalidatePath("/c/[slug]").
-export const revalidate = 604800; // 7 days
+// a month. Time-based revalidation that finds no change costs no ISR write, so
+// this is effectively free. Operator edits should trigger an on-demand
+// revalidatePath("/c/[slug]") for instant updates.
+export const revalidate = 2592000; // 30 days
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-// Generate company pages on-demand (then cache) instead of prerendering all
-// ~2,300 at build time — each deploy would otherwise cost thousands of ISR
-// writes. dynamicParams defaults to true, so any valid slug still renders.
-export function generateStaticParams() {
-  return [];
+// Prerender every company page at BUILD time. Build-time generation does NOT
+// count toward Vercel ISR writes, while on-demand (runtime) generation does —
+// and each deploy resets the cache, so on-demand generation made every crawl
+// after every deploy a fresh write. Prerendering keeps ISR writes near zero.
+// dynamicParams defaults to true, so any new slug still renders on first hit.
+export async function generateStaticParams() {
+  const slugs = await getAllListingSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

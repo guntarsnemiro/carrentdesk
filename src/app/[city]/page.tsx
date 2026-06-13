@@ -11,8 +11,10 @@ import {
 import { CityListingsView } from "@/components/marketing/city-listings-view";
 import { getIntentsForCity, YEAR } from "@/lib/seo/intents";
 
-// City listings change only on re-scrape; daily regeneration is plenty.
-export const revalidate = 86400; // 24 hours
+// City listings change only on re-scrape. Pages are prerendered at build
+// (free), and revalidation that finds no change costs no ISR write — a weekly
+// interval just trims background function invocations.
+export const revalidate = 604800; // 7 days
 
 type PageProps = {
   params: Promise<{ city: string }>;
