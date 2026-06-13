@@ -122,7 +122,8 @@ const CITY_COUNTRY = {
   lisbon: "PT", porto: "PT", faro: "PT",
   rome: "IT", milan: "IT", naples: "IT", catania: "IT",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
-  split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR",
+  split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
+  ljubljana: "SI", koper: "SI",
   // Islands
   tenerife: "ES", "gran-canaria": "ES", lanzarote: "ES", fuerteventura: "ES", ibiza: "ES",
   menorca: "ES", "la-palma": "ES", "la-gomera": "ES", "el-hierro": "ES",
@@ -280,7 +281,13 @@ function inferCity(record) {
   if (city.includes("split") || city.includes("kastela") || city.includes("kaštela") || city.includes("solin") || city.includes("trogir")) return "split";
   if (city.includes("dubrovnik")) return "dubrovnik";
   if (city.includes("zadar")) return "zadar";
+  if (city.includes("pula") || city.includes("medulin") || city.includes("fazana") || city.includes("fažana") || city.includes("premantura") || city.includes("rovinj") || city.includes("porec") || city.includes("poreč")) return "pula";
+  if (city.includes("rijeka") || city.includes("opatija") || city.includes("kostrena") || city.includes("kraljevica") || city.includes("omisalj") || city.includes("omišalj") || city.includes("krk")) return "rijeka";
   if (city.includes("zagreb") || city.includes("velika gorica")) return "zagreb";
+
+  // ── Slovenia ──────────────────────────────────────────────────────
+  if (city.includes("koper") || city.includes("izola") || city.includes("piran") || city.includes("portoroz") || city.includes("portorož") || city.includes("lucija") || city.includes("ankaran")) return "koper";
+  if (city.includes("ljubljana") || city.includes("brnik") || city.includes("kranj") || city.includes("domzale") || city.includes("domžale") || record.countryCode === "SI") return "ljubljana";
 
   // ── Cyprus ────────────────────────────────────────────────────────
   // Paphos (west) towns first, then everything else in CY → Larnaca.
@@ -305,7 +312,7 @@ function inferCity(record) {
   // NOTE: ES + IT intentionally omitted from byCountry — Spanish and Italian
   // records are routed by postal/town above; unmatched ones are mainland noise
   // from an island-targeted run and should drop rather than dump into the capital.
-  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius", SE: "stockholm", NO: "oslo", DK: "copenhagen", FI: "helsinki", IS: "reykjavik", PT: "lisbon", GR: "athens", HR: "zagreb", CY: "larnaca", MT: "malta" };
+  const byCountry = { LV: "riga", EE: "tallinn", LT: "vilnius", SE: "stockholm", NO: "oslo", DK: "copenhagen", FI: "helsinki", IS: "reykjavik", PT: "lisbon", GR: "athens", HR: "zagreb", SI: "ljubljana", CY: "larnaca", MT: "malta" };
   return byCountry[record.countryCode] ?? null;
 }
 

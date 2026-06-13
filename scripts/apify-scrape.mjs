@@ -91,6 +91,26 @@ const BATCHES = {
       "car rental Malta", "car rental Malta airport", "car hire Malta",
     ],
   },
+  // Croatia — boost existing coast + add Istria/Kvarner (Pula, Rijeka)
+  croatia: {
+    countryCode: "hr",
+    queries: [
+      "car rental Dubrovnik", "rent a car Dubrovnik", "car rental Dubrovnik airport",
+      "car rental Split", "rent a car Split", "car rental Split airport",
+      "car rental Zadar", "rent a car Zadar", "car rental Zadar airport",
+      "car rental Zagreb", "rent a car Zagreb", "car rental Zagreb airport",
+      "car rental Pula", "rent a car Pula", "car rental Pula airport", "car rental Rovinj", "car rental Porec",
+      "car rental Rijeka", "rent a car Rijeka", "car rental Opatija", "car rental Krk airport",
+    ],
+  },
+  // Slovenia
+  slovenia: {
+    countryCode: "si",
+    queries: [
+      "car rental Ljubljana", "najem avtomobila Ljubljana", "car rental Ljubljana airport",
+      "car rental Koper", "car rental Portoroz", "car rental Piran", "car rental Maribor",
+    ],
+  },
 };
 
 const BATCH = process.env.APIFY_BATCH || "canaries";
