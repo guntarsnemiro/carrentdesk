@@ -123,6 +123,7 @@ const CITY_COUNTRY = {
   lisbon: "PT", porto: "PT", faro: "PT",
   rome: "IT", milan: "IT", naples: "IT", catania: "IT",
   venice: "IT", florence: "IT", pisa: "IT", bari: "IT", brindisi: "IT",
+  "ponta-delgada": "PT", kefalonia: "GR", naxos: "GR", paros: "GR",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -290,6 +291,9 @@ function inferCity(record) {
   if (city.includes("seville") || city.includes("sevilla") || city.includes("dos hermanas") || city.includes("san pablo")) return "seville";
   if (city.includes("bilbao") || city.includes("barakaldo") || city.includes("getxo") || city.includes("loiu") || city.includes("sondika") || city.includes("santurtzi")) return "bilbao";
 
+  // ── Portugal — Azores (check before Madeira/mainland) ─────────────
+  if (city.includes("ponta delgada") || city.includes("sao miguel") || city.includes("são miguel") || city.includes("azores") || city.includes("açores") || city.includes("acores") || city.includes("ribeira grande") || city.includes("vila franca do campo")) return "ponta-delgada";
+
   // ── Portugal — Madeira (check before mainland) ────────────────────
   if (city.includes("funchal") || city.includes("madeira") || city.includes("canico") || city.includes("caniço") || city.includes("machico") || city.includes("camara de lobos") || city.includes("câmara de lobos") || city.includes("santa cruz") && record.countryCode === "PT") return "funchal";
 
@@ -322,6 +326,9 @@ function inferCity(record) {
   if (city.includes("mykonos") || city.includes("μυκονος")) return "mykonos";
   if (city.includes("zakynthos") || city.includes("zante") || city.includes("ζακυνθος")) return "zakynthos";
   if (city.includes("kos") || city.includes("κως")) return "kos";
+  if (city.includes("kefalonia") || city.includes("cephalonia") || city.includes("kefallinia") || city.includes("argostoli") || city.includes("lixouri") || city.includes("κεφαλονια")) return "kefalonia";
+  if (city.includes("naxos") || city.includes("naxos chora") || city.includes("ναξος")) return "naxos";
+  if (city.includes("paros") || city.includes("parikia") || city.includes("paroikia") || city.includes("paroikía") || city.includes("παρος")) return "paros";
 
   // ── Greece ────────────────────────────────────────────────────────
   if (city.includes("heraklion") || city.includes("iraklion") || city.includes("irakleio") || city.includes("ηρακλειο") || city.includes("crete") || city.includes("kreta")) return "heraklion";

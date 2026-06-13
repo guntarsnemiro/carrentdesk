@@ -144,6 +144,25 @@ const BATCHES = {
       "car rental Catania", "car rental Catania airport",
     ],
   },
+  // Cleanup — Azores (Portugal islands)
+  azores: {
+    countryCode: "pt",
+    queries: [
+      "car rental Ponta Delgada", "rent a car Ponta Delgada", "car rental Ponta Delgada airport",
+      "car rental Sao Miguel Azores", "rent a car Azores", "aluguer de carros Ponta Delgada",
+    ],
+  },
+  // Cleanup — more Greek islands + boost Rhodes/Zakynthos
+  "greek-islands-2": {
+    countryCode: "gr",
+    queries: [
+      "car rental Kefalonia", "car rental Kefalonia airport", "car rental Argostoli",
+      "car rental Naxos", "rent a car Naxos",
+      "car rental Paros", "rent a car Paros",
+      "car rental Rhodes", "car rental Rhodes airport", "rent a car Rhodes",
+      "car rental Zakynthos", "car rental Zakynthos airport", "rent a car Zante",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",
