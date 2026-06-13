@@ -4,10 +4,9 @@ import { TrustStrip } from "@/components/marketing/trust-strip";
 import { VehicleTypeRow } from "@/components/marketing/vehicle-type-row";
 import { FeaturedRentals } from "@/components/marketing/featured-rentals";
 
-// Re-render every 60s so DB updates (new listings, design-partner changes,
-// etc.) reach production without manual re-deploys. Pre-pitch we may switch
-// to `force-dynamic` for instant freshness.
-export const revalidate = 60;
+// Aggregated marketing page — hourly regeneration is plenty and keeps ISR
+// writes low. Bump down temporarily if you need instant freshness pre-pitch.
+export const revalidate = 3600; // 1 hour
 
 export default function HomePage() {
   return (

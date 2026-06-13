@@ -6,7 +6,8 @@ import { filterListings } from "@/lib/listings";
 import { CityListingsView } from "@/components/marketing/city-listings-view";
 import { getAllIntentParams, getIntentBySlug, getIntentsForCity, YEAR } from "@/lib/seo/intents";
 
-export const revalidate = 60;
+// SEO landing pages over static data — daily regeneration is plenty.
+export const revalidate = 86400; // 24 hours
 
 type PageProps = {
   params: Promise<{ city: string; intent: string }>;

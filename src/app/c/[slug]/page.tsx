@@ -5,7 +5,6 @@ import { CITIES } from "@/lib/cities";
 import { haversineKm } from "@/lib/geo";
 import {
   AMENITY_LABELS,
-  getAllListingSlugs,
   getListingBySlug,
   type AmenityKey,
   type Listing,
@@ -13,16 +12,19 @@ import {
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 import { ClaimSidebarCard } from "./_components/claim-banner";
 
-// Re-render company profiles every 60s so operator edits surface fast.
-export const revalidate = 60;
+// Company data only changes on re-scrape / operator edits (rare), so cache for
+// a week. Operator edits should trigger on-demand revalidatePath("/c/[slug]").
+export const revalidate = 604800; // 7 days
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  const slugs = await getAllListingSlugs();
-  return slugs.map((slug) => ({ slug }));
+// Generate company pages on-demand (then cache) instead of prerendering all
+// ~2,300 at build time — each deploy would otherwise cost thousands of ISR
+// writes. dynamicParams defaults to true, so any valid slug still renders.
+export function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

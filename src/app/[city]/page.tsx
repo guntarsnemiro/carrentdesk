@@ -11,8 +11,8 @@ import {
 import { CityListingsView } from "@/components/marketing/city-listings-view";
 import { getIntentsForCity, YEAR } from "@/lib/seo/intents";
 
-// Re-render every 60s so DB updates surface without a manual redeploy.
-export const revalidate = 60;
+// City listings change only on re-scrape; daily regeneration is plenty.
+export const revalidate = 86400; // 24 hours
 
 type PageProps = {
   params: Promise<{ city: string }>;

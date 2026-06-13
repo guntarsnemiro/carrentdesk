@@ -10,8 +10,8 @@ import {
 import { ListingCard } from "@/components/marketing/listing-card";
 import { ListingRowList } from "@/components/marketing/listing-row";
 
-// Re-render every 60s so new listings show up shortly after they're added.
-export const revalidate = 60;
+// Listings change only on re-scrape; hourly regeneration is plenty.
+export const revalidate = 3600; // 1 hour
 
 export const metadata: Metadata = {
   title: "All car rentals — Baltics & Scandinavia",
