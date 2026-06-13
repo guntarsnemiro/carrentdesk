@@ -189,6 +189,22 @@ const BATCHES = {
       "car rental Galway", "car hire Galway",
     ],
   },
+  // Turkey — coastal tourism hubs + major cities
+  turkey: {
+    countryCode: "tr",
+    queries: [
+      "car rental Antalya", "oto kiralama Antalya", "car rental Antalya airport", "car rental Side", "car rental Belek",
+      "car rental Alanya", "car rental Gazipasa airport",
+      "car rental Bodrum", "car rental Bodrum airport",
+      "car rental Dalaman airport", "car rental Fethiye", "car rental Marmaris",
+      "car rental Izmir", "car rental Izmir airport", "car rental Cesme", "car rental Kusadasi",
+      "car rental Istanbul", "oto kiralama Istanbul", "car rental Istanbul airport", "car rental Sabiha Gokcen airport",
+      "car rental Ankara", "car rental Ankara airport",
+      "car rental Trabzon", "car rental Trabzon airport",
+      "car rental Adana",
+      "car rental Cappadocia", "car rental Nevsehir", "car rental Goreme",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",

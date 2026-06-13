@@ -127,6 +127,8 @@ const CITY_COUNTRY = {
   london: "GB", manchester: "GB", birmingham: "GB", edinburgh: "GB", glasgow: "GB", bristol: "GB",
   liverpool: "GB", leeds: "GB", newcastle: "GB", cardiff: "GB", aberdeen: "GB", belfast: "GB",
   dublin: "IE", cork: "IE", shannon: "IE", galway: "IE",
+  antalya: "TR", alanya: "TR", bodrum: "TR", dalaman: "TR", izmir: "TR", istanbul: "TR",
+  ankara: "TR", trabzon: "TR", adana: "TR", cappadocia: "TR",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -402,6 +404,21 @@ function inferCity(record) {
     if (city.includes("shannon") || city.includes("limerick") || city.includes("ennis")) return "shannon";
     if (city.includes("galway") || city.includes("oranmore") || city.includes("salthill") || city.includes("knocknacarra")) return "galway";
     return null; // drop unmatched IE
+  }
+
+  // ── Turkey (guarded by country) — city var is already de-accented ──
+  if (record.countryCode === "TR") {
+    if (city.includes("alanya") || city.includes("gazipasa") || city.includes("mahmutlar") || city.includes("kestel") || city.includes("avsallar") || city.includes("konakli") || city.includes("oba")) return "alanya";
+    if (city.includes("antalya") || city.includes("lara") || city.includes("konyaalti") || city.includes("kepez") || city.includes("muratpasa") || city.includes("aksu") || city.includes("belek") || city.includes("side") || city.includes("manavgat") || city.includes("kemer") || city.includes("serik")) return "antalya";
+    if (city.includes("bodrum") || city.includes("milas") || city.includes("turgutreis") || city.includes("gumbet") || city.includes("yalikavak") || city.includes("ortakent") || city.includes("bitez") || city.includes("turkbuku")) return "bodrum";
+    if (city.includes("dalaman") || city.includes("fethiye") || city.includes("marmaris") || city.includes("gocek") || city.includes("oludeniz") || city.includes("dalyan") || city.includes("ortaca") || city.includes("hisaronu") || city.includes("calis") || city.includes("icmeler") || city.includes("sarigerme") || city.includes("mugla")) return "dalaman";
+    if (city.includes("izmir") || city.includes("cesme") || city.includes("alacati") || city.includes("gaziemir") || city.includes("bornova") || city.includes("karsiyaka") || city.includes("konak") || city.includes("buca") || city.includes("bayrakli") || city.includes("menderes") || city.includes("kusadasi")) return "izmir";
+    if (city.includes("istanbul") || city.includes("sabiha") || city.includes("pendik") || city.includes("kadikoy") || city.includes("besiktas") || city.includes("sisli") || city.includes("bakirkoy") || city.includes("atasehir") || city.includes("beylikduzu") || city.includes("esenyurt") || city.includes("umraniye") || city.includes("maltepe") || city.includes("kartal") || city.includes("sariyer") || city.includes("fatih") || city.includes("basaksehir")) return "istanbul";
+    if (city.includes("ankara") || city.includes("esenboga") || city.includes("cankaya") || city.includes("kecioren") || city.includes("yenimahalle") || city.includes("etimesgut") || city.includes("sincan") || city.includes("polatli")) return "ankara";
+    if (city.includes("trabzon") || city.includes("akcaabat") || city.includes("yomra") || city.includes("arsin")) return "trabzon";
+    if (city.includes("adana") || city.includes("seyhan") || city.includes("yuregir") || city.includes("cukurova") || city.includes("saricam") || city.includes("ceyhan") || city.includes("mersin") || city.includes("tarsus")) return "adana";
+    if (city.includes("cappadocia") || city.includes("kapadokya") || city.includes("nevsehir") || city.includes("goreme") || city.includes("urgup") || city.includes("avanos") || city.includes("uchisar") || city.includes("gulsehir") || city.includes("kayseri")) return "cappadocia";
+    return null; // drop unmatched TR (noise from a city-targeted run)
   }
 
   // ── Montenegro (guarded by country — short tokens like "bar") ──────
