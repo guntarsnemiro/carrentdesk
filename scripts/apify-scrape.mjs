@@ -130,6 +130,16 @@ const BATCHES = {
       "car rental Vlore", "car rental Vlora", "car rental Durres", "rent a car Durres",
     ],
   },
+  // Bulgaria — Black Sea coast + capital
+  bulgaria: {
+    countryCode: "bg",
+    queries: [
+      "car rental Sofia", "rent a car Sofia", "car rental Sofia airport",
+      "car rental Varna", "rent a car Varna", "car rental Varna airport", "car rental Golden Sands",
+      "car rental Burgas", "rent a car Burgas", "car rental Burgas airport", "car rental Sunny Beach", "car rental Nessebar",
+      "car rental Plovdiv",
+    ],
+  },
   // Spain mainland coast — new cities + boost existing
   "spain-mainland": {
     countryCode: "es",

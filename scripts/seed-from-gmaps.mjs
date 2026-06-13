@@ -128,6 +128,7 @@ const CITY_COUNTRY = {
   nice: "FR", ajaccio: "FR", bastia: "FR", marseille: "FR", bordeaux: "FR", paris: "FR", lyon: "FR",
   tivat: "ME", budva: "ME", kotor: "ME", bar: "ME", podgorica: "ME",
   tirana: "AL", saranda: "AL", vlore: "AL", durres: "AL",
+  sofia: "BG", varna: "BG", burgas: "BG", plovdiv: "BG",
   // Islands
   tenerife: "ES", "gran-canaria": "ES", lanzarote: "ES", fuerteventura: "ES", ibiza: "ES",
   menorca: "ES", "la-palma": "ES", "la-gomera": "ES", "el-hierro": "ES",
@@ -347,6 +348,15 @@ function inferCity(record) {
     if (city.includes("durres") || city.includes("golem") || city.includes("shijak")) return "durres";
     if (city.includes("tirana") || city.includes("rinas")) return "tirana";
     return "tirana"; // capital fallback — keep all Albanian records
+  }
+
+  // ── Bulgaria (guarded by country) ─────────────────────────────────
+  if (record.countryCode === "BG") {
+    if (city.includes("varna") || city.includes("golden sands") || city.includes("zlatni") || city.includes("balchik") || city.includes("albena")) return "varna";
+    if (city.includes("burgas") || city.includes("sunny beach") || city.includes("nessebar") || city.includes("nesebar") || city.includes("sozopol") || city.includes("pomorie") || city.includes("sveti vlas") || city.includes("ravda")) return "burgas";
+    if (city.includes("plovdiv")) return "plovdiv";
+    if (city.includes("sofia")) return "sofia";
+    return "sofia"; // capital fallback — keep all Bulgarian records
   }
 
   // ── Croatia ───────────────────────────────────────────────────────
