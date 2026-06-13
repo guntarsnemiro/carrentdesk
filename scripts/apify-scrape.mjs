@@ -111,6 +111,25 @@ const BATCHES = {
       "car rental Koper", "car rental Portoroz", "car rental Piran", "car rental Maribor",
     ],
   },
+  // Montenegro — coast + capital
+  montenegro: {
+    countryCode: "me",
+    queries: [
+      "car rental Tivat", "rent a car Tivat", "car rental Tivat airport",
+      "car rental Budva", "rent a car Budva", "car rental Kotor", "car rental Herceg Novi",
+      "car rental Bar Montenegro", "car rental Ulcinj",
+      "car rental Podgorica", "rent a car Podgorica", "car rental Podgorica airport",
+    ],
+  },
+  // Albania — capital + riviera
+  albania: {
+    countryCode: "al",
+    queries: [
+      "car rental Tirana", "rent a car Tirana", "car rental Tirana airport",
+      "car rental Saranda", "rent a car Saranda", "car rental Ksamil",
+      "car rental Vlore", "car rental Vlora", "car rental Durres", "rent a car Durres",
+    ],
+  },
   // Spain mainland coast — new cities + boost existing
   "spain-mainland": {
     countryCode: "es",

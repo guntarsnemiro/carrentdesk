@@ -126,6 +126,8 @@ const CITY_COUNTRY = {
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
   nice: "FR", ajaccio: "FR", bastia: "FR", marseille: "FR", bordeaux: "FR", paris: "FR", lyon: "FR",
+  tivat: "ME", budva: "ME", kotor: "ME", bar: "ME", podgorica: "ME",
+  tirana: "AL", saranda: "AL", vlore: "AL", durres: "AL",
   // Islands
   tenerife: "ES", "gran-canaria": "ES", lanzarote: "ES", fuerteventura: "ES", ibiza: "ES",
   menorca: "ES", "la-palma": "ES", "la-gomera": "ES", "el-hierro": "ES",
@@ -327,6 +329,25 @@ function inferCity(record) {
   if (city.includes("bordeaux") || city.includes("merignac") || city.includes("pessac") || city.includes("le haillan")) return "bordeaux";
   if (city.includes("lyon") || city.includes("villeurbanne") || city.includes("bron") || city.includes("saint-priest") || city.includes("vaulx-en-velin")) return "lyon";
   if (city.includes("paris") || city.includes("roissy") || city.includes("orly") || city.includes("charles de gaulle") || city.includes("le bourget") || city.includes("nanterre") || city.includes("boulogne-billancourt")) return "paris";
+
+  // ── Montenegro (guarded by country — short tokens like "bar") ──────
+  if (record.countryCode === "ME") {
+    if (city.includes("tivat")) return "tivat";
+    if (city.includes("budva") || city.includes("becici") || city.includes("bečići") || city.includes("petrovac") || city.includes("sveti stefan") || city.includes("przno")) return "budva";
+    if (city.includes("kotor") || city.includes("herceg novi") || city.includes("perast") || city.includes("risan") || city.includes("dobrota")) return "kotor";
+    if (city.includes("bar") || city.includes("ulcinj") || city.includes("sutomore")) return "bar";
+    if (city.includes("podgorica") || city.includes("golubovci")) return "podgorica";
+    return "podgorica"; // capital fallback — keep all Montenegrin records
+  }
+
+  // ── Albania (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "AL") {
+    if (city.includes("saranda") || city.includes("sarande") || city.includes("ksamil")) return "saranda";
+    if (city.includes("vlore") || city.includes("vlora") || city.includes("orikum")) return "vlore";
+    if (city.includes("durres") || city.includes("golem") || city.includes("shijak")) return "durres";
+    if (city.includes("tirana") || city.includes("rinas")) return "tirana";
+    return "tirana"; // capital fallback — keep all Albanian records
+  }
 
   // ── Croatia ───────────────────────────────────────────────────────
   if (city.includes("split") || city.includes("kastela") || city.includes("kaštela") || city.includes("solin") || city.includes("trogir")) return "split";
