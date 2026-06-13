@@ -130,6 +130,20 @@ const BATCHES = {
       "car rental Vlore", "car rental Vlora", "car rental Durres", "rent a car Durres",
     ],
   },
+  // Italy south + Tuscany + Veneto — new cities + boost Naples/Rome/Catania
+  "italy-south": {
+    countryCode: "it",
+    queries: [
+      "car rental Bari", "autonoleggio Bari", "car rental Bari airport",
+      "car rental Brindisi", "car rental Brindisi airport",
+      "car rental Pisa", "car rental Pisa airport",
+      "car rental Florence", "autonoleggio Firenze", "car rental Florence airport",
+      "car rental Venice", "autonoleggio Venezia", "car rental Venice airport", "car rental Venice Mestre",
+      "car rental Naples", "autonoleggio Napoli", "car rental Naples airport",
+      "car rental Rome", "car rental Rome Fiumicino airport",
+      "car rental Catania", "car rental Catania airport",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",

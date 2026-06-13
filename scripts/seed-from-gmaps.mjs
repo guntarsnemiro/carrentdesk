@@ -122,6 +122,7 @@ const CITY_COUNTRY = {
   valencia: "ES", seville: "ES", bilbao: "ES", girona: "ES",
   lisbon: "PT", porto: "PT", faro: "PT",
   rome: "IT", milan: "IT", naples: "IT", catania: "IT",
+  venice: "IT", florence: "IT", pisa: "IT", bari: "IT", brindisi: "IT",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -305,8 +306,14 @@ function inferCity(record) {
   // ── Italy ─────────────────────────────────────────────────────────
   if (city.includes("catania") || city.includes("sicilia") || city.includes("sicily") || city.includes("fontanarossa")) return "catania";
   if (city.includes("naples") || city.includes("napoli") || city.includes("capodichino") || city.includes("pozzuoli")) return "naples";
-  if (city.includes("milan") || city.includes("milano") || city.includes("malpensa") || city.includes("linate") || city.includes("sesto")) return "milan";
+  if (city.includes("milan") || city.includes("milano") || city.includes("malpensa") || city.includes("linate")) return "milan";
   if (city.includes("rome") || city.includes("roma") || city.includes("fiumicino") || city.includes("ciampino")) return "rome";
+  // Italy south + Tuscany + Veneto (mainland) — before the IT drop fallback
+  if (city.includes("venice") || city.includes("venezia") || city.includes("mestre") || city.includes("marghera") || city.includes("tessera") || city.includes("mira")) return "venice";
+  if (city.includes("florence") || city.includes("firenze") || city.includes("sesto fiorentino") || city.includes("scandicci") || city.includes("calenzano") || city.includes("peretola")) return "florence";
+  if (city.includes("pisa") || city.includes("san giuliano terme") || city.includes("cascina")) return "pisa";
+  if (city.includes("bari") || city.includes("palese") || city.includes("mola di bari") || city.includes("monopoli") || city.includes("bitonto")) return "bari";
+  if (city.includes("brindisi") || city.includes("casale")) return "brindisi";
 
   // ── Greece — islands (check before Heraklion's broad "crete" match) ─
   if (city.includes("chania") || city.includes("hania") || city.includes("χανια") || city.includes("souda")) return "chania";
