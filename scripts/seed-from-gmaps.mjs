@@ -216,6 +216,28 @@ function inferFranceRegion(record) {
   return null;
 }
 
+// Greek islands routed by postal code (most reliable — Google often reports a
+// village name like "Faliraki" or "Svoronata" that no name-matcher would catch,
+// but the postal code prefix is island-specific). Returns an island slug, or
+// null when the code isn't one of our island pages (mainland → handled later).
+function inferGreeceIsland(record) {
+  if (record.countryCode !== "GR") return null;
+  const p = parseInt(String(record.postalCode || "").replace(/\D/g, "").slice(0, 3), 10);
+  if (!Number.isFinite(p)) return null;
+  if (p === 290 || p === 291) return "zakynthos";        // Zakynthos / Zante
+  if (p === 280 || p === 281 || p === 282) return "kefalonia"; // Kefalonia
+  if (p === 850 || p === 851 || p === 852) return "rhodes";    // Rhodes
+  if (p === 853) return "kos";                            // Kos
+  if (p === 843) return "naxos";                          // Naxos
+  if (p === 844) return "paros";                          // Paros
+  if (p === 847) return "santorini";                      // Thira / Santorini
+  if (p === 846) return "mykonos";                        // Mykonos
+  if (p === 490 || p === 491) return "corfu";             // Corfu / Kerkyra
+  if (p === 730 || p === 731) return "chania";            // Chania (W. Crete)
+  if (p >= 700 && p <= 715) return "heraklion";           // Heraklion (C. Crete)
+  return null;
+}
+
 // Map Apify record → our city_slug enum
 // Uses city name first (more specific), falls back to country code
 function inferCity(record) {
@@ -319,21 +341,29 @@ function inferCity(record) {
   if (city.includes("bari") || city.includes("palese") || city.includes("mola di bari") || city.includes("monopoli") || city.includes("bitonto")) return "bari";
   if (city.includes("brindisi") || city.includes("casale")) return "brindisi";
 
-  // ── Greece — islands (check before Heraklion's broad "crete" match) ─
+  // ── Greece — islands ──────────────────────────────────────────────
+  // Postal code is the most reliable signal (Google reports village names like
+  // "Faliraki"/"Svoronata" that no name list would catch). Check it first.
+  {
+    const grIsland = inferGreeceIsland(record);
+    if (grIsland) return grIsland;
+  }
+  // Name fallback (check before Heraklion's broad "crete" match) — village names
+  // included for records that are missing a postal code.
   if (city.includes("chania") || city.includes("hania") || city.includes("χανια") || city.includes("souda")) return "chania";
   if (city.includes("corfu") || city.includes("kerkyra") || city.includes("kerkira") || city.includes("κερκυρα")) return "corfu";
-  if (city.includes("santorini") || city.includes("thira") || city.includes("fira") || city.includes("thera") || city.includes("θηρα") || city.includes("σαντορινη")) return "santorini";
+  if (city.includes("santorini") || city.includes("thira") || city.includes("fira") || city.includes("thera") || city.includes("θηρα") || city.includes("σαντορινη") || city.includes("kamari") || city.includes("perissa") || city.includes("oia") || city.includes("messaria") || city.includes("mesaria") || city.includes("karterados") || city.includes("akrotiri")) return "santorini";
   if (city.includes("mykonos") || city.includes("μυκονος")) return "mykonos";
-  if (city.includes("zakynthos") || city.includes("zante") || city.includes("ζακυνθος")) return "zakynthos";
-  if (city.includes("kos") || city.includes("κως")) return "kos";
-  if (city.includes("kefalonia") || city.includes("cephalonia") || city.includes("kefallinia") || city.includes("argostoli") || city.includes("lixouri") || city.includes("κεφαλονια")) return "kefalonia";
-  if (city.includes("naxos") || city.includes("naxos chora") || city.includes("ναξος")) return "naxos";
+  if (city.includes("zakynthos") || city.includes("zakinthos") || city.includes("zante") || city.includes("ζακυνθος") || city.includes("laganas") || city.includes("planos") || city.includes("tsilivi") || city.includes("argassi") || city.includes("alikanas") || city.includes("alykes") || city.includes("tragaki") || city.includes("lagopodo") || city.includes("kalamaki")) return "zakynthos";
+  if (city.includes("kos") || city.includes("κως") || city.includes("kardamena") || city.includes("tigaki") || city.includes("mastichari") || city.includes("kefalos")) return "kos";
+  if (city.includes("kefalonia") || city.includes("cephalonia") || city.includes("kefallinia") || city.includes("argostoli") || city.includes("lixouri") || city.includes("κεφαλονια") || city.includes("svoronata") || city.includes("kerameies") || city.includes("lassi") || city.includes("lourdata") || city.includes("kompothekrata") || city.includes("sami")) return "kefalonia";
+  if (city.includes("naxos") || city.includes("naxos chora") || city.includes("ναξος") || city.includes("agios prokopios") || city.includes("agia anna")) return "naxos";
   if (city.includes("paros") || city.includes("parikia") || city.includes("paroikia") || city.includes("paroikía") || city.includes("παρος")) return "paros";
+  if (city.includes("rhodes") || city.includes("rodos") || city.includes("ροδος") || city.includes("faliraki") || city.includes("ialysos") || city.includes("ialisos") || city.includes("kremasti") || city.includes("paradeisi") || city.includes("kolymbia") || city.includes("kolympia") || city.includes("lindos") || city.includes("afandou") || city.includes("afantou") || city.includes("archangelos") || city.includes("pefkos") || city.includes("lardos") || city.includes("trianta")) return "rhodes";
 
-  // ── Greece ────────────────────────────────────────────────────────
+  // ── Greece (mainland) ─────────────────────────────────────────────
   if (city.includes("heraklion") || city.includes("iraklion") || city.includes("irakleio") || city.includes("ηρακλειο") || city.includes("crete") || city.includes("kreta")) return "heraklion";
   if (city.includes("thessaloniki") || city.includes("salonika") || city.includes("θεσσαλονικη")) return "thessaloniki";
-  if (city.includes("rhodes") || city.includes("rodos") || city.includes("ροδος")) return "rhodes";
   if (city.includes("athens") || city.includes("athina") || city.includes("αθηνα") || city.includes("spata") || city.includes("glyfada") || city.includes("piraeus")) return "athens";
 
   // ── France — town-name fallback (when postal code is missing) ──────
