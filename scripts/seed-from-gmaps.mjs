@@ -131,6 +131,8 @@ const CITY_COUNTRY = {
   ankara: "TR", trabzon: "TR", adana: "TR", cappadocia: "TR",
   berlin: "DE", munich: "DE", frankfurt: "DE", hamburg: "DE", cologne: "DE", dusseldorf: "DE", stuttgart: "DE",
   amsterdam: "NL", rotterdam: "NL", eindhoven: "NL", brussels: "BE", antwerp: "BE", luxembourg: "LU",
+  zurich: "CH", geneva: "CH", basel: "CH", bern: "CH", lugano: "CH",
+  vienna: "AT", salzburg: "AT", innsbruck: "AT", graz: "AT", klagenfurt: "AT",
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
@@ -437,6 +439,30 @@ function inferCity(record) {
 
   // ── Luxembourg (guarded by country — single city) ─────────────────
   if (record.countryCode === "LU") return "luxembourg";
+
+  // ── Switzerland (guarded by country) ──────────────────────────────
+  if (record.countryCode === "CH") {
+    if (city.includes("zurich") || city.includes("zürich") || city.includes("kloten") || city.includes("opfikon") || city.includes("dubendorf") || city.includes("dübendorf") || city.includes("winterthur") || city.includes("glattbrugg") || city.includes("wallisellen")) return "zurich";
+    if (city.includes("geneva") || city.includes("geneve") || city.includes("genève") || city.includes("genf") || city.includes("meyrin") || city.includes("vernier") || city.includes("carouge") || city.includes("lancy") || city.includes("cointrin")) return "geneva";
+    if (city.includes("basel") || city.includes("basle") || city.includes("bale") || city.includes("bâle") || city.includes("allschwil") || city.includes("muttenz") || city.includes("pratteln") || city.includes("reinach")) return "basel";
+    if (city.includes("bern") || city.includes("berne") || city.includes("belp") || city.includes("ostermundigen") || city.includes("koniz") || city.includes("könitz") || city.includes("muri")) return "bern";
+    if (city.includes("lugano") || city.includes("agno") || city.includes("paradiso") || city.includes("massagno") || city.includes("bellinzona") || city.includes("locarno")) return "lugano";
+    // Lausanne and other French-Swiss towns are closest to Geneva on the map.
+    if (city.includes("lausanne") || city.includes("nyon") || city.includes("morges") || city.includes("montreux") || city.includes("vevey")) return "geneva";
+    return null; // drop unmatched CH (noise from a city-targeted run)
+  }
+
+  // ── Austria (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "AT") {
+    if (city.includes("vienna") || city.includes("wien") || city.includes("schwechat") || city.includes("klosterneuburg") || city.includes("modling") || city.includes("mödling") || city.includes("schwadorf")) return "vienna";
+    if (city.includes("salzburg") || city.includes("wals") || city.includes("hallein") || city.includes("anif") || city.includes("siezenheim")) return "salzburg";
+    if (city.includes("innsbruck") || city.includes("hall in tirol") || city.includes("rum") || city.includes("volders") || city.includes("wattens") || city.includes("telfs") || city.includes("kitzbuhel") || city.includes("kitzbühel")) return "innsbruck";
+    if (city.includes("graz") || city.includes("feldkirchen") || city.includes("seiersberg") || city.includes("gratkorn")) return "graz";
+    if (city.includes("klagenfurt") || city.includes("villach") || city.includes("velden")) return "klagenfurt";
+    // Linz and other towns route to Vienna (nearest large hub on the map).
+    if (city.includes("linz") || city.includes("wels") || city.includes("st. polten") || city.includes("sankt polten") || city.includes("wiener neustadt")) return "vienna";
+    return null; // drop unmatched AT
+  }
 
   // ── Turkey (guarded by country) — city var is already de-accented ──
   if (record.countryCode === "TR") {

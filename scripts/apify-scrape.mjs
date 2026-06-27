@@ -242,6 +242,28 @@ const BATCHES = {
       "car rental Luxembourg", "car rental Luxembourg airport", "location voiture Luxembourg",
     ],
   },
+  // Switzerland — major cities + airports
+  switzerland: {
+    countryCode: "ch",
+    queries: [
+      "car rental Zurich", "Autovermietung Zürich", "car rental Zurich airport",
+      "car rental Geneva", "location de voiture Genève", "car rental Geneva airport",
+      "car rental Basel", "Autovermietung Basel", "car rental Basel airport EuroAirport",
+      "car rental Bern", "Autovermietung Bern", "car rental Bern airport",
+      "car rental Lugano", "autonoleggio Lugano", "car rental Lugano airport",
+    ],
+  },
+  // Austria — major cities + airports
+  austria: {
+    countryCode: "at",
+    queries: [
+      "car rental Vienna", "Autovermietung Wien", "car rental Vienna airport",
+      "car rental Salzburg", "Autovermietung Salzburg", "car rental Salzburg airport",
+      "car rental Innsbruck", "Autovermietung Innsbruck", "car rental Innsbruck airport",
+      "car rental Graz", "Autovermietung Graz", "car rental Graz airport",
+      "car rental Klagenfurt", "Autovermietung Klagenfurt", "car rental Klagenfurt airport",
+    ],
+  },
   // Bulgaria — Black Sea coast + capital
   bulgaria: {
     countryCode: "bg",
