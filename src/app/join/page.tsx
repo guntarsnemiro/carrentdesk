@@ -6,7 +6,7 @@ import { FAQ } from "@/app/for-rentals/_components/faq";
 /* ── SEO metadata ───────────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
-  title: "Car Rental Management Software — Pricing & Free Trial | CarRentDesk",
+  title: "Car Rental Management Software — Pricing & Free Trial",
   description:
     "Car rental management software for independent operators. Fleet management, booking calendar, customer CRM, invoicing, and real P&L — all in one platform from €29/month. Start your free trial, no credit card required.",
   keywords: [
