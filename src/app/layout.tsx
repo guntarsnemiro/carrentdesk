@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s · CarRentDesk",
   },
   description:
-    "Find and compare independent local car rental companies. Direct contact, fair prices, no commission — no big platform middleman.",
+    "Best local car rentals across Europe. 6,500+ companies, direct contact, no booking fees. Skip the big chains and rent direct.",
   openGraph: {
     type: "website",
     siteName: "CarRentDesk",

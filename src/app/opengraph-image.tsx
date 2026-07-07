@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "CarRentDesk — Find local car rentals across the Baltics";
+export const alt = "CarRentDesk — Best local car rentals across Europe";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -70,7 +70,7 @@ export default function OGImage() {
               maxWidth: 920,
             }}
           >
-            Find local car rentals across the Baltics.
+            Best local car rentals across Europe.
           </span>
           <span style={{ fontSize: 28, opacity: 0.82, maxWidth: 860 }}>
             Independent operators in Riga, Tallinn, and Vilnius. No commission,

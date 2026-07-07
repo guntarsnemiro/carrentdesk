@@ -21,7 +21,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
     listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
   const fleetText =
     listing.fleet.description ||
-    `Independent local rental in ${city?.name ?? "the Baltics"}. Contact directly for current fleet and rates.`;
+    `Independent local rental in ${city?.name ?? "Europe"}. Contact directly for current fleet and rates.`;
 
   // Verified + has logo  -> clean logo header
   // Otherwise            -> city photo (legacy look, used for `claimed` only;

@@ -25,7 +25,7 @@ export function SiteFooter() {
             <span className="text-[15px] text-brand-900">CarRentDesk</span>
           </div>
           <p className="max-w-xs text-sm leading-6 text-neutral-600">
-            Compare local, independent car rentals across the Baltics and Scandinavia.
+            Best local car rentals across Europe. 6,500+ companies, direct contact, no booking fees.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export function SiteFooter() {
 
       <div className="border-t border-border">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-2 px-6 py-4 text-xs text-neutral-500 lg:flex-row lg:items-center lg:px-8">
-          <p>© {new Date().getFullYear()} CarRentDesk. Baltics &amp; Scandinavia.</p>
+          <p>© {new Date().getFullYear()} CarRentDesk. Europe.</p>
           <p>
             Need help? Email{" "}
             <a

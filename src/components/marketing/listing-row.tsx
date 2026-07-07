@@ -24,7 +24,7 @@ export function ListingRow({ listing }: { listing: Listing }) {
     listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
   const fleetSnippet =
     listing.fleet.description ||
-    `Independent local rental in ${city?.name ?? "the Baltics"}.`;
+    `Independent local rental in ${city?.name ?? "Europe"}.`;
 
   const distanceFromCenterKm =
     city && listing.coordinates

@@ -14,9 +14,9 @@ import { ListingRowList } from "@/components/marketing/listing-row";
 export const revalidate = 3600; // 1 hour
 
 export const metadata: Metadata = {
-  title: "All car rentals — Baltics & Scandinavia",
+  title: "All car rentals across Europe",
   description:
-    "Browse every independent car rental on CarRentDesk across the Baltics and Scandinavia. Direct contact, no commission.",
+    "Browse 6,500+ independent local car rentals across Europe on CarRentDesk. Direct contact, no booking fees.",
   alternates: { canonical: "/all" },
 };
 
@@ -57,7 +57,7 @@ export default async function AllPage({ searchParams }: PageProps) {
               <p className="mt-2 max-w-2xl text-base text-neutral-600">
                 {activeCityMeta
                   ? `Independent local rentals in ${activeCityMeta.name}. Direct contact, no commission.`
-                  : "Every independent rental on CarRentDesk, across the Baltics and Scandinavia. Direct contact, no commission."}
+                  : "6,500+ independent local car rentals across Europe. Direct contact, no booking fees."}
               </p>
             </div>
           </div>

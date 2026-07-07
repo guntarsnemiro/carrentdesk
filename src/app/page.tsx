@@ -60,8 +60,8 @@ function Hero() {
               <br className="hidden sm:block" /> local car rental.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-brand-100 sm:text-lg">
-              Independent local rentals across the Baltics &amp; Scandinavia.
-              Direct contact, fair prices, no middleman.
+              Best local car rentals across Europe. 6,500+ companies,
+              direct contact, no booking fees.
             </p>
 
             <HeroSearch />

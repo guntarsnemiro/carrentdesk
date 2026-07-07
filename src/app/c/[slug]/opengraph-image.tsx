@@ -36,7 +36,7 @@ export default async function CompanyOGImage({
       : null;
   const rawBlurb =
     listing.fleet.description ||
-    `Independent car rental in ${city?.name ?? "the Baltics"}.`;
+    `Independent car rental in ${city?.name ?? "Europe"}.`;
   // Satori (the OG renderer) doesn't support -webkit-line-clamp, so we do
   // word-boundary truncation manually to keep the image from overflowing.
   const blurb =
