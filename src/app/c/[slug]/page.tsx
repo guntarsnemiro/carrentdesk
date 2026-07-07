@@ -12,6 +12,8 @@ import {
 } from "@/lib/listings";
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 import { ClaimSidebarCard } from "./_components/claim-banner";
+import { ContactCTAs } from "./_components/contact-ctas";
+import { ContactSidebarCard } from "./_components/contact-sidebar-card";
 
 // Company data only changes on re-scrape / operator edits (rare), so cache for
 // a month. Time-based revalidation that finds no change costs no ISR write, so
@@ -200,7 +202,7 @@ export default async function CompanyPage({ params }: PageProps) {
               )}
             </div>
 
-            <ContactCTAs listing={listing} />
+            <ContactCTAs listing={listing} cityName={city?.name ?? ""} />
           </div>
         </div>
       </section>
@@ -216,54 +218,11 @@ export default async function CompanyPage({ params }: PageProps) {
             {!claimed && (
               <ClaimSidebarCard companyId={listing.id} companyName={listing.name} />
             )}
-            <SidebarCard title="Contact directly">
-              <ul className="space-y-3 text-sm">
-                {listing.phone && (
-                  <li>
-                    <span className="text-neutral-500">Phone</span>
-                    <br />
-                    <a href={`tel:${listing.phone.replace(/\s+/g, "")}`} className="font-medium text-brand-900 hover:underline">
-                      {listing.phone}
-                    </a>
-                  </li>
-                )}
-                {listing.whatsapp && (
-                  <li>
-                    <span className="text-neutral-500">WhatsApp</span>
-                    <br />
-                    <a
-                      href={`https://wa.me/${listing.whatsapp.replace(/\D/g, "")}`}
-                      className="font-medium text-brand-900 hover:underline"
-                    >
-                      {listing.whatsapp}
-                    </a>
-                  </li>
-                )}
-                {listing.email && claimed && (
-                  <li>
-                    <span className="text-neutral-500">Email</span>
-                    <br />
-                    <a href={`mailto:${listing.email}`} className="font-medium text-brand-900 hover:underline">
-                      {listing.email}
-                    </a>
-                  </li>
-                )}
-                {listing.website && (
-                  <li>
-                    <span className="text-neutral-500">Website</span>
-                    <br />
-                    <a
-                      href={listing.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-brand-900 hover:underline"
-                    >
-                      {prettyUrl(listing.website)}
-                    </a>
-                  </li>
-                )}
-              </ul>
-            </SidebarCard>
+            <ContactSidebarCard
+              listing={listing}
+              cityName={city?.name ?? ""}
+              claimed={claimed}
+            />
 
             <SidebarCard title="Location">
               <p className="text-sm text-neutral-700">
@@ -315,39 +274,6 @@ export default async function CompanyPage({ params }: PageProps) {
   );
 }
 
-function ContactCTAs({ listing }: { listing: Listing | null }) {
-  if (!listing) return null;
-  return (
-    <div className="flex flex-wrap gap-3">
-      {listing.phone && (
-        <a
-          href={`tel:${listing.phone.replace(/\s+/g, "")}`}
-          className="inline-flex items-center justify-center rounded-full bg-brand-900 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-brand-800"
-        >
-          Call {listing.phone}
-        </a>
-      )}
-      {listing.whatsapp && (
-        <a
-          href={`https://wa.me/${listing.whatsapp.replace(/\D/g, "")}`}
-          className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-3 text-sm font-medium text-brand-900 transition-colors hover:bg-surface-soft"
-        >
-          WhatsApp
-        </a>
-      )}
-      {listing.website && (
-        <a
-          href={listing.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-3 text-sm font-medium text-brand-900 transition-colors hover:bg-surface-soft"
-        >
-          Visit website
-        </a>
-      )}
-    </div>
-  );
-}
 
 function FleetBlock({ listing }: { listing: Listing | null }) {
   if (!listing) return null;
@@ -462,11 +388,3 @@ function SidebarCard({
   );
 }
 
-function prettyUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    return u.host.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
