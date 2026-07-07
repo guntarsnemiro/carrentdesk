@@ -53,17 +53,17 @@ export function SiteFooter() {
           </h4>
           <ul className="mt-3 space-y-1.5 text-sm text-neutral-700">
             <li>
-              <Link href="/for-rentals" className="hover:text-brand-900">
+              <Link href="/join" className="hover:text-brand-900">
                 Why CarRentDesk
               </Link>
             </li>
             <li>
-              <Link href="/for-rentals#claim" className="hover:text-brand-900">
+              <Link href="/join" className="hover:text-brand-900">
                 Claim your listing
               </Link>
             </li>
             <li>
-              <Link href="/for-rentals#pricing" className="hover:text-brand-900">
+              <Link href="/join#pricing" className="hover:text-brand-900">
                 Pricing
               </Link>
             </li>

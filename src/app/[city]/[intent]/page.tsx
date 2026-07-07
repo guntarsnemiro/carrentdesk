@@ -258,7 +258,7 @@ function EmptyState({ cityName }: { cityName: string }) {
       </h2>
       <p className="mt-2 text-sm text-neutral-600">
         We&apos;re growing the network here.{" "}
-        <Link href="/for-rentals" className="text-brand-700 hover:underline">
+        <Link href="/join" className="text-brand-700 hover:underline">
           List your rental company
         </Link>{" "}
         if you operate in {cityName} — it&apos;s free.

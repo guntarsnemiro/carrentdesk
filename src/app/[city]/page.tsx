@@ -277,7 +277,7 @@ function EmptyState({
       </h2>
       <p className="mt-2 text-sm text-neutral-600">
         We&apos;re actively adding rentals here. Try another car type, or{" "}
-        <Link href="/for-rentals" className="text-brand-700 hover:underline">
+        <Link href="/join" className="text-brand-700 hover:underline">
           list your rental
         </Link>{" "}
         if you operate in {cityName}.
