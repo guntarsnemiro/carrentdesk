@@ -40,9 +40,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const city = CITIES.find((c) => c.slug === listing.city);
   const title = `${listing.name} — Car rental in ${city?.name ?? ""}`;
-  const description =
+  const rawDescription =
     listing.description ??
     `${listing.fleet.description} Located in ${city?.name ?? listing.city}.`;
+  const description =
+    rawDescription.length > 155
+      ? `${rawDescription.slice(0, 152).trimEnd()}…`
+      : rawDescription;
 
   return {
     title,
@@ -71,7 +75,12 @@ export default async function CompanyPage({ params }: PageProps) {
     "@type": "CarRental",
     name: listing.name,
     url: profileUrl,
-    image: `${profileUrl}/opengraph-image`,
+    image: {
+      "@type": "ImageObject",
+      url: `${profileUrl}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     ...(listing.description && { description: listing.description }),
     ...(listing.phone && { telephone: listing.phone }),
     ...(listing.email && claimed && { email: listing.email }),

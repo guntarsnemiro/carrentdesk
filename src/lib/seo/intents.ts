@@ -27,7 +27,7 @@ export const INTENTS: Intent[] = [
     slug: "best-car-rentals",
     requiresAirport: false,
     h1: (c, y) => `Best Car Rentals in ${c.name} ${y}`,
-    metaTitle: (c, y) => `Best Car Rentals in ${c.name} ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Best Car Rentals in ${c.name} ${y}`,
     metaDescription: (c) =>
       `Find the best car rental companies in ${c.name}. Verified local operators, fair prices, direct contact — no middleman fees.`,
     intro: (c) =>
@@ -63,7 +63,7 @@ export const INTENTS: Intent[] = [
     slug: "top-car-rentals",
     requiresAirport: false,
     h1: (c, y) => `Top Car Rentals in ${c.name} ${y}`,
-    metaTitle: (c, y) => `Top Car Rentals in ${c.name} ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Top Car Rentals in ${c.name} ${y}`,
     metaDescription: (c) =>
       `Discover top-rated car rental companies in ${c.name}. Compare verified local operators with real reviews and direct booking.`,
     intro: (c) =>
@@ -99,7 +99,7 @@ export const INTENTS: Intent[] = [
     slug: "cheap-car-rentals",
     requiresAirport: false,
     h1: (c, y) => `Cheap Car Rentals in ${c.name} ${y}`,
-    metaTitle: (c, y) => `Cheap Car Rentals in ${c.name} ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Cheap Car Rentals in ${c.name} ${y}`,
     metaDescription: (c) =>
       `Find cheap car rentals in ${c.name} from verified local companies. Beat Sixt and Hertz prices — direct booking, no platform fees.`,
     intro: (c) =>
@@ -135,7 +135,7 @@ export const INTENTS: Intent[] = [
     slug: "long-term-car-rental",
     requiresAirport: false,
     h1: (c, y) => `Long-Term Car Rental in ${c.name} ${y}`,
-    metaTitle: (c, y) => `Long-Term Car Rental in ${c.name} ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Long-Term Car Rental in ${c.name} ${y}`,
     metaDescription: (c) =>
       `Monthly and long-term car rental in ${c.name}. Local operators with flexible contracts — better rates than short-term hire.`,
     intro: (c) =>
@@ -171,7 +171,7 @@ export const INTENTS: Intent[] = [
     slug: "car-rental-no-credit-card",
     requiresAirport: false,
     h1: (c, y) => `Car Rental in ${c.name} Without Credit Card ${y}`,
-    metaTitle: (c, y) => `Car Rental ${c.name} No Credit Card ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Car Rental ${c.name} No Credit Card ${y}`,
     metaDescription: (c) =>
       `Rent a car in ${c.name} without a credit card. Find local operators who accept debit cards or cash deposits — direct booking.`,
     intro: (c) =>
@@ -207,7 +207,7 @@ export const INTENTS: Intent[] = [
     slug: "turo-alternative",
     requiresAirport: false,
     h1: (c, y) => `Turo Alternative in ${c.name} ${y}`,
-    metaTitle: (c, y) => `Turo Alternative ${c.name} ${y} · CarRentDesk`,
+    metaTitle: (c, y) => `Turo Alternative ${c.name} ${y}`,
     metaDescription: (c) =>
       `Looking for a Turo alternative in ${c.name}? CarRentDesk connects you with verified local car rental companies — lower fees, direct contact.`,
     intro: (c) =>
@@ -244,7 +244,7 @@ export const INTENTS: Intent[] = [
     requiresAirport: true,
     h1: (c, y) => `${c.name} Airport Car Rental ${y}`,
     metaTitle: (c, y) =>
-      `${c.name} Airport Car Rental ${y}${c.airport ? ` (${c.airport.code})` : ""} · CarRentDesk`,
+      `${c.name} Airport Car Rental ${y}${c.airport ? ` (${c.airport.code})` : ""}`,
     metaDescription: (c) =>
       `Car rental at ${c.name}${c.airport ? ` ${c.airport.code}` : ""} airport. Compare local operators with airport pickup — better rates than airport desks.`,
     intro: (c) =>
