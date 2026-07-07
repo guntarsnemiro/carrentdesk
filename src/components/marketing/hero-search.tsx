@@ -60,16 +60,21 @@ export function HeroSearch() {
     };
   }, [open, updateDropdownPos]);
 
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const q = normalize(query);
+
   const filteredGroups = CITY_GROUPS.map(({ 0: country, 1: cities }) => ({
     country,
     cities: cities.filter(
       (c) =>
-        c.name.toLowerCase().includes(query.toLowerCase()) ||
-        c.country.toLowerCase().includes(query.toLowerCase())
+        normalize(c.name).includes(q) ||
+        normalize(c.country).includes(q) ||
+        c.slug.includes(q)
     ),
   })).filter((g) => g.cities.length > 0);
 
-  const showAll = query === "" || "all cities".includes(query.toLowerCase());
+  const showAll = query === "" || "all cities".includes(q);
 
   function selectCity(slug: string) {
     setCitySlug(slug);
