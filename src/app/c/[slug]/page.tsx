@@ -10,6 +10,7 @@ import {
   type AmenityKey,
   type Listing,
 } from "@/lib/listings";
+import { seoPageTitle } from "@/lib/seo/title";
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 import { ClaimSidebarCard } from "./_components/claim-banner";
 import { ContactCTAs } from "./_components/contact-ctas";
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!listing) return {};
 
   const city = CITIES.find((c) => c.slug === listing.city);
-  const title = `${listing.name} — Car rental in ${city?.name ?? ""}`;
+  const title = seoPageTitle(`${listing.name} — ${city?.name ?? "Europe"}`);
   const rawDescription =
     listing.description ??
     `${listing.fleet.description} Located in ${city?.name ?? listing.city}.`;
@@ -54,7 +55,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: { canonical: `/c/${listing.slug}` },
-    openGraph: { title, description, url: `/c/${listing.slug}` },
+    openGraph: {
+      title,
+      description,
+      url: `/c/${listing.slug}`,
+      images: [{ url: `/c/${listing.slug}/opengraph-image`, width: 1200, height: 630 }],
+    },
   };
 }
 
@@ -70,11 +76,11 @@ export default async function CompanyPage({ params }: PageProps) {
   const claimed = listing.status === "claimed" || verified;
   const profileUrl = `https://carrentdesk.com/c/${listing.slug}`;
 
-  // Schema.org CarRental for rich-results eligibility on Google. Falls back
+  // Schema.org AutoRental for rich-results eligibility on Google. Falls back
   // gracefully when fields aren't available (we don't emit nulls).
   const businessJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "CarRental",
+    "@type": "AutoRental",
     name: listing.name,
     url: profileUrl,
     image: {

@@ -4,47 +4,62 @@ import { getAllListingSlugs } from "@/lib/listings";
 import { getAllIntentParams } from "@/lib/seo/intents";
 
 const BASE = "https://carrentdesk.com";
+const COMPANIES_PER_SITEMAP = 2000;
 
-/**
- * Dynamic sitemap.
- *
- * Includes every public route Google should crawl:
- *   - Static pages (home, /all, /for-rentals)
- *   - Per-city pages
- *   - Per-city × per-intent SEO landing pages
- *   - Per-company profile pages (sourced from Supabase)
- */
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+/** Split company URLs across sitemaps so generation stays fast and reliable. */
+export async function generateSitemaps() {
   const slugs = await getAllListingSlugs();
+  const companyChunks = Math.max(1, Math.ceil(slugs.length / COMPANIES_PER_SITEMAP));
+  // id 0 = static + cities + intents; id 1+ = company chunks
+  return [{ id: 0 }, ...Array.from({ length: companyChunks }, (_, i) => ({ id: i + 1 }))];
+}
+
+export default async function sitemap({
+  id,
+}: {
+  id: number;
+}): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${BASE}/all`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${BASE}/join`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-  ];
+  if (id === 0) {
+    const staticRoutes: MetadataRoute.Sitemap = [
+      { url: `${BASE}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
+      { url: `${BASE}/all`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+      { url: `${BASE}/join`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+      { url: `${BASE}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
+      { url: `${BASE}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
+      { url: `${BASE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+      { url: `${BASE}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+    ];
 
-  const cityRoutes: MetadataRoute.Sitemap = CITIES.map((c) => ({
-    url: `${BASE}/${c.slug}`,
-    lastModified: now,
-    changeFrequency: "daily" as const,
-    priority: 0.9,
-  }));
+    const cityRoutes: MetadataRoute.Sitemap = CITIES.map((c) => ({
+      url: `${BASE}/${c.slug}`,
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    }));
 
-  // City × intent SEO landing pages (~100 pages)
-  const intentRoutes: MetadataRoute.Sitemap = getAllIntentParams(CITIES).map(({ city, intent }) => ({
-    url: `${BASE}/${city}/${intent}`,
-    lastModified: now,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
+    const intentRoutes: MetadataRoute.Sitemap = getAllIntentParams(CITIES).map(
+      ({ city, intent }) => ({
+        url: `${BASE}/${city}/${intent}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }),
+    );
 
-  const listingRoutes: MetadataRoute.Sitemap = slugs.map((slug) => ({
+    return [...staticRoutes, ...cityRoutes, ...intentRoutes];
+  }
+
+  const slugs = await getAllListingSlugs();
+  const chunkIndex = id - 1;
+  const start = chunkIndex * COMPANIES_PER_SITEMAP;
+  const chunk = slugs.slice(start, start + COMPANIES_PER_SITEMAP);
+
+  return chunk.map((slug) => ({
     url: `${BASE}/c/${slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
-
-  return [...staticRoutes, ...cityRoutes, ...intentRoutes, ...listingRoutes];
 }

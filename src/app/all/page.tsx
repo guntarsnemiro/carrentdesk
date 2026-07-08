@@ -28,9 +28,14 @@ export default async function AllPage({ searchParams }: PageProps) {
   const { type, city } = await searchParams;
   const activeType = isValidVehicleType(type) ? type : undefined;
   const activeCity = CITIES.find((c) => c.slug === city)?.slug;
-  const listings = await filterListings({ vehicleType: activeType, city: activeCity });
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
   const activeCityMeta = CITIES.find((c) => c.slug === activeCity);
+
+  // Never load all 6,500 listings into one HTML page — Googlebot's 2 MB limit
+  // and page weight. Listings render only when a city filter is selected.
+  const listings = activeCity
+    ? await filterListings({ vehicleType: activeType, city: activeCity })
+    : [];
 
   return (
     <>
@@ -68,7 +73,28 @@ export default async function AllPage({ searchParams }: PageProps) {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8">
-        {listings.length === 0 ? (
+        {!activeCity ? (
+          <div>
+            <p className="text-base text-neutral-600">
+              Select a city below to browse local rental companies.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {CITIES.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/all?city=${c.slug}${activeType ? `&type=${activeType}` : ""}`}
+                  className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-brand-900 transition-colors hover:bg-brand-50"
+                >
+                  <span>
+                    {c.name}
+                    <span className="ml-1.5 font-normal text-neutral-500">{c.country}</span>
+                  </span>
+                  <span aria-hidden className="text-neutral-400">→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : listings.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface-soft p-10 text-center">
             <h2 className="text-lg font-semibold text-brand-950">
               No rentals match this filter yet
@@ -108,9 +134,7 @@ export default async function AllPage({ searchParams }: PageProps) {
                     title={
                       verified.length > 0
                         ? "Other rentals"
-                        : activeCityMeta
-                          ? `Rentals in ${activeCityMeta.name}`
-                          : "Rentals across the Baltics & Scandinavia"
+                        : `Rentals in ${activeCityMeta?.name ?? "Europe"}`
                     }
                     subtitle="Independent operators we've listed. Contact them directly."
                   />
