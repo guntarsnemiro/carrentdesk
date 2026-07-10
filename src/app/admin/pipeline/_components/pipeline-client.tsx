@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useCallback, useEffect } from "react";
-import { logOutreach, updatePipelineStage, updateCompanyCrm, approveClaimRequest, rejectClaimRequest } from "../_actions";
+import { logOutreach, updatePipelineStage, updateCompanyCrm, approveClaimRequest, rejectClaimRequest, searchPipelineCompanies } from "../_actions";
 import type { PipelineStage, OutreachChannel, OutreachOutcome } from "../_actions";
+import { formatCityLabel } from "@/lib/admin/pipeline-companies";
 
 type Company = {
   id: string; name: string; slug: string; city: string; country: string;
@@ -23,7 +24,10 @@ type ClaimRow = {
 };
 
 interface Props {
-  companies: Company[];
+  initialCompanies: Company[];
+  stageCounts: Record<string, number>;
+  totalCompanies: number;
+  cityOptions: string[];
   logsByCompany: Record<string, Log[]>;
   claimsByCompany: Record<string, ClaimRow[]>;
   todayStr: string;
@@ -52,6 +56,10 @@ const CITY_LABELS: Record<string, string> = {
   riga: "Riga", tallinn: "Tallinn", vilnius: "Vilnius", parnu: "Pärnu", kaunas: "Kaunas",
 };
 
+function cityLabel(city: string) {
+  return CITY_LABELS[city] ?? formatCityLabel(city);
+}
+
 const CHANNELS: { value: OutreachChannel; label: string }[] = [
   { value: "call", label: "📞 Call" },
   { value: "email", label: "✉️ Email" },
@@ -76,7 +84,18 @@ const MIN_PANEL_WIDTH = 380;
 const MAX_PANEL_WIDTH = 800;
 const DEFAULT_PANEL_WIDTH = 480;
 
-export function PipelineClient({ companies, logsByCompany, claimsByCompany, todayStr, pendingClaimsCount }: Props) {
+export function PipelineClient({
+  initialCompanies,
+  stageCounts,
+  totalCompanies,
+  cityOptions,
+  logsByCompany,
+  claimsByCompany,
+  todayStr,
+  pendingClaimsCount,
+}: Props) {
+  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+  const [searching, setSearching] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterCity, setFilterCity] = useState<string>("all");
@@ -87,6 +106,37 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(DEFAULT_PANEL_WIDTH);
+
+  useEffect(() => {
+    setCompanies(initialCompanies);
+  }, [initialCompanies]);
+
+  useEffect(() => {
+    const q = search.trim();
+    const hasSearch = q.length >= 2;
+    const hasFilter = filterStage !== "all" || filterCity !== "all";
+
+    if (!hasSearch && !hasFilter) {
+      setCompanies(initialCompanies);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const rows = await searchPipelineCompanies({
+          search: hasSearch ? q : undefined,
+          filterStage,
+          filterCity,
+        });
+        setCompanies(rows as Company[]);
+      } finally {
+        setSearching(false);
+      }
+    }, hasSearch ? 300 : 0);
+
+    return () => clearTimeout(timer);
+  }, [search, filterStage, filterCity, initialCompanies]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
@@ -121,20 +171,16 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
   const logs = selectedId ? (logsByCompany[selectedId] ?? []) : [];
   const claims = selectedId ? (claimsByCompany[selectedId] ?? []) : [];
 
-  const filtered = useMemo(() => {
-    return companies.filter((c) => {
-      if (filterStage !== "all" && c.pipeline_stage !== filterStage) return false;
-      if (filterCity !== "all" && c.city !== filterCity) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (!c.name.toLowerCase().includes(q) && !(c.phone ?? "").includes(q)) return false;
-      }
-      return true;
-    });
-  }, [companies, filterStage, filterCity, search]);
+  const filtered = companies;
 
-  const dueToday = companies.filter((c) => c.next_followup_at === todayStr);
-  const overdue = companies.filter((c) => c.next_followup_at && c.next_followup_at < todayStr);
+  const dueToday = useMemo(
+    () => initialCompanies.filter((c) => c.next_followup_at === todayStr),
+    [initialCompanies, todayStr]
+  );
+  const overdue = useMemo(
+    () => initialCompanies.filter((c) => c.next_followup_at && c.next_followup_at < todayStr),
+    [initialCompanies, todayStr]
+  );
 
   function fmtDate(d: string | null) {
     if (!d) return "—";
@@ -146,11 +192,7 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
     startTransition(() => updatePipelineStage(companyId, stage));
   }
 
-  const stageCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const c of companies) counts[c.pipeline_stage] = (counts[c.pipeline_stage] ?? 0) + 1;
-    return counts;
-  }, [companies]);
+  const stageCountsDisplay = stageCounts;
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -160,7 +202,12 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
         <div className="flex items-center justify-between border-b border-border bg-white px-6 py-4">
           <div>
             <h1 className="text-lg font-semibold text-neutral-900">Sales Pipeline</h1>
-            <p className="text-sm text-neutral-500">{companies.length} companies · {companies.filter(c => c.pipeline_stage === "active").length} active customers</p>
+            <p className="text-sm text-neutral-500">
+              {totalCompanies.toLocaleString()} companies · {stageCountsDisplay.active ?? 0} active customers
+              {search.trim().length < 2 && filterStage === "all" && filterCity === "all" && (
+                <span className="text-neutral-400"> · showing CRM queue ({initialCompanies.length})</span>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {overdue.length > 0 && (
@@ -191,7 +238,7 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
               Pending claim requests — {pendingClaimsCount} waiting for review
             </p>
             <div className="flex flex-col gap-2">
-              {companies.flatMap((co) =>
+              {initialCompanies.flatMap((co) =>
                 (claimsByCompany[co.id] ?? [])
                   .filter((cr) => cr.status === "pending")
                   .map((cr) => (
@@ -216,7 +263,7 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
             >
               {STAGE_LABELS[s]}
               <span className="rounded-full bg-white/60 px-1.5 py-0.5 font-semibold tabular-nums">
-                {stageCounts[s] ?? 0}
+                {stageCountsDisplay[s] ?? 0}
               </span>
             </button>
           ))}
@@ -226,10 +273,10 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
         <div className="flex items-center gap-3 border-b border-border bg-neutral-50 px-6 py-2">
           <input
             type="text"
-            placeholder="Search company or phone…"
+            placeholder="Search name, slug, phone, website…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 w-56 rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+            className="h-8 w-64 rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
           />
           <select
             value={filterCity}
@@ -237,9 +284,13 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
             className="h-8 rounded-lg border border-border bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
           >
             <option value="all">All cities</option>
-            {Object.entries(CITY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {cityOptions.map((v) => (
+              <option key={v} value={v}>{cityLabel(v)}</option>
+            ))}
           </select>
-          <span className="ml-auto text-sm text-neutral-400">{filtered.length} shown</span>
+          <span className="ml-auto text-sm text-neutral-400">
+            {searching ? "Searching…" : `${filtered.length} shown`}
+          </span>
         </div>
 
         {/* Table */}
@@ -285,7 +336,7 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
                         </a>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-neutral-500">{CITY_LABELS[c.city] ?? c.city}</td>
+                    <td className="px-4 py-2.5 text-neutral-500">{cityLabel(c.city)}</td>
                     <td className="px-4 py-2.5">
                       {c.phone ? (
                         <a
@@ -320,7 +371,10 @@ export function PipelineClient({ companies, logsByCompany, claimsByCompany, toda
           {filtered.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-16 text-neutral-400">
               <span className="text-4xl">🔍</span>
-              <p>No companies match the current filters.</p>
+              <p>{searching ? "Searching…" : "No companies match the current filters."}</p>
+              {search.trim().length >= 2 && !searching && (
+                <p className="text-xs">Try a slug (e.g. easy-rent-pula) or phone number.</p>
+              )}
             </div>
           )}
         </div>
@@ -406,7 +460,7 @@ function SidePanel({
       <div className="flex items-start justify-between border-b border-border px-5 py-4">
         <div className="min-w-0">
           <h2 className="truncate font-semibold text-neutral-900">{company.name}</h2>
-          <p className="text-xs text-neutral-400">{CITY_LABELS[company.city] ?? company.city} · {company.country}</p>
+          <p className="text-xs text-neutral-400">{cityLabel(company.city)} · {company.country}</p>
         </div>
         <button onClick={onClose} className="ml-3 shrink-0 rounded-lg p-1.5 text-neutral-400 hover:bg-slate-100">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>

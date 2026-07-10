@@ -2,8 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { queryPipelineCompanies, type PipelineCompanyRow } from "@/lib/admin/pipeline-companies";
 import { randomBytes } from "crypto";
 import { sendClaimInvite } from "@/lib/email";
+
+export async function searchPipelineCompanies(params: {
+  search?: string;
+  filterStage?: string;
+  filterCity?: string;
+}): Promise<PipelineCompanyRow[]> {
+  const db = createServiceRoleClient();
+  return queryPipelineCompanies(db, params);
+}
 
 export type PipelineStage = "unclaimed" | "contacted" | "interested" | "trial" | "active" | "not_interested";
 export type OutreachChannel = "call" | "email" | "whatsapp" | "linkedin" | "other";
