@@ -5,16 +5,8 @@ import { getAllIntentParams } from "@/lib/seo/intents";
 
 const BASE = "https://carrentdesk.com";
 
-/** Regenerate hourly so new scraped listings appear without redeploying. */
-export const revalidate = 3600;
-
-/**
- * Single sitemap at /sitemap.xml (same pattern as /robots.txt).
- *
- * Avoids generateSitemaps() — that split the index onto /sitemap.xml which
- * collided with the /[city] dynamic route (city = "sitemap.xml" → 404).
- */
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+/** All indexable marketing URLs for the sitemap. */
+export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -52,4 +44,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   return [...staticRoutes, ...cityRoutes, ...intentRoutes, ...companyRoutes];
+}
+
+export function sitemapEntriesToXml(entries: MetadataRoute.Sitemap): string {
+  const body = entries
+    .map((entry) => {
+      const parts = [`<loc>${escapeXml(entry.url)}</loc>`];
+      if (entry.lastModified) {
+        parts.push(`<lastmod>${new Date(entry.lastModified).toISOString()}</lastmod>`);
+      }
+      if (entry.changeFrequency) {
+        parts.push(`<changefreq>${entry.changeFrequency}</changefreq>`);
+      }
+      if (entry.priority !== undefined) {
+        parts.push(`<priority>${entry.priority}</priority>`);
+      }
+      return `<url>${parts.join("")}</url>`;
+    })
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
