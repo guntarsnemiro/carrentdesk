@@ -115,16 +115,29 @@ export async function getFeaturedListings(limit = 3): Promise<Listing[]> {
   return all.filter((l) => l.status === "verified").slice(0, limit);
 }
 
-/** Used by `generateStaticParams` for company profile pages. */
+/** Used by `generateStaticParams` for company profile pages and the sitemap. */
 export async function getAllListingSlugs(): Promise<string[]> {
   const supabase = createServerClient();
+  const PAGE = 1000;
+  const slugs: string[] = [];
+  let from = 0;
 
-  const { data, error } = await supabase
-    .from("companies")
-    .select("slug")
-    .returns<{ slug: string }[]>();
-  if (error) throw error;
-  return (data ?? []).map((r) => r.slug);
+  while (true) {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("slug")
+      .order("slug")
+      .range(from, from + PAGE - 1);
+
+    if (error) throw error;
+    if (!data?.length) break;
+
+    slugs.push(...data.map((r) => r.slug));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+
+  return slugs;
 }
 
 /* ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CITIES, getCityBySlug } from "@/lib/cities";
 import { filterListings } from "@/lib/listings";
+import { isReservedRootSlug } from "@/lib/reserved-slugs";
 import {
   VEHICLE_TYPES,
   getVehicleType,
@@ -27,6 +28,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city: slug } = await params;
+  if (isReservedRootSlug(slug)) return {};
   const city = getCityBySlug(slug);
   if (!city) return {};
 
@@ -43,6 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CityPage({ params, searchParams }: PageProps) {
   const { city: slug } = await params;
+  if (isReservedRootSlug(slug)) notFound();
   const { type } = await searchParams;
   const city = getCityBySlug(slug);
   if (!city) notFound();
