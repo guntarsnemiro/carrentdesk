@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     "CarRentDesk privacy policy — how we collect, use, and protect your data in compliance with GDPR.",
 };
 
-const LAST_UPDATED = "1 July 2026";
+const LAST_UPDATED = "14 July 2026";
 
 export default function PrivacyPage() {
   return (
@@ -38,8 +38,8 @@ export default function PrivacyPage() {
           <p className="mt-3">
             <strong>Visitors to the public directory</strong> — We collect anonymised
             analytics data (pages visited, approximate location by country, device type,
-            referral source) via Google Analytics 4. This data does not identify you
-            personally. We use cookies as described in section 4.
+            referral source) via Google Analytics 4 and Ahrefs Web Analytics. This data
+            does not identify you personally. We use cookies as described in section 4.
           </p>
           <p className="mt-3">
             <strong>Rental company accounts</strong> — If you register a business account
@@ -71,10 +71,10 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold text-neutral-900">4. Cookies</h2>
           <p className="mt-3">
-            We use cookies for analytics (Google Analytics 4) and session management for
-            logged-in business accounts. Google Analytics cookies collect anonymised data.
-            You can opt out of Google Analytics tracking via your browser settings or by
-            using the{" "}
+            We use cookies for analytics (Google Analytics 4 and Ahrefs Web Analytics) and
+            session management for logged-in business accounts. Analytics cookies collect
+            anonymised data. You can opt out of Google Analytics tracking via your browser
+            settings or by using the{" "}
             <a
               href="https://tools.google.com/dlpage/gaoptout"
               target="_blank"
@@ -101,6 +101,9 @@ export default function PrivacyPage() {
               <strong>Google Analytics 4</strong> — anonymised usage analytics
             </li>
             <li>
+              <strong>Ahrefs Web Analytics</strong> — anonymised usage analytics
+            </li>
+            <li>
               <strong>Amazon SES</strong> — transactional email delivery
             </li>
           </ul>
@@ -113,7 +116,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold text-neutral-900">6. Data retention</h2>
           <p className="mt-3">
-            Analytics data is retained for 14 months in Google Analytics. Account data is
+            Analytics data is retained for 14 months in Google Analytics and according to
+            Ahrefs&apos; retention settings for Web Analytics. Account data is
             retained for as long as your account is active. You may request deletion at any
             time by emailing{" "}
             <a href="mailto:info@carrentdesk.com" className="text-brand-700 hover:underline">
