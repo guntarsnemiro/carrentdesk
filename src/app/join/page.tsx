@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JoinForm } from "./_components/join-form";
 import { FAQ } from "@/app/for-rentals/_components/faq";
+import { CITIES } from "@/lib/cities";
+
+const joinCityOptions = CITIES.map((c) => ({
+  slug: c.slug,
+  name: c.name,
+  country: c.country,
+})).sort((a, b) => a.name.localeCompare(b.name));
 
 /* ── SEO metadata ───────────────────────────────────────────────────── */
 
@@ -75,21 +82,21 @@ const PLANS = [
     name: "Starter",
     fleet: "Up to 10 vehicles",
     monthly: 29,
-    yearly: 290,
+    yearly: 319,
     popular: false,
   },
   {
     name: "Growth",
     fleet: "11–25 vehicles",
     monthly: 49,
-    yearly: 490,
+    yearly: 539,
     popular: true,
   },
   {
     name: "Pro",
     fleet: "26–40 vehicles",
     monthly: 90,
-    yearly: 900,
+    yearly: 990,
     popular: false,
   },
 ];
@@ -166,7 +173,7 @@ export default function JoinPage() {
               <div className="rounded-2xl border border-border bg-white p-7 shadow-sm">
                 <h2 className="text-xl font-bold text-neutral-900">Start your free trial</h2>
                 <p className="mt-1 text-sm text-neutral-500">Set up in 30 seconds. No credit card needed.</p>
-                <div className="mt-6"><JoinForm /></div>
+                <div className="mt-6"><JoinForm cityOptions={joinCityOptions} /></div>
               </div>
               <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-5">
                 <p className="text-sm leading-6 text-neutral-600">
@@ -357,7 +364,7 @@ export default function JoinPage() {
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-neutral-600">
                 One plan, every feature. Pay only for the size of your fleet — no per-module fees,
-                no commission, no surprises. Two months free when you pay yearly.
+                no commission, no surprises. One month free when you pay yearly.
               </p>
             </div>
 
@@ -381,7 +388,7 @@ export default function JoinPage() {
                     <span className="text-4xl font-bold tracking-tight text-brand-950">€{plan.monthly}</span>
                     <span className="text-sm text-neutral-500"> /month</span>
                   </div>
-                  <p className="mt-1 text-xs text-neutral-400">or €{plan.yearly}/year — 2 months free</p>
+                  <p className="mt-1 text-xs text-neutral-400">or €{plan.yearly}/year — 1 month free</p>
                   <Link
                     href="#signup"
                     className={`mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
@@ -448,7 +455,7 @@ export default function JoinPage() {
             <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to manage your rental like a pro?</h2>
             <p className="mt-3 text-sm text-neutral-500">Start your free trial. No credit card. Takes 30 seconds.</p>
             <div className="mt-8 rounded-2xl border border-border bg-white p-7 shadow-sm text-left">
-              <JoinForm />
+              <JoinForm cityOptions={joinCityOptions} />
             </div>
             <p className="mt-5 text-xs text-neutral-400">
               Questions?{" "}

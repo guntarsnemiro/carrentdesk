@@ -2,8 +2,57 @@
 
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { buildCustomerHashes } from "@/lib/blacklist";
+import { buildCustomerHashes, checkGlobalBlacklist, type GlobalMatch } from "@/lib/blacklist";
 import { revalidatePath } from "next/cache";
+
+async function verifyCompanyMember(userId: string, companyId: string) {
+  const db = createServiceRoleClient();
+  const { data: membership } = await db
+    .from("company_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return membership;
+}
+
+export interface LookupGlobalBlacklistInput {
+  idNumber?:       string | null;
+  licenseNumber?:  string | null;
+  passportNumber?: string | null;
+  fullName?:       string | null;
+  dateOfBirth?:    string | null;
+}
+
+export async function lookupGlobalBlacklist(
+  companyId: string,
+  input: LookupGlobalBlacklistInput
+): Promise<{ ok: true; matches: GlobalMatch[] } | { ok: false; error: string }> {
+  const authClient = await createAuthServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return { ok: false, error: "Not authenticated" };
+
+  const membership = await verifyCompanyMember(user.id, companyId);
+  if (!membership) return { ok: false, error: "Not authorized" };
+
+  const hashes = buildCustomerHashes({
+    idNumber:       input.idNumber,
+    licenseNumber:  input.licenseNumber,
+    passportNumber: input.passportNumber,
+    fullName:       input.fullName,
+    dateOfBirth:    input.dateOfBirth,
+  });
+
+  if (Object.keys(hashes).length === 0) {
+    return {
+      ok: false,
+      error: "Enter at least one document number, or a full name together with date of birth.",
+    };
+  }
+
+  const matches = await checkGlobalBlacklist(input);
+  return { ok: true, matches };
+}
 
 export interface SubmitBlacklistReportInput {
   companyId:      string;
@@ -68,6 +117,7 @@ export async function submitGlobalBlacklistReport(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath(`/app/customers/${input.companyId}/${input.customerId}`);
+  revalidatePath(`/app/blacklist/${input.companyId}`);
   return { ok: true };
 }
 

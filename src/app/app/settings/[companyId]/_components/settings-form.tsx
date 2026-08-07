@@ -29,6 +29,7 @@ interface InvoiceDefaults {
   invoice_prefix:        string | null;
   invoice_payment_terms: string | null;
   invoice_footer_notes:  string | null;
+  default_depreciation_rate: number | null;
 }
 
 interface Props {
@@ -57,6 +58,12 @@ export function SettingsForm({ companyId, invoiceDefaults }: Props) {
   });
   const [invStatus, setInvStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [invError, setInvError] = useState("");
+
+  const [depreciationRate, setDepreciationRate] = useState(
+    String(invoiceDefaults.default_depreciation_rate ?? 20)
+  );
+  const [depStatus, setDepStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [depError, setDepError] = useState("");
 
   useEffect(() => { setLocal(loadLocal(companyId)); }, [companyId]);
 
@@ -99,8 +106,59 @@ export function SettingsForm({ companyId, invoiceDefaults }: Props) {
     }
   }
 
+  async function handleDepSave(e: React.FormEvent) {
+    e.preventDefault();
+    setDepStatus("saving");
+    setDepError("");
+    try {
+      const supabase = getAuthBrowserClient();
+      const rate = parseFloat(depreciationRate) || 20;
+      const { error } = await supabase.from("companies").update({
+        default_depreciation_rate: rate,
+      }).eq("id", companyId);
+      if (error) throw error;
+      setDepStatus("saved");
+      setTimeout(() => setDepStatus("idle"), 2500);
+    } catch (err: unknown) {
+      setDepError(err instanceof Error ? err.message : "Save failed");
+      setDepStatus("error");
+    }
+  }
+
   return (
     <div className="space-y-6">
+
+      {/* ── Fleet defaults ── */}
+      <form onSubmit={handleDepSave} className="rounded-2xl border border-border bg-white p-6">
+        <h2 className="mb-1 text-base font-semibold text-neutral-900">Fleet defaults</h2>
+        <p className="mb-5 text-sm text-neutral-500">
+          Internal accounting settings. Not shown on your public listing.
+        </p>
+        <div className="max-w-xs">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
+            Default depreciation rate (%/year)
+          </label>
+          <p className="mb-2 text-xs text-neutral-400">
+            Applied to cars without a custom rate. Standard: 20%.
+          </p>
+          <input
+            type="number"
+            value={depreciationRate}
+            onChange={(e) => { setDepreciationRate(e.target.value); setDepStatus("idle"); }}
+            min={0} max={100} step={0.1}
+            placeholder="20"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+        {depError && <p className="mt-3 text-sm text-red-600">{depError}</p>}
+        <button
+          type="submit"
+          disabled={depStatus === "saving"}
+          className="mt-4 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+        >
+          {depStatus === "saving" ? "Saving…" : depStatus === "saved" ? "Saved ✓" : "Save fleet defaults"}
+        </button>
+      </form>
 
       {/* ── Time format ── */}
       <div className="rounded-2xl border border-border bg-white p-6">

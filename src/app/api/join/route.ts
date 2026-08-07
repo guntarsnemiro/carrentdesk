@@ -1,155 +1,188 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getCityBySlug } from "@/lib/cities";
+import { findJoinListingMatches } from "@/lib/join/match-listings";
+import { findOrCreateUserId, sendMagicLinkEmail, slugify, uniqueSlug } from "@/lib/join/signup-helpers";
+import {
+  sendClaimRequestNotification,
+  sendJoinClaimPendingEmail,
+  sendJoinSignupNotification,
+} from "@/lib/email";
+import type { Database } from "@/lib/supabase/database.types";
 
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
-
-async function uniqueSlug(db: ReturnType<typeof createServiceRoleClient>, base: string) {
-  let slug = base;
-  let attempt = 0;
-  while (true) {
-    const { data } = await db.from("companies").select("id").eq("slug", slug).maybeSingle();
-    if (!data) return slug;
-    attempt++;
-    slug = `${base}-${attempt}`;
-  }
-}
+type JoinMode = "create" | "claim";
 
 export async function POST(req: Request) {
   try {
-    const { companyName, email } = await req.json();
+    const body = await req.json();
+    const mode = (body.mode ?? "create") as JoinMode;
+    const companyName = typeof body.companyName === "string" ? body.companyName.trim() : "";
+    const contactName = typeof body.contactName === "string" ? body.contactName.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+    const city = typeof body.city === "string" ? body.city.trim() : "";
+    const companyId = typeof body.companyId === "string" ? body.companyId : "";
 
-    if (!companyName || typeof companyName !== "string" || companyName.trim().length < 2) {
+    if (companyName.length < 2) {
       return NextResponse.json({ error: "Company name must be at least 2 characters." }, { status: 400 });
     }
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    if (contactName.length < 2) {
+      return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
+    }
+    if (!email.includes("@")) {
       return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
+    }
+    if (phone.replace(/\D/g, "").length < 8) {
+      return NextResponse.json({ error: "Please enter a valid phone number." }, { status: 400 });
+    }
+
+    const cityMeta = getCityBySlug(city);
+    if (!cityMeta) {
+      return NextResponse.json({ error: "Please select a valid city." }, { status: 400 });
     }
 
     const db = createServiceRoleClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carrentdesk.com";
+    const adminUrl = `${siteUrl}/admin/pipeline`;
 
-    // 1. Create or find the user via Supabase Admin
-    // List users filtered by email (Supabase admin API doesn't have getUserByEmail)
-    const { data: listData } = await db.auth.admin.listUsers({ perPage: 1000 });
-    const existingUser = listData?.users?.find((u) => u.email === email);
-    let userId: string;
-
-    if (!existingUser) {
-      // Create new user
-      const { data: newUser, error: createErr } = await db.auth.admin.createUser({
-        email,
-        email_confirm: true,
-      });
-      if (createErr || !newUser?.user) {
-        return NextResponse.json({ error: "Could not create account. Please try again." }, { status: 500 });
+    if (mode === "claim") {
+      if (!companyId) {
+        return NextResponse.json({ error: "Please select a listing to claim." }, { status: 400 });
       }
-      userId = newUser.user.id;
-    } else {
-      userId = existingUser.id;
+
+      const { data: company } = await db
+        .from("companies")
+        .select("id, name, slug, status, city")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      if (!company) {
+        return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+      }
+      if (company.status !== "unclaimed") {
+        return NextResponse.json({ error: "This listing has already been claimed." }, { status: 409 });
+      }
+      if (company.city !== city) {
+        return NextResponse.json({ error: "Selected listing does not match your city." }, { status: 400 });
+      }
+
+      const claimMessage = [`Phone: ${phone}`, `Signed up via /join`].join("\n");
+
+      const { error: claimErr } = await db.from("claim_requests").upsert(
+        {
+          company_id: company.id,
+          email,
+          name: contactName,
+          message: claimMessage,
+          status: "pending",
+        },
+        { onConflict: "company_id,email", ignoreDuplicates: false }
+      );
+
+      if (claimErr) {
+        console.error("[join/claim]", claimErr);
+        return NextResponse.json({ error: "Failed to submit claim. Please try again." }, { status: 500 });
+      }
+
+      try {
+        await sendClaimRequestNotification({
+          name: contactName,
+          email,
+          message: claimMessage,
+          companyName: company.name,
+          companySlug: company.slug,
+          adminUrl,
+        });
+        await sendJoinClaimPendingEmail({ email, contactName, companyName: company.name });
+      } catch (err) {
+        console.error("[join/claim] email failed:", err);
+      }
+
+      return NextResponse.json({ ok: true, mode: "claim_pending" as const });
     }
 
-    // 2. Check if user already has a company
+    // ── Create new listing ──────────────────────────────────────────
+    const matches = await findJoinListingMatches(db, { companyName, city, phone });
+    const strongMatch = matches.find((m) => slugify(m.name) === slugify(companyName));
+    if (strongMatch) {
+      return NextResponse.json(
+        {
+          error: "A similar listing already exists. Please claim it instead of creating a new one.",
+          suggestClaimId: strongMatch.id,
+        },
+        { status: 409 }
+      );
+    }
+
+    const userId = await findOrCreateUserId(db, email);
+
     const { data: existingMembership } = await db
       .from("company_members")
       .select("company_id")
       .eq("user_id", userId)
       .maybeSingle();
 
-    let companyId: string;
-
     if (existingMembership) {
-      // Already has a company — just send them a login link
-      companyId = existingMembership.company_id;
-    } else {
-      // 3. Create the company
-      const baseSlug = slugify(companyName.trim());
-      const slug     = await uniqueSlug(db, baseSlug);
-
-      const { data: company, error: companyErr } = await db
-        .from("companies")
-        .insert({
-          name:    companyName.trim(),
-          slug,
-          status:  "claimed" as const,
-          city:    "riga" as const,
-          country: "LV" as const,
-        })
-        .select("id")
-        .single();
-
-      if (companyErr || !company) {
-        return NextResponse.json({ error: "Could not create company. Please try again." }, { status: 500 });
-      }
-      companyId = company.id;
-
-      // 4. Link user to company
-      await db.from("company_members").insert({
-        user_id:    userId,
-        company_id: companyId,
-        role:       "owner",
-      });
+      await sendMagicLinkEmail(db, email, companyName, siteUrl);
+      return NextResponse.json({ ok: true, mode: "existing_account" as const });
     }
 
-    // 5. Generate magic link and send via email
-    const { data: linkData, error: linkErr } = await db.auth.admin.generateLink({
-      type:       "magiclink",
-      email,
-      options: {
-        redirectTo: `${siteUrl}/auth/callback?next=/app/dashboard`,
-      },
+    const slug = await uniqueSlug(db, slugify(companyName));
+
+    const { data: company, error: companyErr } = await db
+      .from("companies")
+      .insert({
+        name: companyName,
+        slug,
+        status: "claimed",
+        city: city as Database["public"]["Enums"]["city_slug"],
+        country: cityMeta.countryCode as unknown as Database["public"]["Enums"]["country_code"],
+        phone,
+        email,
+        contact_person: contactName,
+        pipeline_stage: "trial",
+      })
+      .select("id, slug")
+      .single();
+
+    if (companyErr || !company) {
+      console.error("[join/create]", companyErr);
+      return NextResponse.json({ error: "Could not create company. Please try again." }, { status: 500 });
+    }
+
+    await db.from("company_members").insert({
+      user_id: userId,
+      company_id: company.id,
+      role: "owner",
     });
 
-    if (linkErr || !linkData?.properties?.action_link) {
-      return NextResponse.json({ error: "Could not send login link. Please try again." }, { status: 500 });
-    }
+    await db
+      .from("companies")
+      .update({
+        claimed_at: new Date().toISOString(),
+        claimed_by_user_id: userId,
+      })
+      .eq("id", company.id);
 
-    // Send the email via Resend (or fall back to Supabase built-in)
-    const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.EMAIL_FROM ?? "CarRentDesk <info@carrentdesk.com>";
-    const magicLink = linkData.properties.action_link;
+    await sendMagicLinkEmail(db, email, companyName, siteUrl);
 
-    if (resendKey) {
-      await fetch("https://api.resend.com/emails", {
-        method:  "POST",
-        headers: {
-          "Authorization": `Bearer ${resendKey}`,
-          "Content-Type":  "application/json",
-        },
-        body: JSON.stringify({
-          from:    fromEmail,
-          to:      [email],
-          subject: "Your CarRentDesk account is ready",
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
-              <h1 style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:8px">
-                Welcome to CarRentDesk!
-              </h1>
-              <p style="font-size:14px;color:#64748b;margin-bottom:24px">
-                Your account for <strong style="color:#0f172a">${companyName.trim()}</strong> is ready.
-                Click the button below to sign in and start managing your fleet.
-              </p>
-              <a href="${magicLink}"
-                style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;
-                       font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px">
-                Open my dashboard →
-              </a>
-              <p style="font-size:12px;color:#94a3b8;margin-top:24px">
-                This link expires in 1 hour and can only be used once.
-                If you didn't request this, you can safely ignore it.
-              </p>
-            </div>
-          `,
-        }),
+    try {
+      await sendJoinSignupNotification({
+        contactName,
+        email,
+        phone,
+        companyName,
+        city: cityMeta.name,
+        country: cityMeta.country,
+        companySlug: company.slug,
+        listingUrl: `${siteUrl}/c/${company.slug}`,
+        adminUrl,
       });
+    } catch (err) {
+      console.error("[join/create] owner notification failed:", err);
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, mode: "created" as const, slug: company.slug });
   } catch (err) {
     console.error("/api/join error:", err);
     return NextResponse.json({ error: "Unexpected error. Please try again." }, { status: 500 });

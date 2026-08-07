@@ -147,3 +147,68 @@ export async function sendClaimInvite(data: {
     ].join("\n"),
   });
 }
+
+/**
+ * Notifies the site owner when an operator completes /join (new listing created).
+ */
+export async function sendJoinSignupNotification(data: {
+  contactName: string;
+  email: string;
+  phone: string;
+  companyName: string;
+  city: string;
+  country: string;
+  companySlug: string;
+  listingUrl: string;
+  adminUrl: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: OWNER_EMAIL,
+    replyTo: data.email,
+    subject: `New operator signup — ${data.companyName} (${data.city})`,
+    text: [
+      `${data.contactName} signed up on /join and created a new listing.`,
+      ``,
+      `Company: ${data.companyName}`,
+      `City: ${data.city}, ${data.country}`,
+      `Email: ${data.email}`,
+      `Phone: ${data.phone}`,
+      `Listing: ${data.listingUrl}`,
+      ``,
+      `Pipeline: ${data.adminUrl}`,
+    ].join("\n"),
+  });
+}
+
+/**
+ * Confirms to the operator that a claim request was submitted (awaiting review).
+ */
+export async function sendJoinClaimPendingEmail(data: {
+  email: string;
+  contactName: string;
+  companyName: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: data.email,
+    subject: `We received your claim request — ${data.companyName}`,
+    text: [
+      `Hi ${data.contactName},`,
+      ``,
+      `Thanks for requesting to manage ${data.companyName} on CarRentDesk.`,
+      ``,
+      `We review every claim to make sure listings go to the right operator. You'll receive a sign-in link by email once approved — usually within 1 business day.`,
+      ``,
+      `If you have questions, reply to this email.`,
+      ``,
+      `— CarRentDesk`,
+    ].join("\n"),
+  });
+}
