@@ -165,30 +165,22 @@ function BookingGroup({
       {bookings.length === 0 ? (
         <p className="text-sm text-neutral-400">{emptyText}</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-white">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col className="w-[24%]" />
-              <col className="w-[22%]" />
-              <col className="w-[24%]" />
-              <col className="w-[10%]" />
-              <col className="w-[12%]" />
-              <col className="w-[8%]" />
-            </colgroup>
+        <div className="overflow-x-auto rounded-2xl border border-border bg-white">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50 text-left text-xs">
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3">Customer</th>
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3">Vehicle</th>
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3">Dates</th>
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3">Price</th>
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3">Status</th>
-                <th className="px-2 py-2 font-medium text-neutral-500 lg:px-3"></th>
+                <th className="max-w-[9rem] px-2 py-2 font-medium text-neutral-500 lg:max-w-[11rem] lg:px-3">Customer</th>
+                <th className="max-w-[8rem] px-2 py-2 font-medium text-neutral-500 lg:max-w-[10rem] lg:px-3">Vehicle</th>
+                <th className="max-w-[9rem] px-2 py-2 font-medium text-neutral-500 lg:max-w-[10rem] lg:px-3">Dates</th>
+                <th className="w-16 px-2 py-2 font-medium text-neutral-500 lg:px-3">Price</th>
+                <th className="w-24 px-2 py-2 font-medium text-neutral-500 lg:px-3">Status</th>
+                <th className="sticky right-0 w-14 min-w-14 bg-slate-50 px-2 py-2 text-right font-medium text-neutral-500 lg:px-3">Edit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {bookings.map((b) => (
-                <tr key={b.id} className="hover:bg-slate-50">
-                  <td className="px-2 py-2 lg:px-3">
+                <tr key={b.id} className="group hover:bg-slate-50">
+                  <td className="max-w-[9rem] px-2 py-2 lg:max-w-[11rem] lg:px-3">
                     <div className="flex min-w-0 items-center gap-1">
                       <span
                         className="truncate font-medium text-neutral-900"
@@ -206,7 +198,7 @@ function BookingGroup({
                       </p>
                     )}
                   </td>
-                  <td className="px-2 py-2 lg:px-3">
+                  <td className="max-w-[8rem] px-2 py-2 lg:max-w-[10rem] lg:px-3">
                     <p
                       className="truncate font-medium text-neutral-900"
                       title={b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : undefined}
@@ -217,7 +209,7 @@ function BookingGroup({
                       <p className="truncate font-mono text-[11px] text-neutral-400">{b.vehicles.plate}</p>
                     )}
                   </td>
-                  <td className="px-2 py-2 text-xs leading-tight text-neutral-600 lg:px-3">
+                  <td className="max-w-[9rem] px-2 py-2 text-xs leading-tight text-neutral-600 lg:max-w-[10rem] lg:px-3">
                     <p className="truncate" title={formatDateCompact(b.start_at)}>
                       {formatDateCompact(b.start_at)}
                     </p>
@@ -233,9 +225,9 @@ function BookingGroup({
                       {STATUS_LABELS[b.status] ?? b.status}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-right lg:px-3">
+                  <td className="sticky right-0 w-14 min-w-14 whitespace-nowrap bg-white px-2 py-2 text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)] group-hover:bg-slate-50 lg:px-3">
                     <Link href={`/app/rentals/${companyId}/${b.id}`}
-                      className="text-xs text-brand-700 hover:underline">
+                      className="text-xs font-medium text-brand-700 hover:underline">
                       Edit
                     </Link>
                   </td>
