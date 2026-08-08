@@ -15,6 +15,7 @@ import { LocationMapLoader } from "@/components/marketing/location-map-loader";
 import { ClaimSidebarCard } from "./_components/claim-banner";
 import { ContactCTAs } from "./_components/contact-ctas";
 import { ContactSidebarCard } from "./_components/contact-sidebar-card";
+import { QuoteRequestForm } from "./_components/quote-request-form";
 
 // Company data only changes on re-scrape / operator edits (rare), so cache for
 // a month. Time-based revalidation that finds no change costs no ISR write, so
@@ -229,6 +230,7 @@ export default async function CompanyPage({ params }: PageProps) {
               cityName={city?.name ?? ""}
               claimed={claimed}
             />
+            <QuoteRequestForm listing={listing} citySlug={listing.city} />
 
             <SidebarCard title="Location">
               <p className="text-sm text-neutral-700">

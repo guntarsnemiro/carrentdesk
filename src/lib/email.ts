@@ -185,6 +185,104 @@ export async function sendJoinSignupNotification(data: {
 }
 
 /**
+ * Notifies the site owner when a customer submits a quote request form.
+ */
+export async function sendInquiryNotification(data: {
+  company_name: string;
+  company_slug: string;
+  city_slug: string;
+  pickup_datetime: string;
+  return_datetime: string;
+  pickup_location: string;
+  return_location?: string;
+  vehicle_type: string;
+  cross_border: boolean;
+  cross_border_countries: string[];
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  driver_age: number;
+  payment_method?: string;
+  no_deposit: boolean;
+  child_seats: number;
+  additional_driver: boolean;
+  notes?: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const vehicleLabels: Record<string, string> = {
+    compact: "Compact",
+    mid_size: "Mid-size",
+    big: "Full-size / Big",
+    suv: "SUV",
+    minivan: "Minivan (7 seats)",
+    bus: "Bus (9 seats)",
+    any: "Any / Best price",
+  };
+  const paymentLabels: Record<string, string> = {
+    cash: "Cash",
+    debit: "Debit card",
+    paypal: "PayPal",
+    bank_transfer: "Bank transfer",
+    other: "Other",
+  };
+
+  const pickup = new Date(data.pickup_datetime);
+  const ret = new Date(data.return_datetime);
+  const days = Math.round((ret.getTime() - pickup.getTime()) / 86400000);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    " " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const extras: string[] = [];
+  if (data.child_seats > 0) extras.push(`Child seat ×${data.child_seats}`);
+  if (data.additional_driver) extras.push("Additional driver");
+  if (data.cross_border && data.cross_border_countries.length)
+    extras.push(`Cross-border: ${data.cross_border_countries.join(", ")}`);
+
+  const lines = [
+    `📩 New quote request — ${data.company_name}`,
+    `Company page: https://carrentdesk.com/c/${data.company_slug}`,
+    `Admin inbox: https://carrentdesk.com/admin/inquiries`,
+    ``,
+    `── Trip ──`,
+    `Pickup:  ${fmt(pickup)}`,
+    `Return:  ${fmt(ret)}  (${days} day${days !== 1 ? "s" : ""})`,
+    `Pickup location: ${data.pickup_location}`,
+    data.return_location ? `Return location: ${data.return_location}` : null,
+    `Car type: ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type}`,
+    ``,
+    `── Driver ──`,
+    `Name:    ${data.customer_name}`,
+    `Phone:   ${data.customer_phone}`,
+    data.customer_email ? `Email:   ${data.customer_email}` : null,
+    `Age:     ${data.driver_age}`,
+    ``,
+    `── Preferences ──`,
+    `Payment: ${data.payment_method ? (paymentLabels[data.payment_method] ?? data.payment_method) : "Not specified"}`,
+    `Deposit: ${data.no_deposit ? "Prefers no deposit / cash only" : "Standard OK"}`,
+    extras.length ? `Extras:  ${extras.join(", ")}` : null,
+    data.notes ? `Notes:   ${data.notes}` : null,
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
+
+  const result = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: OWNER_EMAIL,
+    subject: `Quote request — ${data.company_name} · ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type} · ${days}d`,
+    text: lines,
+  });
+  if (result.error) {
+    console.error("[email] Resend error for inquiry notification:", result.error);
+  } else {
+    console.log("[email] inquiry notification sent, id:", result.data?.id);
+  }
+}
+
+/**
  * Confirms to the operator that a claim request was submitted (awaiting review).
  */
 export async function sendJoinClaimPendingEmail(data: {
