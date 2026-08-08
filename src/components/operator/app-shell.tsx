@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -37,7 +37,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
 
-      {/* ── Mobile backdrop ── */}
+      {/* ΓöÇΓöÇ Mobile backdrop ΓöÇΓöÇ */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -46,7 +46,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
         />
       )}
 
-      {/* ── Sidebar ── */}
+      {/* ΓöÇΓöÇ Sidebar ΓöÇΓöÇ */}
       {/* Desktop: always visible. Mobile: slide in from left when open */}
       <div className={`
         fixed inset-y-0 left-0 z-50 transition-transform duration-200
@@ -61,7 +61,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
         />
       </div>
 
-      {/* ── Main content ── */}
+      {/* ΓöÇΓöÇ Main content ΓöÇΓöÇ */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
         {/* Mobile top bar */}
@@ -82,7 +82,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
         </div>
 
         {/* Page content */}
-        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -111,7 +111,7 @@ export function Sidebar({ user, companies, activeCompanyId, onCloseMobile }: Pro
   const activeCompany = companies.find((c) => c.id === activeCompanyId);
 
   return (
-    <aside className="flex h-screen w-52 shrink-0 flex-col border-r border-border bg-white">
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-white">
       {/* Brand */}
       <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-4">
         <Link href="/app/dashboard" className="flex items-center gap-2">
