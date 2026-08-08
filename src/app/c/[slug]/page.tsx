@@ -226,7 +226,12 @@ export default async function CompanyPage({ params }: PageProps) {
               cityName={city?.name ?? ""}
               claimed={claimed}
             />
-            <QuoteRequestForm listing={listing} citySlug={listing.city} />
+            <QuoteRequestForm
+              listing={listing}
+              citySlug={listing.city}
+              cityName={city?.name ?? listing.city}
+              country={city?.country ?? listing.country}
+            />
 
             <SidebarCard title="Location">
               <p className="text-sm text-neutral-700">

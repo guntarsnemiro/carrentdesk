@@ -49,9 +49,11 @@ function toDatetimeLocal(d: Date) {
 interface Props {
   listing: Listing;
   citySlug: string;
+  cityName: string;
+  country: string;
 }
 
-export function QuoteRequestForm({ listing, citySlug }: Props) {
+export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -146,7 +148,9 @@ export function QuoteRequestForm({ listing, citySlug }: Props) {
       <div className="rounded-2xl bg-brand-50 p-6 ring-1 ring-brand-200">
         <h3 className="text-sm font-semibold text-brand-900">Request a quote</h3>
         <p className="mt-1 text-sm text-brand-700">
-          Send your trip details and {listing.name} will contact you with price and availability.
+          This rental is based in{" "}
+          <span className="font-medium">{cityName}, {country}</span>.
+          Send your trip details and they will contact you with price and availability.
         </p>
         <button
           onClick={() => setOpen(true)}
@@ -178,7 +182,13 @@ export function QuoteRequestForm({ listing, citySlug }: Props) {
   return (
     <div className="rounded-2xl bg-background ring-1 ring-border">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <h3 className="text-sm font-semibold text-neutral-900">Request a quote</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-900">Request a quote</h3>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+            <span>📍</span>
+            <span>{cityName}, {country}</span>
+          </p>
+        </div>
         <button
           onClick={() => setOpen(false)}
           className="text-neutral-400 hover:text-neutral-600"
