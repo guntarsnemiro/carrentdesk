@@ -12,7 +12,6 @@ import {
 } from "@/lib/listings";
 import { seoPageTitle } from "@/lib/seo/title";
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
-import { ClaimSidebarCard } from "./_components/claim-banner";
 import { ContactCTAs } from "./_components/contact-ctas";
 import { ContactSidebarCard } from "./_components/contact-sidebar-card";
 import { QuoteRequestForm } from "./_components/quote-request-form";
@@ -222,9 +221,6 @@ export default async function CompanyPage({ params }: PageProps) {
           </div>
 
           <aside className="space-y-6">
-            {!claimed && (
-              <ClaimSidebarCard companyId={listing.id} companyName={listing.name} />
-            )}
             <ContactSidebarCard
               listing={listing}
               cityName={city?.name ?? ""}
@@ -278,6 +274,22 @@ export default async function CompanyPage({ params }: PageProps) {
           </aside>
         </div>
       </section>
+
+      {!claimed && (
+        <div className="border-t border-border bg-surface-soft">
+          <div className="mx-auto w-full max-w-7xl px-6 py-5 lg:px-8">
+            <p className="text-xs text-neutral-400">
+              Are you the owner of {listing.name}?{" "}
+              <Link
+                href={`/claim?company=${listing.id}`}
+                className="text-neutral-500 underline underline-offset-2 hover:text-brand-700"
+              >
+                Claim this listing
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
