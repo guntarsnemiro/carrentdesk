@@ -82,7 +82,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

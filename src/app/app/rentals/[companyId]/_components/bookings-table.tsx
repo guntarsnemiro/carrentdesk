@@ -38,9 +38,12 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+/** Shared grid: fixed action + price, flexible text cols that can shrink/truncate. */
+const ROW_GRID =
+  "grid grid-cols-[1.75rem_minmax(0,1.15fr)_minmax(0,0.95fr)_minmax(0,1.05fr)_2.75rem_minmax(0,3.5rem)] items-center gap-x-1.5 px-2";
+
 function formatDay(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 function formatTime(iso: string) {
@@ -51,7 +54,14 @@ function formatTime(iso: string) {
   });
 }
 
-function formatDateRange(start: string, end: string) {
+/** Short label for the row; full range + times go in title. */
+function formatDateRangeShort(start: string, end: string) {
+  const s = formatDay(start);
+  const e = formatDay(end);
+  return s === e ? s : `${s}→${e}`;
+}
+
+function formatDateRangeFull(start: string, end: string) {
   return `${formatDay(start)} ${formatTime(start)} → ${formatDay(end)} ${formatTime(end)}`;
 }
 
@@ -60,9 +70,29 @@ function formatPrice(n: number | null) {
   return `€${n.toFixed(0)}`;
 }
 
-function formatVehicle(v: BookingRow["vehicles"]) {
+function formatVehicleShort(v: BookingRow["vehicles"]) {
   if (!v) return "—";
-  return `${v.plate} · ${v.make} ${v.model}`;
+  return v.plate || `${v.make} ${v.model}`;
+}
+
+function formatVehicleFull(v: BookingRow["vehicles"]) {
+  if (!v) return undefined;
+  return `${v.make} ${v.model} (${v.year}) · ${v.plate}`;
+}
+
+function EditLink({ companyId, bookingId }: { companyId: string; bookingId: string }) {
+  return (
+    <Link
+      href={`/app/rentals/${companyId}/${bookingId}`}
+      aria-label="Edit booking"
+      className="inline-flex h-6 w-6 items-center justify-center rounded text-brand-700 hover:bg-brand-50"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+    </Link>
+  );
 }
 
 export function BookingsTable({
@@ -102,7 +132,7 @@ export function BookingsTable({
   }, [bookings, statusFilter]);
 
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <button
@@ -123,89 +153,78 @@ export function BookingsTable({
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border bg-white">
-        <table className="w-full min-w-0 table-fixed text-xs">
-          <colgroup>
-            <col className="w-[3.25rem]" />
-            <col />
-            <col />
-            <col className="w-[26%]" />
-            <col className="w-[4.5rem]" />
-            <col className="w-[5.5rem]" />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-border bg-slate-50 text-left">
-              <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 font-medium text-neutral-500">
-                Edit
-              </th>
-              <th className="px-2 py-2 font-medium text-neutral-500">Customer</th>
-              <th className="px-2 py-2 font-medium text-neutral-500">Vehicle</th>
-              <th className="px-2 py-2 font-medium text-neutral-500">Dates</th>
-              <th className="px-2 py-2 font-medium text-neutral-500">Price</th>
-              <th className="px-2 py-2 font-medium text-neutral-500">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-neutral-400">
-                  No bookings match this filter.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((b) => {
-                const customerTitle = [
-                  b.customers?.full_name,
-                  b.customers?.phone,
-                ].filter(Boolean).join(" · ");
-                const vehicleTitle = b.vehicles
-                  ? `${b.vehicles.make} ${b.vehicles.model} (${b.vehicles.year}) · ${b.vehicles.plate}`
-                  : undefined;
-                const dateTitle = formatDateRange(b.start_at, b.end_at);
+      <div className="overflow-hidden rounded-2xl border border-border bg-white">
+        <div className={`${ROW_GRID} border-b border-border bg-slate-50 py-2 text-[11px] font-medium text-neutral-500`}>
+          <span aria-hidden />
+          <span>Customer</span>
+          <span>Vehicle</span>
+          <span>Dates</span>
+          <span>Price</span>
+          <span>Status</span>
+        </div>
 
-                return (
-                  <tr key={b.id} className="group hover:bg-slate-50">
-                    <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-2 py-2 shadow-[4px_0_8px_-6px_rgba(15,23,42,0.12)] group-hover:bg-slate-50">
-                      <Link
-                        href={`/app/rentals/${companyId}/${b.id}`}
-                        className="font-semibold text-brand-700 hover:underline"
-                      >
-                        Edit
-                      </Link>
-                    </td>
-                    <td className="max-w-0 truncate px-2 py-2" title={customerTitle || undefined}>
-                      <span className="font-medium text-neutral-900">
-                        {b.customers?.full_name ?? "—"}
-                      </span>
-                      {b.customers?.blacklisted && (
-                        <span className="ml-1 text-red-500" title="Blacklisted">⚠</span>
-                      )}
-                    </td>
-                    <td className="max-w-0 truncate px-2 py-2 font-medium text-neutral-800" title={vehicleTitle}>
-                      {formatVehicle(b.vehicles)}
-                    </td>
-                    <td
-                      className="max-w-0 truncate px-2 py-2 tabular-nums text-neutral-600"
-                      title={dateTitle}
+        {filtered.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-neutral-400">
+            No bookings match this filter.
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {filtered.map((b) => {
+              const customerTitle = [
+                b.customers?.full_name,
+                b.customers?.phone,
+              ].filter(Boolean).join(" · ");
+              const vehicleTitle = formatVehicleFull(b.vehicles);
+              const dateTitle = formatDateRangeFull(b.start_at, b.end_at);
+
+              return (
+                <div
+                  key={b.id}
+                  className={`${ROW_GRID} min-w-0 py-1.5 text-xs hover:bg-slate-50`}
+                >
+                  <EditLink companyId={companyId} bookingId={b.id} />
+
+                  <span
+                    className="min-w-0 truncate font-medium text-neutral-900"
+                    title={customerTitle || undefined}
+                  >
+                    {b.customers?.full_name ?? "—"}
+                    {b.customers?.blacklisted && (
+                      <span className="ml-0.5 text-red-500" title="Blacklisted">⚠</span>
+                    )}
+                  </span>
+
+                  <span
+                    className="min-w-0 truncate font-medium text-neutral-800"
+                    title={vehicleTitle}
+                  >
+                    {formatVehicleShort(b.vehicles)}
+                  </span>
+
+                  <span
+                    className="min-w-0 truncate tabular-nums text-neutral-600"
+                    title={dateTitle}
+                  >
+                    {formatDateRangeShort(b.start_at, b.end_at)}
+                  </span>
+
+                  <span className="truncate tabular-nums text-neutral-700">
+                    {formatPrice(b.booking_price)}
+                  </span>
+
+                  <span className="min-w-0">
+                    <span
+                      className={`block truncate rounded-full px-1 py-0.5 text-center text-[10px] font-medium leading-tight ${STATUS_STYLES[b.status] ?? "bg-neutral-100 text-neutral-500"}`}
+                      title={STATUS_LABELS[b.status] ?? b.status}
                     >
-                      {formatDateRange(b.start_at, b.end_at)}
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2 tabular-nums text-neutral-700">
-                      {formatPrice(b.booking_price)}
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2">
-                      <span
-                        className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none ${STATUS_STYLES[b.status] ?? "bg-neutral-100 text-neutral-500"}`}
-                      >
-                        {STATUS_LABELS[b.status] ?? b.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                      {STATUS_LABELS[b.status] ?? b.status}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
