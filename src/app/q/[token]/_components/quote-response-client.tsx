@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { respondToQuote } from "./_actions";
+import { respondToQuote } from "../_actions";
 
 type Props = {
   token: string;
