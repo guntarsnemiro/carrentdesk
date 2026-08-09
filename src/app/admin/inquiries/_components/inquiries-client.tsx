@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, type InquiryStatus } from "../_actions";
+import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, generateRentalInviteLink, type InquiryStatus } from "../_actions";
 import { useRouter } from "next/navigation";
 
 type Inquiry = {
@@ -156,6 +156,9 @@ function InquiryRow({
   const [quoteSending, setQuoteSending] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [quoteSent, setQuoteSent] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   const statusMeta = STATUSES.find((s) => s.key === inq.status) ?? STATUSES[0];
   const d = days(inq.pickup_datetime, inq.return_datetime);
@@ -189,6 +192,16 @@ function InquiryRow({
     } else {
       setQuoteError(result.error);
     }
+  }
+
+  async function handleGenerateInviteLink() {
+    if (!inq.company_id) { setInviteError("No company linked to this inquiry"); return; }
+    setInviteError("");
+    setInviteLoading(true);
+    const result = await generateRentalInviteLink(inq.company_id);
+    setInviteLoading(false);
+    if (result.ok) setInviteLink(result.url);
+    else setInviteError(result.error);
   }
 
   // Rental's contact number — prefer WhatsApp, fall back to phone
@@ -332,6 +345,45 @@ function InquiryRow({
               </a>
             )}
           </div>
+
+          {/* Invite rental to platform */}
+          {inq.company_id && (
+            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
+              <h4 className="text-xs font-semibold text-blue-900 mb-0.5">Invite rental to platform</h4>
+              <p className="text-xs text-blue-700 mb-3">
+                Generate a 30-day login link. Send it via WhatsApp — no email needed upfront.
+              </p>
+              {inviteLink ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={inviteLink}
+                      className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs text-neutral-800 font-mono"
+                    />
+                    <button
+                      onClick={() => navigator.clipboard.writeText(inviteLink)}
+                      className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600">✓ Valid for 30 days. Paste into WhatsApp.</p>
+                </div>
+              ) : (
+                <div>
+                  {inviteError && <p className="text-xs text-red-600 mb-2">{inviteError}</p>}
+                  <button
+                    onClick={handleGenerateInviteLink}
+                    disabled={inviteLoading}
+                    className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {inviteLoading ? "Generating…" : "Generate invite link"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Admin notes */}
           <div>

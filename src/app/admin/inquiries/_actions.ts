@@ -84,3 +84,34 @@ export async function adminSendQuoteToCustomer(
 
   return { ok: true };
 }
+
+export type GenerateInviteLinkResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
+
+export async function generateRentalInviteLink(
+  companyId: string
+): Promise<GenerateInviteLinkResult> {
+  if (!companyId) return { ok: false, error: "No company linked to this inquiry" };
+
+  const db = createServiceRoleClient();
+  const { randomBytes } = await import("crypto");
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { error } = await db.from("claim_tokens").insert({
+    company_id: companyId,
+    token,
+    sent_to_email: null,
+    sent_at: new Date().toISOString(),
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    console.error("[invite] DB error:", error);
+    return { ok: false, error: "Failed to generate link" };
+  }
+
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carrentdesk.com";
+  return { ok: true, url: `${base}/claim?token=${token}` };
+}
