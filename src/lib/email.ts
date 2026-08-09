@@ -300,6 +300,7 @@ export async function sendQuoteResponseToCustomer(data: {
   vehicle_type: string;
   quoted_price?: number | null;
   operator_response: string;
+  response_token?: string | null;
 }) {
   const resend = getResend();
   if (!resend) return;
@@ -317,6 +318,10 @@ export async function sendQuoteResponseToCustomer(data: {
     " " +
     d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
+  const respondUrl = data.response_token
+    ? `https://carrentdesk.com/q/${data.response_token}`
+    : null;
+
   const lines = [
     `Hi ${data.customer_name},`,
     ``,
@@ -329,14 +334,19 @@ export async function sendQuoteResponseToCustomer(data: {
     ``,
     `── Their quote ──`,
     data.quoted_price ? `Price:   €${Number(data.quoted_price).toFixed(2)} total` : null,
-    `Message: ${data.operator_response}`,
+    ``,
+    data.operator_response,
     ``,
     `── Contact ${data.company_name} ──`,
     data.company_phone ? `Phone: ${data.company_phone}` : null,
     data.company_email ? `Email: ${data.company_email}` : null,
     `Listing: https://carrentdesk.com/c/${data.company_slug}`,
     ``,
-    `Reply to this email if you have questions.`,
+    respondUrl
+      ? `👉 Accept or decline this offer:\n${respondUrl}`
+      : null,
+    ``,
+    `Reply to this email if you have any questions.`,
     ``,
     `— CarRentDesk`,
   ].filter((l) => l !== null).join("\n");
@@ -353,6 +363,72 @@ export async function sendQuoteResponseToCustomer(data: {
   } else {
     console.log("[email] quote response sent to customer, id:", result.data?.id);
   }
+}
+
+/**
+ * Notifies the admin (and optionally the rental) that a customer accepted a quote.
+ */
+export async function sendQuoteAcceptedNotification(data: {
+  company_name: string;
+  company_id: string;
+  company_slug: string;
+  company_phone?: string | null;
+  company_email?: string | null;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  pickup_datetime: string;
+  return_datetime: string;
+  vehicle_type: string;
+  pickup_location: string;
+  quoted_price?: number | null;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const vehicleLabels: Record<string, string> = {
+    compact: "Compact", mid_size: "Mid-size", big: "Full-size / Big",
+    suv: "SUV", minivan: "Minivan (7 seats)", bus: "Bus (9 seats)", any: "Any / Best price",
+  };
+
+  const pickup = new Date(data.pickup_datetime);
+  const ret = new Date(data.return_datetime);
+  const days = Math.round((ret.getTime() - pickup.getTime()) / 86400000);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    " " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const body = [
+    `🎉 A customer has accepted a quote!`,
+    ``,
+    `── Rental ──`,
+    `Company: ${data.company_name}`,
+    data.company_phone ? `Phone: ${data.company_phone}` : null,
+    data.company_email ? `Email: ${data.company_email}` : null,
+    `Listing: https://carrentdesk.com/c/${data.company_slug}`,
+    ``,
+    `── Trip ──`,
+    `Pickup:   ${fmt(pickup)}`,
+    `Return:   ${fmt(ret)}  (${days} day${days !== 1 ? "s" : ""})`,
+    `Location: ${data.pickup_location}`,
+    `Car:      ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type}`,
+    data.quoted_price ? `Price:    €${Number(data.quoted_price).toFixed(2)}` : null,
+    ``,
+    `── Customer ──`,
+    `Name:  ${data.customer_name}`,
+    `Phone: ${data.customer_phone}`,
+    data.customer_email ? `Email: ${data.customer_email}` : null,
+    ``,
+    `— CarRentDesk`,
+  ].filter((l) => l !== null).join("\n");
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: OWNER_EMAIL,
+    subject: `✅ Booking accepted — ${data.customer_name} → ${data.company_name}`,
+    text: body,
+  });
 }
 
 /**

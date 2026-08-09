@@ -33,7 +33,7 @@ export async function adminSendQuoteToCustomer(
 
   const { data: inq } = await db
     .from("inquiries")
-    .select("customer_name, customer_email, company_id, company_name, company_slug, pickup_datetime, return_datetime, vehicle_type")
+    .select("customer_name, customer_email, company_id, company_name, company_slug, pickup_datetime, return_datetime, vehicle_type, response_token")
     .eq("id", inquiryId)
     .maybeSingle();
   if (!inq) return { ok: false, error: "Inquiry not found" };
@@ -79,6 +79,7 @@ export async function adminSendQuoteToCustomer(
     vehicle_type: inq.vehicle_type,
     quoted_price: data.quoted_price,
     operator_response: data.operator_response.trim(),
+    response_token: inq.response_token,
   });
 
   return { ok: true };

@@ -39,7 +39,7 @@ export async function submitQuoteResponse(
   // Fetch the inquiry (must belong to this company)
   const { data: inq } = await db
     .from("inquiries")
-    .select("id, company_id, customer_name, customer_email, pickup_datetime, return_datetime, vehicle_type, status")
+    .select("id, company_id, customer_name, customer_email, pickup_datetime, return_datetime, vehicle_type, status, response_token")
     .eq("id", inquiryId)
     .eq("company_id", companyId)
     .maybeSingle();
@@ -82,6 +82,7 @@ export async function submitQuoteResponse(
       vehicle_type: inq.vehicle_type,
       quoted_price: data.quoted_price,
       operator_response: data.operator_response.trim(),
+      response_token: inq.response_token,
     }).catch((e) => console.error("[quotes] email error:", e));
   }
 
