@@ -222,9 +222,10 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
           {/* Pickup row */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-neutral-600">Pickup</label>
-            <div className="grid grid-cols-2 gap-2" lang="en-GB">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
+                lang="en-GB"
                 value={form.pickup_date}
                 min={todayStr()}
                 onChange={(e) => {
@@ -240,6 +241,7 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
               />
               <input
                 type="time"
+                lang="en-GB"
                 value={form.pickup_time}
                 onChange={(e) => set("pickup_time", e.target.value)}
                 className={inputCls(undefined)}
@@ -251,9 +253,10 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
           {/* Return row */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-neutral-600">Return</label>
-            <div className="grid grid-cols-2 gap-2" lang="en-GB">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
+                lang="en-GB"
                 value={form.return_date}
                 min={addDays(form.pickup_date, 1)}
                 onChange={(e) => set("return_date", e.target.value)}
@@ -261,6 +264,7 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
               />
               <input
                 type="time"
+                lang="en-GB"
                 value={form.return_time}
                 onChange={(e) => set("return_time", e.target.value)}
                 className={inputCls(undefined)}
@@ -319,6 +323,16 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
               ))}
             </div>
           </Field>
+
+          <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.automatic_transmission}
+              onChange={(e) => set("automatic_transmission", e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-brand-700"
+            />
+            Automatic transmission
+          </label>
 
           <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer select-none">
             <input
@@ -438,16 +452,6 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
         {/* ── Extras ── */}
         <section className="px-6 py-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Extras</p>
-
-          <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.automatic_transmission}
-              onChange={(e) => set("automatic_transmission", e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-brand-700"
-            />
-            Automatic transmission
-          </label>
 
           <Field label="Child seats">
             <div className="flex items-center gap-3">
