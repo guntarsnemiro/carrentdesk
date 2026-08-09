@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateInquiryStatus, updateInquiryNotes, type InquiryStatus } from "../_actions";
+import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, type InquiryStatus } from "../_actions";
 import { useRouter } from "next/navigation";
 
 type Inquiry = {
@@ -31,6 +31,8 @@ type Inquiry = {
   status: string;
   admin_notes: string | null;
   forwarded_at: string | null;
+  operator_response: string | null;
+  quoted_price: number | null;
   company: { whatsapp: string | null; phone: string | null } | null;
 };
 
@@ -149,6 +151,11 @@ function InquiryRow({
   const [isPending, startTransition] = useTransition();
   const [notes, setNotes] = useState(inq.admin_notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [quoteMsg, setQuoteMsg] = useState(inq.operator_response ?? "");
+  const [quotePrice, setQuotePrice] = useState(inq.quoted_price != null ? String(inq.quoted_price) : "");
+  const [quoteSending, setQuoteSending] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteSent, setQuoteSent] = useState(false);
 
   const statusMeta = STATUSES.find((s) => s.key === inq.status) ?? STATUSES[0];
   const d = days(inq.pickup_datetime, inq.return_datetime);
@@ -165,6 +172,23 @@ function InquiryRow({
     await updateInquiryNotes(inq.id, notes);
     setSaving(false);
     onUpdated();
+  }
+
+  async function handleSendQuote(e: React.FormEvent) {
+    e.preventDefault();
+    setQuoteError("");
+    setQuoteSending(true);
+    const result = await adminSendQuoteToCustomer(inq.id, {
+      operator_response: quoteMsg,
+      quoted_price: quotePrice ? parseFloat(quotePrice) : null,
+    });
+    setQuoteSending(false);
+    if (result.ok) {
+      setQuoteSent(true);
+      onUpdated();
+    } else {
+      setQuoteError(result.error);
+    }
   }
 
   // Rental's contact number — prefer WhatsApp, fall back to phone
@@ -326,6 +350,67 @@ function InquiryRow({
             >
               {saving ? "Saving…" : "Save notes"}
             </button>
+          </div>
+
+          {/* Send quote to customer */}
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+            <h4 className="text-xs font-semibold text-amber-900 mb-0.5">
+              Send rental quote to customer
+            </h4>
+            <p className="text-xs text-amber-700 mb-3">
+              Got an offer from the rental via WhatsApp? Enter it here and we&apos;ll email the customer.
+            </p>
+            {quoteSent ? (
+              <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                Quote emailed to {inq.customer_email ?? inq.customer_name} ✓
+              </div>
+            ) : (
+              <form onSubmit={handleSendQuote} className="space-y-2">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-amber-800 mb-1">Price (€) — optional</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={quotePrice}
+                      onChange={(e) => setQuotePrice(e.target.value)}
+                      placeholder="e.g. 550"
+                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-amber-800 mb-1">Message / offer details *</label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={quoteMsg}
+                    onChange={(e) => setQuoteMsg(e.target.value)}
+                    placeholder={
+                      `e.g.\nWe have a Fiat Tipo 2025, manual transmission.\nFull insurance, no deposit.\nDelivery & drop-off to airport included.\nCash payment on arrival.\n€550 total.`
+                    }
+                    className="w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200 resize-none"
+                  />
+                </div>
+                {quoteError && (
+                  <p className="text-xs text-red-600">{quoteError}</p>
+                )}
+                {!inq.customer_email && (
+                  <p className="text-xs text-red-600">⚠ This inquiry has no customer email — cannot send.</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={quoteSending || !inq.customer_email}
+                  className="rounded-lg bg-amber-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {quoteSending ? "Sending…" : "Email quote to customer"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
