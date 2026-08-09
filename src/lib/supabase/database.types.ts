@@ -814,9 +814,12 @@ export type Database = {
           id: string
           no_deposit: boolean
           notes: string | null
+          operator_response: string | null
+          operator_response_at: string | null
           payment_method: string | null
           pickup_datetime: string
           pickup_location: string
+          quoted_price: number | null
           return_datetime: string
           return_location: string | null
           source: string
@@ -843,9 +846,12 @@ export type Database = {
           id?: string
           no_deposit?: boolean
           notes?: string | null
+          operator_response?: string | null
+          operator_response_at?: string | null
           payment_method?: string | null
           pickup_datetime: string
           pickup_location: string
+          quoted_price?: number | null
           return_datetime: string
           return_location?: string | null
           source?: string
@@ -872,9 +878,12 @@ export type Database = {
           id?: string
           no_deposit?: boolean
           notes?: string | null
+          operator_response?: string | null
+          operator_response_at?: string | null
           payment_method?: string | null
           pickup_datetime?: string
           pickup_location?: string
+          quoted_price?: number | null
           return_datetime?: string
           return_location?: string | null
           source?: string

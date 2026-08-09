@@ -285,6 +285,77 @@ export async function sendInquiryNotification(data: {
 }
 
 /**
+ * Sends a quote response from the rental operator to the customer.
+ * Called when an operator submits their price and message via /app/quotes/[companyId].
+ */
+export async function sendQuoteResponseToCustomer(data: {
+  customer_name: string;
+  customer_email: string;
+  company_name: string;
+  company_slug: string;
+  company_phone?: string | null;
+  company_email?: string | null;
+  pickup_datetime: string;
+  return_datetime: string;
+  vehicle_type: string;
+  quoted_price?: number | null;
+  operator_response: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const vehicleLabels: Record<string, string> = {
+    compact: "Compact", mid_size: "Mid-size", big: "Full-size / Big",
+    suv: "SUV", minivan: "Minivan (7 seats)", bus: "Bus (9 seats)", any: "Any / Best price",
+  };
+
+  const pickup = new Date(data.pickup_datetime);
+  const ret = new Date(data.return_datetime);
+  const days = Math.round((ret.getTime() - pickup.getTime()) / 86400000);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    " " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const lines = [
+    `Hi ${data.customer_name},`,
+    ``,
+    `Good news — ${data.company_name} has responded to your quote request!`,
+    ``,
+    `── Your trip ──`,
+    `Pickup:  ${fmt(pickup)}`,
+    `Return:  ${fmt(ret)}  (${days} day${days !== 1 ? "s" : ""})`,
+    `Car type: ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type}`,
+    ``,
+    `── Their quote ──`,
+    data.quoted_price ? `Price:   €${Number(data.quoted_price).toFixed(2)} total` : null,
+    `Message: ${data.operator_response}`,
+    ``,
+    `── Contact ${data.company_name} ──`,
+    data.company_phone ? `Phone: ${data.company_phone}` : null,
+    data.company_email ? `Email: ${data.company_email}` : null,
+    `Listing: https://carrentdesk.com/c/${data.company_slug}`,
+    ``,
+    `Reply to this email if you have questions.`,
+    ``,
+    `— CarRentDesk`,
+  ].filter((l) => l !== null).join("\n");
+
+  const result = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: data.customer_email,
+    replyTo: data.company_email ?? OWNER_EMAIL,
+    subject: `Quote from ${data.company_name}${data.quoted_price ? ` — €${Number(data.quoted_price).toFixed(2)}` : ""} · ${days}d · ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type}`,
+    text: lines,
+  });
+  if (result.error) {
+    console.error("[email] Resend error for quote response:", result.error);
+  } else {
+    console.log("[email] quote response sent to customer, id:", result.data?.id);
+  }
+}
+
+/**
  * Confirms to the operator that a claim request was submitted (awaiting review).
  */
 export async function sendJoinClaimPendingEmail(data: {

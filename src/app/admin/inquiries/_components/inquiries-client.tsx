@@ -9,6 +9,7 @@ type Inquiry = {
   created_at: string;
   company_name: string | null;
   company_slug: string | null;
+  company_id: string | null;
   city_slug: string | null;
   pickup_datetime: string;
   return_datetime: string;
@@ -183,7 +184,7 @@ function InquiryRow({
     (inq.additional_driver ? `👥 Additional driver: yes\n` : "") +
     (inq.cross_border && inq.cross_border_countries?.length ? `🌍 Cross-border: ${inq.cross_border_countries.join(", ")}\n` : "") +
     (inq.notes ? `📝 Notes: ${inq.notes}\n` : "") +
-    `\nInterested in this customer? Log in to CarRentDesk to manage your leads: https://carrentdesk.com/app/login`
+    `\nInterested in this customer? Log in to CarRentDesk to manage your leads: https://carrentdesk.com/app/quotes/${inq.company_id ?? ""}`
   );
 
   return (
