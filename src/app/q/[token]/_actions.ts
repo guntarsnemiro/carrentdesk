@@ -15,11 +15,7 @@ export async function respondToQuote(
 
   const { data: inq } = await db
     .from("inquiries")
-    .select(
-      "id, customer_name, customer_response, company_name, company_id, company_slug, " +
-      "pickup_datetime, return_datetime, vehicle_type, pickup_location, " +
-      "customer_phone, customer_email, payment_method, quoted_price, operator_response"
-    )
+    .select("id, customer_name, customer_response, company_name, company_id, company_slug, pickup_datetime, return_datetime, vehicle_type, pickup_location, customer_phone, customer_email, payment_method, quoted_price, operator_response")
     .eq("response_token", token)
     .maybeSingle();
 
