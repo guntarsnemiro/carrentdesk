@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "CarRentDesk",
     locale: "en_US",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "CarRentDesk — Best local car rentals across Europe", type: "image/png" }],
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },

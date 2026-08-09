@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "About CarRentDesk",
   description:
-    "CarRentDesk is a directory of independent local car rental companies across Europe. We connect travellers directly with local operators — no middleman, no hidden fees.",
+    "Directory of independent local car rentals across Europe. Connect directly with local operators — no middleman, no hidden fees.",
 };
 
 export default function AboutPage() {

@@ -35,7 +35,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url },
+    openGraph: {
+      title,
+      description,
+      url,
+      images: [{ url: `/${city.slug}/opengraph-image`, width: 1200, height: 630, alt: `${title} — CarRentDesk`, type: "image/png" }],
+    },
   };
 }
 

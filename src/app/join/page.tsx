@@ -15,7 +15,7 @@ const joinCityOptions = CITIES.map((c) => ({
 export const metadata: Metadata = {
   title: "Car Rental Management Software — Pricing & Free Trial",
   description:
-    "Car rental management software for independent operators. Fleet management, booking calendar, customer CRM, invoicing, and real P&L — all in one platform from €29/month. Start your free trial, no credit card required.",
+    "Car rental software for independent operators. Fleet, bookings, CRM, invoicing & P&L in one platform from €29/month. Free trial, no credit card required.",
   keywords: [
     "car rental management software",
     "car rental software",
@@ -38,6 +38,7 @@ export const metadata: Metadata = {
     url: "https://carrentdesk.com/join",
     siteName: "CarRentDesk",
     type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "CarRentDesk — Car Rental Management Software", type: "image/png" }],
   },
 };
 

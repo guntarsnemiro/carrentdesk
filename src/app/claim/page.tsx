@@ -4,7 +4,10 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { ClaimConfirmButton } from "./_components/claim-confirm-button";
 
-export const metadata: Metadata = { title: "Claim your listing · CarRentDesk" };
+export const metadata: Metadata = {
+  title: "Claim your listing · CarRentDesk",
+  robots: { index: false, follow: false },
+};
 
 interface Props {
   searchParams: Promise<{ token?: string }>;

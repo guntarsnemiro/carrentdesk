@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       url: `/c/${listing.slug}`,
-      images: [{ url: `/c/${listing.slug}/opengraph-image`, width: 1200, height: 630 }],
+      images: [{ url: `/c/${listing.slug}/opengraph-image`, width: 1200, height: 630, alt: `${listing.name} — CarRentDesk`, type: "image/png" }],
     },
   };
 }
