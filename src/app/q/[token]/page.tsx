@@ -14,10 +14,7 @@ export default async function QuoteResponsePage({
 
   const { data: inq } = await db
     .from("inquiries")
-    .select(
-      "customer_name, company_name, pickup_datetime, return_datetime, " +
-      "pickup_location, vehicle_type, quoted_price, operator_response, customer_response"
-    )
+    .select("customer_name, company_name, pickup_datetime, return_datetime, pickup_location, vehicle_type, quoted_price, operator_response, customer_response")
     .eq("response_token", token)
     .maybeSingle();
 
