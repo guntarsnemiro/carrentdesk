@@ -29,21 +29,23 @@ const EU_COUNTRIES = [
   "Romania", "Serbia", "Slovakia", "Slovenia", "Spain", "Turkey",
 ].sort();
 
-function tomorrowAt10() {
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function tomorrowDate() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  d.setHours(10, 0, 0, 0);
-  return toDatetimeLocal(d);
+  return d.toISOString().slice(0, 10);
 }
-function weekFromTomorrowAt10() {
+function weekFromTomorrowDate() {
   const d = new Date();
   d.setDate(d.getDate() + 8);
-  d.setHours(10, 0, 0, 0);
-  return toDatetimeLocal(d);
+  return d.toISOString().slice(0, 10);
 }
-function toDatetimeLocal(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function addDays(dateStr: string, n: number) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
 interface Props {
@@ -60,12 +62,15 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
   const [isPending, startTransition] = useTransition();
 
   const [form, setForm] = useState({
-    pickup_datetime: tomorrowAt10(),
-    return_datetime: weekFromTomorrowAt10(),
+    pickup_date: tomorrowDate(),
+    pickup_time: "10:00",
+    return_date: weekFromTomorrowDate(),
+    return_time: "10:00",
     pickup_location: "",
     different_return: false,
     return_location: "",
     vehicle_type: "suv",
+    automatic_transmission: false,
     cross_border: false,
     cross_border_countries: [] as string[],
     customer_name: "",
@@ -90,15 +95,20 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
     const e: Record<string, string> = {};
     if (!form.customer_name.trim()) e.customer_name = "Required";
     if (!form.customer_phone.trim()) e.customer_phone = "Required";
+    if (!form.customer_email.trim()) e.customer_email = "Required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customer_email)) e.customer_email = "Invalid email";
     if (!form.pickup_location.trim()) e.pickup_location = "Required";
     if (form.different_return && !form.return_location.trim()) e.return_location = "Required";
     const age = parseInt(form.driver_age);
     if (!form.driver_age || isNaN(age) || age < 18 || age > 99) e.driver_age = "Enter age (18–99)";
-    const pickup = new Date(form.pickup_datetime);
-    const ret = new Date(form.return_datetime);
-    if (isNaN(pickup.getTime())) e.pickup_datetime = "Invalid date";
-    if (isNaN(ret.getTime())) e.return_datetime = "Invalid date";
-    if (ret <= pickup) e.return_datetime = "Return must be after pickup";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pickup = new Date(form.pickup_date + "T" + form.pickup_time);
+    const ret = new Date(form.return_date + "T" + form.return_time);
+    if (!form.pickup_date) e.pickup_date = "Required";
+    else if (pickup < today) e.pickup_date = "Pickup date cannot be in the past";
+    if (!form.return_date) e.return_date = "Required";
+    if (form.pickup_date && form.return_date && ret <= pickup) e.return_date = "Return must be after pickup";
     if (form.cross_border && form.cross_border_countries.length === 0) {
       e.cross_border_countries = "Select at least one country";
     }
@@ -111,17 +121,21 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setServerError("");
 
+    const pickupIso = new Date(form.pickup_date + "T" + form.pickup_time).toISOString();
+    const returnIso = new Date(form.return_date + "T" + form.return_time).toISOString();
+
     startTransition(async () => {
       const result = await submitInquiry({
         company_id: listing.id,
         company_slug: listing.slug,
         company_name: listing.name,
         city_slug: citySlug,
-        pickup_datetime: new Date(form.pickup_datetime).toISOString(),
-        return_datetime: new Date(form.return_datetime).toISOString(),
+        pickup_datetime: pickupIso,
+        return_datetime: returnIso,
         pickup_location: form.pickup_location.trim(),
         return_location: form.different_return ? form.return_location.trim() : "",
         vehicle_type: form.vehicle_type,
+        automatic_transmission: form.automatic_transmission,
         cross_border: form.cross_border,
         cross_border_countries: form.cross_border_countries,
         customer_name: form.customer_name.trim(),
@@ -205,24 +219,54 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
         <section className="px-6 py-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Trip details</p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Pickup" error={errors.pickup_datetime}>
+          {/* Pickup row */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-neutral-600">Pickup</label>
+            <div className="grid grid-cols-2 gap-2" lang="en-GB">
               <input
-                type="datetime-local"
-                value={form.pickup_datetime}
-                onChange={(e) => set("pickup_datetime", e.target.value)}
-                className={inputCls(errors.pickup_datetime)}
+                type="date"
+                value={form.pickup_date}
+                min={todayStr()}
+                onChange={(e) => {
+                  const newPickup = e.target.value;
+                  set("pickup_date", newPickup);
+                  // auto-bump return date if it's no longer after pickup
+                  if (form.return_date <= newPickup) {
+                    setForm((f) => ({ ...f, pickup_date: newPickup, return_date: addDays(newPickup, 1) }));
+                    setErrors((err) => ({ ...err, pickup_date: "", return_date: "" }));
+                  }
+                }}
+                className={inputCls(errors.pickup_date)}
               />
-            </Field>
-            <Field label="Return" error={errors.return_datetime}>
               <input
-                type="datetime-local"
-                value={form.return_datetime}
-                min={form.pickup_datetime}
-                onChange={(e) => set("return_datetime", e.target.value)}
-                className={inputCls(errors.return_datetime)}
+                type="time"
+                value={form.pickup_time}
+                onChange={(e) => set("pickup_time", e.target.value)}
+                className={inputCls(undefined)}
               />
-            </Field>
+            </div>
+            {errors.pickup_date && <p className="mt-1 text-xs text-red-600">{errors.pickup_date}</p>}
+          </div>
+
+          {/* Return row */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-neutral-600">Return</label>
+            <div className="grid grid-cols-2 gap-2" lang="en-GB">
+              <input
+                type="date"
+                value={form.return_date}
+                min={addDays(form.pickup_date, 1)}
+                onChange={(e) => set("return_date", e.target.value)}
+                className={inputCls(errors.return_date)}
+              />
+              <input
+                type="time"
+                value={form.return_time}
+                onChange={(e) => set("return_time", e.target.value)}
+                className={inputCls(undefined)}
+              />
+            </div>
+            {errors.return_date && <p className="mt-1 text-xs text-red-600">{errors.return_date}</p>}
           </div>
 
           <Field label="Pickup location" error={errors.pickup_location}>
@@ -346,13 +390,13 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
             />
           </Field>
 
-          <Field label="Email (optional)">
+          <Field label="Email" error={errors.customer_email}>
             <input
               type="email"
               placeholder="your@email.com"
               value={form.customer_email}
               onChange={(e) => set("customer_email", e.target.value)}
-              className={inputCls("")}
+              className={inputCls(errors.customer_email)}
             />
           </Field>
         </section>
@@ -395,6 +439,16 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
         <section className="px-6 py-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Extras</p>
 
+          <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.automatic_transmission}
+              onChange={(e) => set("automatic_transmission", e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-brand-700"
+            />
+            Automatic transmission
+          </label>
+
           <Field label="Child seats">
             <div className="flex items-center gap-3">
               <button
@@ -431,7 +485,7 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
           <Field label="Notes (optional)">
             <textarea
               rows={3}
-              placeholder="Automatic transmission, flight number, special requirements…"
+              placeholder="Flight number, special requirements…"
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200 resize-none"

@@ -136,6 +136,7 @@ const CITY_COUNTRY = {
   athens: "GR", heraklion: "GR", thessaloniki: "GR", rhodes: "GR",
   split: "HR", dubrovnik: "HR", zagreb: "HR", zadar: "HR", pula: "HR", rijeka: "HR",
   ljubljana: "SI", koper: "SI",
+  warsaw: "PL", krakow: "PL", gdansk: "PL", gdynia: "PL", wroclaw: "PL", katowice: "PL", poznan: "PL",
   nice: "FR", ajaccio: "FR", bastia: "FR", marseille: "FR", bordeaux: "FR", paris: "FR", lyon: "FR",
   tivat: "ME", budva: "ME", kotor: "ME", bar: "ME", podgorica: "ME",
   tirana: "AL", saranda: "AL", vlore: "AL", durres: "AL",
@@ -450,6 +451,18 @@ function inferCity(record) {
     // Lausanne and other French-Swiss towns are closest to Geneva on the map.
     if (city.includes("lausanne") || city.includes("nyon") || city.includes("morges") || city.includes("montreux") || city.includes("vevey")) return "geneva";
     return null; // drop unmatched CH (noise from a city-targeted run)
+  }
+
+  // ── Poland (guarded by country) ──────────────────────────────────
+  if (record.countryCode === "PL") {
+    if (city.includes("warsaw") || city.includes("warszawa") || city.includes("modlin") || city.includes("okecie") || city.includes("chopin") || city.includes("pruszków") || city.includes("pruszkow") || city.includes("piaseczno") || city.includes("legionowo")) return "warsaw";
+    if (city.includes("krakow") || city.includes("kraków") || city.includes("cracow") || city.includes("nowa huta") || city.includes("wieliczka") || city.includes("balice")) return "krakow";
+    if (city.includes("gdansk") || city.includes("gdańsk") || city.includes("danzig") || city.includes("rebiechowo")) return "gdansk";
+    if (city.includes("gdynia") || city.includes("sopot")) return "gdynia";
+    if (city.includes("wroclaw") || city.includes("wrocław") || city.includes("breslau") || city.includes("kobierzyce") || city.includes("strachowice")) return "wroclaw";
+    if (city.includes("katowice") || city.includes("sosnowiec") || city.includes("gliwice") || city.includes("zabrze") || city.includes("bytom") || city.includes("tychy") || city.includes("ruda slaska") || city.includes("ruda śląska") || city.includes("chorzow") || city.includes("siemianowice") || city.includes("dabrowa gornicza") || city.includes("dąbrowa górnicza") || city.includes("pyrzowice") || city.includes("bielsko")) return "katowice";
+    if (city.includes("poznan") || city.includes("poznań") || city.includes("lawica") || city.includes("łódź") || city.includes("lodz")) return "poznan";
+    return null; // drop unmatched PL
   }
 
   // ── Austria (guarded by country) ──────────────────────────────────

@@ -25,6 +25,7 @@ type Inquiry = {
   no_deposit: boolean;
   child_seats: number;
   additional_driver: boolean;
+  automatic_transmission: boolean;
   notes: string | null;
   status: string;
   admin_notes: string | null;
@@ -170,7 +171,7 @@ function InquiryRow({
     `📅 Pickup: ${fmt(inq.pickup_datetime)}\n` +
     `📅 Return: ${fmt(inq.return_datetime)} (${d} days)\n` +
     `📍 Location: ${inq.pickup_location}${inq.return_location ? ` → ${inq.return_location}` : ""}\n` +
-    `🚗 Car: ${VEHICLE_LABELS[inq.vehicle_type] ?? inq.vehicle_type}\n` +
+    `🚗 Car: ${VEHICLE_LABELS[inq.vehicle_type] ?? inq.vehicle_type}${inq.automatic_transmission ? " (automatic)" : ""}\n` +
     `👤 Driver: ${inq.customer_name}, age ${inq.driver_age}\n` +
     `📞 Phone: ${inq.customer_phone}${inq.customer_email ? `\n📧 Email: ${inq.customer_email}` : ""}\n` +
     `💳 Payment: ${inq.payment_method ? (PAYMENT_LABELS[inq.payment_method] ?? inq.payment_method) : "not specified"}${inq.no_deposit ? " — prefers no deposit" : ""}\n` +
@@ -242,8 +243,9 @@ function InquiryRow({
               (inq.payment_method ? (PAYMENT_LABELS[inq.payment_method] ?? inq.payment_method) : "—") +
               (inq.no_deposit ? " — no deposit" : "")
             } />
-            {(inq.child_seats > 0 || inq.additional_driver) && (
+            {(inq.child_seats > 0 || inq.additional_driver || inq.automatic_transmission) && (
               <Detail label="Extras" value={[
+                inq.automatic_transmission ? "Automatic transmission" : null,
                 inq.child_seats > 0 ? `Child seats ×${inq.child_seats}` : null,
                 inq.additional_driver ? "Additional driver" : null,
               ].filter(Boolean).join(", ")} />

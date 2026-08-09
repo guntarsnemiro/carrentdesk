@@ -301,6 +301,18 @@ const BATCHES = {
       "car rental Lyon", "location de voiture Lyon", "car rental Lyon airport",
     ],
   },
+  // Poland — major cities + airports
+  poland: {
+    countryCode: "pl",
+    queries: [
+      "car rental Warsaw", "wynajem samochodów Warszawa", "car rental Warsaw airport", "wypożyczalnia samochodów Warszawa",
+      "car rental Krakow", "wynajem samochodów Kraków", "car rental Krakow airport", "wypożyczalnia samochodów Kraków",
+      "car rental Gdansk", "wynajem samochodów Gdańsk", "car rental Gdansk airport", "car rental Gdynia", "car rental Sopot", "wypożyczalnia samochodów Gdańsk",
+      "car rental Wroclaw", "wynajem samochodów Wrocław", "car rental Wroclaw airport", "wypożyczalnia samochodów Wrocław",
+      "car rental Katowice", "wynajem samochodów Katowice", "car rental Katowice airport",
+      "car rental Poznan", "wynajem samochodów Poznań", "car rental Poznan airport",
+    ],
+  },
 };
 
 const BATCH = process.env.APIFY_BATCH || "canaries";

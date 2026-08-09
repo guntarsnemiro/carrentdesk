@@ -196,6 +196,7 @@ export async function sendInquiryNotification(data: {
   pickup_location: string;
   return_location?: string;
   vehicle_type: string;
+  automatic_transmission?: boolean;
   cross_border: boolean;
   cross_border_countries: string[];
   customer_name: string;
@@ -238,6 +239,7 @@ export async function sendInquiryNotification(data: {
 
   const extras: string[] = [];
   if (data.child_seats > 0) extras.push(`Child seat ×${data.child_seats}`);
+  if (data.automatic_transmission) extras.push("Automatic transmission");
   if (data.additional_driver) extras.push("Additional driver");
   if (data.cross_border && data.cross_border_countries.length)
     extras.push(`Cross-border: ${data.cross_border_countries.join(", ")}`);

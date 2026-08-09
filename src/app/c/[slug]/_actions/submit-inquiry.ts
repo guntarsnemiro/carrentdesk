@@ -13,6 +13,7 @@ export type InquiryFormData = {
   pickup_location: string;
   return_location: string;
   vehicle_type: string;
+  automatic_transmission: boolean;
   cross_border: boolean;
   cross_border_countries: string[];
   customer_name: string;
@@ -36,8 +37,14 @@ export async function submitInquiry(
   // Basic server-side validation
   if (!data.customer_name?.trim()) return { ok: false, error: "Name is required" };
   if (!data.customer_phone?.trim()) return { ok: false, error: "Phone is required" };
+  if (!data.customer_email?.trim()) return { ok: false, error: "Email is required" };
   if (!data.pickup_datetime) return { ok: false, error: "Pickup date is required" };
   if (!data.return_datetime) return { ok: false, error: "Return date is required" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (new Date(data.pickup_datetime) < today) {
+    return { ok: false, error: "Pickup date cannot be in the past" };
+  }
   if (new Date(data.return_datetime) <= new Date(data.pickup_datetime)) {
     return { ok: false, error: "Return must be after pickup" };
   }
@@ -57,6 +64,7 @@ export async function submitInquiry(
     pickup_location: data.pickup_location,
     return_location: data.return_location || null,
     vehicle_type: data.vehicle_type,
+    automatic_transmission: data.automatic_transmission,
     cross_border: data.cross_border,
     cross_border_countries: data.cross_border_countries,
     customer_name: data.customer_name.trim(),
