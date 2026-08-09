@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.carrentdesk.com" }],
+      "destination": "https://carrentdesk.com/:path*",
+      "permanent": true
+    }
+  ]
+}

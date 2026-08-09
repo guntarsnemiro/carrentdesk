@@ -5,17 +5,197 @@
  * into verified-card grid + unverified row list) and a map view that pins
  * every listing in the current filter onto an OpenStreetMap canvas.
  *
- * Lives one level above the marketing components: the parent server page
- * fetches the filtered listings, this component handles the toggle and
- * chooses which child to render. The map component itself is dynamic-imported
- * with `ssr: false` because Leaflet touches the DOM at import time.
+ * Also owns the vehicle-type filter chips so the parent server page never
+ * needs to read searchParams — keeping it statically cached (ISR).
  */
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Listing } from "@/lib/listings-types";
 import { ListingCard } from "@/components/marketing/listing-card";
 import { ListingRowList } from "@/components/marketing/listing-row";
+import { VEHICLE_TYPES, getVehicleType } from "@/lib/vehicle-types";
+
+const ListingsMap = dynamic(
+  () => import("@/components/marketing/listings-map"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid h-[560px] place-items-center rounded-2xl bg-surface-soft ring-1 ring-border">
+        <p className="text-sm text-neutral-500">Loading map…</p>
+      </div>
+    ),
+  },
+);
+
+type Props = {
+  listings: Listing[];
+  cityName: string;
+  citySlug: string;
+  /**
+   * Used as the initial map center when no listings have coordinates.
+   * Pass a sensible city-center fallback (e.g. Riga = [56.95, 24.11]).
+   */
+  mapFallbackCenter: [number, number];
+};
+
+export function CityListingsView({
+  listings,
+  cityName,
+  citySlug,
+  mapFallbackCenter,
+}: Props) {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get("type") ?? undefined;
+  const activeType = VEHICLE_TYPES.some((v) => v.key === typeParam) ? typeParam : undefined;
+  const activeMeta = activeType ? getVehicleType(activeType) : undefined;
+
+  // Filter listings client-side so the parent page stays statically cached.
+  // Listings with an empty vehicleTypes array are shown in "All" only.
+  const filtered = activeType
+    ? listings.filter((l) => l.vehicleTypes.includes(activeType as never))
+    : listings;
+
+  // Map is the default landing view on city pages so visitors immediately
+  // see where each rental sits relative to the airport / city center / their
+  // destination. The list is always rendered underneath in map mode, so
+  // nothing is hidden from the user.
+  const [view, setView] = useState<"list" | "map">("map");
+
+  const verified = filtered.filter((l) => l.status === "verified");
+  const rest = filtered.filter((l) => l.status !== "verified");
+  const onMap = filtered.filter((l) => !!l.coordinates).length;
+  const missing = filtered.length - onMap;
+
+  const list = (
+    <div className="space-y-10">
+      {verified.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-brand-950">
+            Verified rentals
+            {activeMeta && <span className="font-normal text-neutral-500"> · {activeMeta.label}</span>}
+          </h2>
+          <p className="mt-0.5 text-sm text-neutral-600">
+            Operators on the CarRentDesk operations platform.
+          </p>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {verified.map((l) => (
+              <ListingCard key={l.id} listing={l} />
+            ))}
+          </div>
+        </div>
+      )}
+      {rest.length > 0 && (
+        <ListingRowList
+          listings={rest}
+          title={
+            verified.length > 0
+              ? `Other rentals in ${cityName}`
+              : `Rentals in ${cityName}`
+          }
+          subtitle={
+            verified.length > 0
+              ? "Independent operators we've listed. Contact them directly."
+              : "Independent local operators. Contact them directly."
+          }
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Vehicle-type filter chips */}
+      <div className="-mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1">
+        <Chip href={`/${citySlug}`} active={!activeType}>
+          All types
+        </Chip>
+        {VEHICLE_TYPES.map((v) => (
+          <Chip key={v.key} href={`/${citySlug}?type=${v.key}`} active={activeType === v.key}>
+            {v.label}
+          </Chip>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-soft p-10 text-center">
+          <h2 className="text-lg font-semibold text-brand-950">
+            {activeMeta
+              ? `No ${activeMeta.label.toLowerCase()} rentals listed yet in ${cityName}`
+              : `No listings yet for ${cityName}`}
+          </h2>
+          <p className="mt-2 text-sm text-neutral-600">
+            We&apos;re actively adding rentals here. Try another car type, or{" "}
+            <Link href="/join" className="text-brand-700 hover:underline">
+              list your rental
+            </Link>{" "}
+            if you operate in {cityName}.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          <ViewToggle view={view} onChange={setView} onMap={onMap} />
+
+          {view === "map" && (
+            <div className="space-y-3">
+              <ListingsMap
+                listings={filtered}
+                fallbackCenter={mapFallbackCenter}
+              />
+              <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                <p>
+                  {onMap} {onMap === 1 ? "rental" : "rentals"} on the map
+                  {missing > 0 && (
+                    <>
+                      {" "}
+                      · {missing} not shown yet (location pending)
+                    </>
+                  )}
+                </p>
+                <p className="hidden sm:block">
+                  All {filtered.length}{" "}
+                  {filtered.length === 1 ? "rental is" : "rentals are"} listed
+                  below.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* The list is always rendered. In map view it sits below the map so
+              the user can scan the same set of rentals as a structured list
+              without losing the spatial context above. */}
+          {list}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Chip({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+        active
+          ? "border-brand-900 bg-brand-900 text-white"
+          : "border-border bg-background text-brand-900 hover:bg-brand-50"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 
 const ListingsMap = dynamic(
   () => import("@/components/marketing/listings-map"),

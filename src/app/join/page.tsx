@@ -50,10 +50,10 @@ const schemaMarkup = {
   operatingSystem: "Web",
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: "29",
-    highPrice: "90",
+    lowPrice: 29,
+    highPrice: 90,
     priceCurrency: "EUR",
-    offerCount: "3",
+    offerCount: 3,
   },
   description: "Car rental management software for independent operators.",
   url: "https://carrentdesk.com/join",

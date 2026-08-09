@@ -83,12 +83,7 @@ export default async function CompanyPage({ params }: PageProps) {
     "@type": "AutoRental",
     name: listing.name,
     url: profileUrl,
-    image: {
-      "@type": "ImageObject",
-      url: `${profileUrl}/opengraph-image`,
-      width: 1200,
-      height: 630,
-    },
+    image: `${profileUrl}/opengraph-image`,
     ...(listing.description && { description: listing.description }),
     ...(listing.phone && { telephone: listing.phone }),
     ...(listing.email && claimed && { email: listing.email }),
