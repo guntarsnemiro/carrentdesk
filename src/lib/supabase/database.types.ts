@@ -797,6 +797,7 @@ export type Database = {
         Row: {
           additional_driver: boolean
           admin_notes: string | null
+          automatic_transmission: boolean
           child_seats: number
           city_slug: string | null
           company_id: string | null
@@ -825,6 +826,7 @@ export type Database = {
         Insert: {
           additional_driver?: boolean
           admin_notes?: string | null
+          automatic_transmission?: boolean
           child_seats?: number
           city_slug?: string | null
           company_id?: string | null
@@ -853,6 +855,7 @@ export type Database = {
         Update: {
           additional_driver?: boolean
           admin_notes?: string | null
+          automatic_transmission?: boolean
           child_seats?: number
           city_slug?: string | null
           company_id?: string | null
@@ -1522,6 +1525,13 @@ export type Database = {
         | "innsbruck"
         | "graz"
         | "klagenfurt"
+        | "warsaw"
+        | "krakow"
+        | "gdansk"
+        | "gdynia"
+        | "wroclaw"
+        | "katowice"
+        | "poznan"
       company_status: "unclaimed" | "claimed" | "verified"
       country_code:
         | "LV"
@@ -1553,6 +1563,7 @@ export type Database = {
         | "LU"
         | "CH"
         | "AT"
+        | "PL"
       demo_request_fleet_bucket:
         | "fleet_1_10"
         | "fleet_11_30"
@@ -1883,6 +1894,13 @@ export const Constants = {
         "innsbruck",
         "graz",
         "klagenfurt",
+        "warsaw",
+        "krakow",
+        "gdansk",
+        "gdynia",
+        "wroclaw",
+        "katowice",
+        "poznan",
       ],
       company_status: ["unclaimed", "claimed", "verified"],
       country_code: [
@@ -1915,6 +1933,7 @@ export const Constants = {
         "LU",
         "CH",
         "AT",
+        "PL",
       ],
       demo_request_fleet_bucket: [
         "fleet_1_10",
@@ -1976,4 +1995,3 @@ export const Constants = {
     },
   },
 } as const
-
