@@ -30,6 +30,7 @@ type Inquiry = {
   status: string;
   admin_notes: string | null;
   forwarded_at: string | null;
+  company: { whatsapp: string | null; phone: string | null } | null;
 };
 
 const STATUSES: { key: InquiryStatus; label: string; color: string }[] = [
@@ -165,6 +166,9 @@ function InquiryRow({
     onUpdated();
   }
 
+  // Rental's contact number — prefer WhatsApp, fall back to phone
+  const rentalWaNumber = (inq.company?.whatsapp || inq.company?.phone || "").replace(/\D/g, "");
+
   // Build WhatsApp forward message
   const waText = encodeURIComponent(
     `Hi, I have a quote request for you via CarRentDesk:\n\n` +
@@ -277,15 +281,21 @@ function InquiryRow({
 
           {/* Forward buttons */}
           <div className="flex flex-wrap gap-2">
-            <a
-              href={`https://wa.me/${(inq.customer_phone || "").replace(/\D/g, "")}?text=${waText}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700"
-            >
-              <WhatsAppIcon />
-              Forward to rental via WhatsApp
-            </a>
+            {rentalWaNumber ? (
+              <a
+                href={`https://wa.me/${rentalWaNumber}?text=${waText}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700"
+              >
+                <WhatsAppIcon />
+                Forward to rental via WhatsApp
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 px-4 py-2 text-xs text-neutral-500">
+                No rental WhatsApp/phone on file
+              </span>
+            )}
             {inq.company_slug && (
               <a
                 href={`https://carrentdesk.com/c/${inq.company_slug}`}

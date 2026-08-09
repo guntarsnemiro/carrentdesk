@@ -10,7 +10,7 @@ export default async function InquiriesPage() {
 
   const { data: inquiries } = await db
     .from("inquiries")
-    .select("*")
+    .select("*, company:companies(whatsapp, phone)")
     .order("created_at", { ascending: false })
     .limit(200);
 
