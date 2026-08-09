@@ -90,7 +90,8 @@ export type GenerateInviteLinkResult =
   | { ok: false; error: string };
 
 export async function generateRentalInviteLink(
-  companyId: string
+  companyId: string,
+  email?: string
 ): Promise<GenerateInviteLinkResult> {
   if (!companyId) return { ok: false, error: "No company linked to this inquiry" };
 
@@ -102,7 +103,7 @@ export async function generateRentalInviteLink(
   const { error } = await db.from("claim_tokens").insert({
     company_id: companyId,
     token,
-    sent_to_email: null,
+    sent_to_email: email ?? null,
     sent_at: new Date().toISOString(),
     expires_at: expiresAt,
   });
@@ -112,6 +113,27 @@ export async function generateRentalInviteLink(
     return { ok: false, error: "Failed to generate link" };
   }
 
+  // Save email to company if provided
+  if (email) {
+    await db.from("companies").update({ email }).eq("id", companyId);
+  }
+
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carrentdesk.com";
-  return { ok: true, url: `${base}/claim?token=${token}` };
+  const url = `${base}/claim?token=${token}`;
+
+  // Send invite email if address given
+  if (email) {
+    const { data: co } = await db
+      .from("companies")
+      .select("name")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    const { sendClaimInvite } = await import("@/lib/email");
+    await sendClaimInvite({ email, companyName: co?.name ?? "your company", claimUrl: url }).catch(
+      (e) => console.error("[invite] email error:", e)
+    );
+  }
+
+  return { ok: true, url };
 }

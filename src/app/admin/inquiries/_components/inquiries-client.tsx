@@ -159,6 +159,8 @@ function InquiryRow({
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteEmailed, setInviteEmailed] = useState(false);
 
   const statusMeta = STATUSES.find((s) => s.key === inq.status) ?? STATUSES[0];
   const d = days(inq.pickup_datetime, inq.return_datetime);
@@ -198,10 +200,14 @@ function InquiryRow({
     if (!inq.company_id) { setInviteError("No company linked to this inquiry"); return; }
     setInviteError("");
     setInviteLoading(true);
-    const result = await generateRentalInviteLink(inq.company_id);
+    const result = await generateRentalInviteLink(inq.company_id, inviteEmail.trim() || undefined);
     setInviteLoading(false);
-    if (result.ok) setInviteLink(result.url);
-    else setInviteError(result.error);
+    if (result.ok) {
+      setInviteLink(result.url);
+      if (inviteEmail.trim()) setInviteEmailed(true);
+    } else {
+      setInviteError(result.error);
+    }
   }
 
   // Rental's contact number — prefer WhatsApp, fall back to phone
@@ -351,7 +357,7 @@ function InquiryRow({
             <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
               <h4 className="text-xs font-semibold text-blue-900 mb-0.5">Invite rental to platform</h4>
               <p className="text-xs text-blue-700 mb-3">
-                Generate a 30-day login link. Send it via WhatsApp — no email needed upfront.
+                Generate a 30-day login link. Optionally send it by email too.
               </p>
               {inviteLink ? (
                 <div className="space-y-2">
@@ -368,17 +374,31 @@ function InquiryRow({
                       Copy
                     </button>
                   </div>
-                  <p className="text-xs text-blue-600">✓ Valid for 30 days. Paste into WhatsApp.</p>
+                  {inviteEmailed && (
+                    <p className="text-xs text-green-700 font-medium">✓ Invite email sent to {inviteEmail}</p>
+                  )}
+                  <p className="text-xs text-blue-600">Valid for 30 days.</p>
                 </div>
               ) : (
-                <div>
-                  {inviteError && <p className="text-xs text-red-600 mb-2">{inviteError}</p>}
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="rental@email.com — leave blank for link only"
+                    className="w-full rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-blue-500"
+                  />
+                  {inviteError && <p className="text-xs text-red-600">{inviteError}</p>}
                   <button
                     onClick={handleGenerateInviteLink}
                     disabled={inviteLoading}
                     className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {inviteLoading ? "Generating…" : "Generate invite link"}
+                    {inviteLoading
+                      ? "Sending…"
+                      : inviteEmail.trim()
+                      ? "Generate link + send email"
+                      : "Generate link only"}
                   </button>
                 </div>
               )}
