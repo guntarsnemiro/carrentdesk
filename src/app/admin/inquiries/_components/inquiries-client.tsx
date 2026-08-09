@@ -213,7 +213,8 @@ function InquiryRow({
   // Rental's contact number — prefer WhatsApp, fall back to phone
   const rentalWaNumber = (inq.company?.whatsapp || inq.company?.phone || "").replace(/\D/g, "");
 
-  // Build WhatsApp forward message
+  // Build WhatsApp forward message — uses magic login link if generated, falls back to /app/quotes
+  const loginLink = inviteLink || `https://carrentdesk.com/app/quotes/${inq.company_id ?? ""}`;
   const waText = encodeURIComponent(
     `Hi, I have a quote request for you via CarRentDesk:\n\n` +
     `📅 Pickup: ${fmt(inq.pickup_datetime)}\n` +
@@ -227,8 +228,38 @@ function InquiryRow({
     (inq.additional_driver ? `👥 Additional driver: yes\n` : "") +
     (inq.cross_border && inq.cross_border_countries?.length ? `🌍 Cross-border: ${inq.cross_border_countries.join(", ")}\n` : "") +
     (inq.notes ? `📝 Notes: ${inq.notes}\n` : "") +
-    `\nInterested in this customer? Log in to CarRentDesk to manage your leads: https://carrentdesk.com/app/quotes/${inq.company_id ?? ""}`
+    `\nInterested? Click to reply with a price:\n${loginLink}`
   );
+
+  async function handleWhatsAppWithLink() {
+    // Generate a fresh claim token first, then open WhatsApp with it embedded
+    if (!inq.company_id) { window.open(`https://wa.me/${rentalWaNumber}?text=${waText}`, "_blank"); return; }
+    setInviteLoading(true);
+    const result = await generateRentalInviteLink(inq.company_id);
+    setInviteLoading(false);
+    if (result.ok) {
+      setInviteLink(result.url);
+      const msgWithLink = encodeURIComponent(
+        `Hi, I have a quote request for you via CarRentDesk:\n\n` +
+        `📅 Pickup: ${fmt(inq.pickup_datetime)}\n` +
+        `📅 Return: ${fmt(inq.return_datetime)} (${d} days)\n` +
+        `📍 Location: ${inq.pickup_location}${inq.return_location ? ` → ${inq.return_location}` : ""}\n` +
+        `🚗 Car: ${VEHICLE_LABELS[inq.vehicle_type] ?? inq.vehicle_type}${inq.automatic_transmission ? " (automatic)" : ""}\n` +
+        `👤 Driver: ${inq.customer_name}, age ${inq.driver_age}\n` +
+        `📞 Phone: ${inq.customer_phone}${inq.customer_email ? `\n📧 Email: ${inq.customer_email}` : ""}\n` +
+        `💳 Payment: ${inq.payment_method ? (PAYMENT_LABELS[inq.payment_method] ?? inq.payment_method) : "not specified"}${inq.no_deposit ? " — prefers no deposit" : ""}\n` +
+        (inq.child_seats > 0 ? `👶 Child seats: ${inq.child_seats}\n` : "") +
+        (inq.additional_driver ? `👥 Additional driver: yes\n` : "") +
+        (inq.cross_border && inq.cross_border_countries?.length ? `🌍 Cross-border: ${inq.cross_border_countries.join(", ")}\n` : "") +
+        (inq.notes ? `📝 Notes: ${inq.notes}\n` : "") +
+        `\nInterested? Click your private link to reply with a price:\n${result.url}`
+      );
+      window.open(`https://wa.me/${rentalWaNumber}?text=${msgWithLink}`, "_blank");
+    } else {
+      // Fall back to plain link
+      window.open(`https://wa.me/${rentalWaNumber}?text=${waText}`, "_blank");
+    }
+  }
 
   return (
     <div className={`rounded-2xl border bg-white transition-shadow ${expanded ? "shadow-md border-brand-200" : "border-border hover:border-neutral-300"}`}>
@@ -326,15 +357,14 @@ function InquiryRow({
           {/* Forward buttons */}
           <div className="flex flex-wrap gap-2">
             {rentalWaNumber ? (
-              <a
-                href={`https://wa.me/${rentalWaNumber}?text=${waText}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700"
+              <button
+                onClick={handleWhatsAppWithLink}
+                disabled={inviteLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
               >
                 <WhatsAppIcon />
-                Forward to rental via WhatsApp
-              </a>
+                {inviteLoading ? "Generating link…" : "Forward to rental via WhatsApp"}
+              </button>
             ) : (
               <span className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 px-4 py-2 text-xs text-neutral-500">
                 No rental WhatsApp/phone on file
