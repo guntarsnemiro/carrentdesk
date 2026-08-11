@@ -33,7 +33,7 @@ type Inquiry = {
   forwarded_at: string | null;
   operator_response: string | null;
   quoted_price: number | null;
-  company: { whatsapp: string | null; phone: string | null; email: string | null; country_code: string | null } | null;
+  company: { whatsapp: string | null; phone: string | null; email: string | null; country: string | null } | null;
 };
 
 const STATUSES: { key: InquiryStatus; label: string; color: string }[] = [
@@ -301,9 +301,9 @@ function InquiryRow({
             <span className="font-semibold text-sm text-neutral-900">
               {inq.company_name ?? inq.city_slug}
             </span>
-            {inq.company?.country_code && (
+            {inq.company?.country && (
               <span className="text-xs text-neutral-500 font-medium">
-                {countryFlag(inq.company.country_code)} {inq.company.country_code.toUpperCase()}
+                {countryFlag(inq.company.country)} {inq.company.country.toUpperCase()}
               </span>
             )}
             {(inq.company?.whatsapp || inq.company?.phone) && (
