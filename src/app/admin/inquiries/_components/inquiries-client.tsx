@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, generateRentalInviteLink, type InquiryStatus } from "../_actions";
+import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, generateRentalInviteLink, sendInquiryEmailToRental, type InquiryStatus } from "../_actions";
 import { useRouter } from "next/navigation";
 
 type Inquiry = {
@@ -33,7 +33,7 @@ type Inquiry = {
   forwarded_at: string | null;
   operator_response: string | null;
   quoted_price: number | null;
-  company: { whatsapp: string | null; phone: string | null } | null;
+  company: { whatsapp: string | null; phone: string | null; email: string | null } | null;
 };
 
 const STATUSES: { key: InquiryStatus; label: string; color: string }[] = [
@@ -162,6 +162,13 @@ function InquiryRow({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteEmailed, setInviteEmailed] = useState(false);
 
+  // Send inquiry by email to rental
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailOverride, setEmailOverride] = useState("");
+  const rentalEmail = inq.company?.email ?? null;
+
   const statusMeta = STATUSES.find((s) => s.key === inq.status) ?? STATUSES[0];
   const d = days(inq.pickup_datetime, inq.return_datetime);
 
@@ -207,6 +214,18 @@ function InquiryRow({
       if (inviteEmail.trim()) setInviteEmailed(true);
     } else {
       setInviteError(result.error);
+    }
+  }
+
+  async function handleSendEmailToRental() {
+    setEmailError("");
+    setEmailSending(true);
+    const result = await sendInquiryEmailToRental(inq.id, emailOverride.trim() || undefined);
+    setEmailSending(false);
+    if (result.ok) {
+      setEmailSent(true);
+    } else {
+      setEmailError(result.error);
     }
   }
 
@@ -379,6 +398,45 @@ function InquiryRow({
               >
                 View listing ↗
               </a>
+            )}
+          </div>
+
+          {/* Send inquiry by email to rental */}
+          <div className="rounded-xl bg-purple-50 border border-purple-200 p-4">
+            <h4 className="text-xs font-semibold text-purple-900 mb-0.5">
+              📧 Forward inquiry to rental email
+            </h4>
+            <p className="text-xs text-purple-700 mb-3">
+              Sends full trip details to the rental. Reply-To is the customer — rental can reply directly.
+              CarRentDesk stays visible as sender.
+            </p>
+            {emailSent ? (
+              <p className="text-xs font-medium text-green-700">
+                ✓ Inquiry emailed to {emailOverride.trim() || rentalEmail || "rental"} — status set to Forwarded.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {!rentalEmail && (
+                  <input
+                    type="email"
+                    value={emailOverride}
+                    onChange={(e) => setEmailOverride(e.target.value)}
+                    placeholder="Enter rental email (not on file)"
+                    className="w-full rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-purple-500"
+                  />
+                )}
+                {rentalEmail && (
+                  <p className="text-xs text-purple-700">To: <span className="font-medium">{rentalEmail}</span></p>
+                )}
+                {emailError && <p className="text-xs text-red-600">{emailError}</p>}
+                <button
+                  onClick={handleSendEmailToRental}
+                  disabled={emailSending || (!rentalEmail && !emailOverride.trim())}
+                  className="rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {emailSending ? "Sending…" : "Send inquiry to rental email"}
+                </button>
+              </div>
             )}
           </div>
 

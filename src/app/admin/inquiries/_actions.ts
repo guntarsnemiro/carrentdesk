@@ -1,7 +1,7 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendQuoteResponseToCustomer } from "@/lib/email";
+import { sendQuoteResponseToCustomer, sendInquiryToRental } from "@/lib/email";
 
 export type InquiryStatus = "new" | "forwarded" | "quoted" | "booked" | "declined" | "lost";
 
@@ -136,4 +136,80 @@ export async function generateRentalInviteLink(
   }
 
   return { ok: true, url };
+}
+
+export type SendInquiryEmailResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Sends the full inquiry details to the rental company's email address.
+ * Reply-To is set to the customer's email so the rental can reply directly.
+ * Also generates a claim token so the rental can respond via the platform.
+ */
+export async function sendInquiryEmailToRental(
+  inquiryId: string,
+  rentalEmail?: string
+): Promise<SendInquiryEmailResult> {
+  const db = createServiceRoleClient();
+
+  const { data: inq } = await db
+    .from("inquiries")
+    .select("*, company:companies(id, name, email, phone, whatsapp, slug)")
+    .eq("id", inquiryId)
+    .maybeSingle();
+
+  if (!inq) return { ok: false, error: "Inquiry not found" };
+
+  // Resolve rental email: use provided override, then company email
+  const toEmail = rentalEmail?.trim() || (inq.company as { email?: string | null } | null)?.email;
+  if (!toEmail) return { ok: false, error: "No rental email on file" };
+
+  const companyId = inq.company_id;
+
+  // Save email to company if it wasn't there before
+  if (companyId && rentalEmail?.trim() && !(inq.company as { email?: string | null } | null)?.email) {
+    await db.from("companies").update({ email: toEmail }).eq("id", companyId);
+  }
+
+  // Generate a claim token so the rental can respond via the platform
+  let claimUrl: string | null = null;
+  if (companyId) {
+    const result = await generateRentalInviteLink(companyId);
+    if (result.ok) claimUrl = result.url;
+  }
+
+  const co = inq.company as { name?: string | null } | null;
+
+  await sendInquiryToRental({
+    rental_email: toEmail,
+    rental_name: co?.name ?? inq.company_name ?? "there",
+    claim_url: claimUrl,
+    company_name: inq.company_name ?? "",
+    company_slug: inq.company_slug,
+    city_slug: inq.city_slug,
+    pickup_datetime: inq.pickup_datetime,
+    return_datetime: inq.return_datetime,
+    pickup_location: inq.pickup_location,
+    return_location: inq.return_location,
+    vehicle_type: inq.vehicle_type,
+    automatic_transmission: inq.automatic_transmission ?? false,
+    cross_border: inq.cross_border ?? false,
+    cross_border_countries: inq.cross_border_countries ?? [],
+    customer_name: inq.customer_name,
+    customer_phone: inq.customer_phone,
+    customer_email: inq.customer_email,
+    driver_age: inq.driver_age,
+    payment_method: inq.payment_method,
+    no_deposit: inq.no_deposit ?? false,
+    child_seats: inq.child_seats ?? 0,
+    additional_driver: inq.additional_driver ?? false,
+    notes: inq.notes,
+  });
+
+  // Mark as forwarded
+  await db
+    .from("inquiries")
+    .update({ status: "forwarded", forwarded_at: new Date().toISOString() })
+    .eq("id", inquiryId);
+
+  return { ok: true };
 }

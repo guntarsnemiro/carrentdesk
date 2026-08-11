@@ -432,6 +432,120 @@ export async function sendQuoteAcceptedNotification(data: {
 }
 
 /**
+ * Sends a full quote/inquiry directly to the rental company's email.
+ * From: CarRentDesk  |  Reply-To: customer's email
+ * The rental can reply directly to reach the customer while CarRentDesk stays visible.
+ */
+export async function sendInquiryToRental(data: {
+  rental_email: string;
+  rental_name: string;
+  claim_url?: string | null;
+  company_name: string;
+  company_slug: string | null;
+  city_slug: string | null;
+  pickup_datetime: string;
+  return_datetime: string;
+  pickup_location: string;
+  return_location?: string | null;
+  vehicle_type: string;
+  automatic_transmission?: boolean;
+  cross_border: boolean;
+  cross_border_countries: string[];
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  driver_age: number;
+  payment_method?: string | null;
+  no_deposit: boolean;
+  child_seats: number;
+  additional_driver: boolean;
+  notes?: string | null;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const vehicleLabels: Record<string, string> = {
+    compact: "Compact", mid_size: "Mid-size", big: "Full-size / Big",
+    suv: "SUV", minivan: "Minivan (7 seats)", bus: "Bus (9 seats)", any: "Any / Best price",
+  };
+  const paymentLabels: Record<string, string> = {
+    cash: "Cash", debit: "Debit card", paypal: "PayPal",
+    bank_transfer: "Bank transfer", other: "Other",
+  };
+
+  const pickup = new Date(data.pickup_datetime);
+  const ret = new Date(data.return_datetime);
+  const days = Math.round((ret.getTime() - pickup.getTime()) / 86400000);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    " " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const extras: string[] = [];
+  if (data.child_seats > 0) extras.push(`Child seat ×${data.child_seats}`);
+  if (data.automatic_transmission) extras.push("Automatic transmission");
+  if (data.additional_driver) extras.push("Additional driver");
+  if (data.cross_border && data.cross_border_countries.length)
+    extras.push(`Cross-border: ${data.cross_border_countries.join(", ")}`);
+
+  const lines = [
+    `Hi ${data.rental_name},`,
+    ``,
+    `You have a new quote request via CarRentDesk!`,
+    ``,
+    `── Trip ──`,
+    `Pickup:  ${fmt(pickup)}`,
+    `Return:  ${fmt(ret)}  (${days} day${days !== 1 ? "s" : ""})`,
+    `Pickup location: ${data.pickup_location}`,
+    data.return_location ? `Return location: ${data.return_location}` : null,
+    `Car type: ${vehicleLabels[data.vehicle_type] ?? data.vehicle_type}`,
+    ``,
+    `── Driver ──`,
+    `Name:    ${data.customer_name}`,
+    `Phone:   ${data.customer_phone}`,
+    data.customer_email ? `Email:   ${data.customer_email}` : null,
+    `Age:     ${data.driver_age}`,
+    ``,
+    `── Preferences ──`,
+    `Payment: ${data.payment_method ? (paymentLabels[data.payment_method] ?? data.payment_method) : "Not specified"}`,
+    `Deposit: ${data.no_deposit ? "Prefers no deposit / cash only" : "Standard OK"}`,
+    extras.length ? `Extras:  ${extras.join(", ")}` : null,
+    data.notes ? `Notes:   ${data.notes}` : null,
+    ``,
+    `── How to reply ──`,
+    data.customer_email
+      ? `Reply directly to this email — your response will go straight to ${data.customer_name}.`
+      : `Call or message the customer directly: ${data.customer_phone}`,
+    data.claim_url
+      ? `\nOr respond with a price quote via CarRentDesk:\n${data.claim_url}`
+      : null,
+    ``,
+    `Your listing: https://carrentdesk.com/c/${data.company_slug ?? ""}`,
+    ``,
+    `— CarRentDesk`,
+  ].filter((l) => l !== null).join("\n");
+
+  const subject = `New quote request via CarRentDesk — ${data.customer_name} — ${
+    data.city_slug ? data.city_slug.replace(/-/g, " ") : ""
+  } ${fmt(pickup).slice(0, 7)}–${fmt(ret).slice(0, 7)}`;
+
+  const result = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: data.rental_email,
+    replyTo: data.customer_email ?? OWNER_EMAIL,
+    cc: OWNER_EMAIL,
+    subject,
+    text: lines,
+  });
+
+  if (result.error) {
+    console.error("[email] Resend error sending inquiry to rental:", result.error);
+  } else {
+    console.log("[email] inquiry sent to rental, id:", result.data?.id);
+  }
+}
+
+/**
  * Confirms to the operator that a claim request was submitted (awaiting review).
  */
 export async function sendJoinClaimPendingEmail(data: {

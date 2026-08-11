@@ -1,7 +1,7 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendInquiryNotification } from "@/lib/email";
+import { sendInquiryNotification, sendInquiryToRental } from "@/lib/email";
 
 export type InquiryFormData = {
   company_id: string;
@@ -88,6 +88,48 @@ export async function submitInquiry(
   sendInquiryNotification(data).catch((e) =>
     console.error("[inquiry] email error:", e)
   );
+
+  // If the rental has an email, send them the inquiry automatically
+  if (data.company_id) {
+    void (async () => {
+      try {
+        const { data: co } = await db
+          .from("companies")
+          .select("email, name")
+          .eq("id", data.company_id)
+          .maybeSingle();
+        if (co?.email) {
+          await sendInquiryToRental({
+            rental_email: co.email,
+            rental_name: co.name ?? data.company_name,
+            claim_url: null,
+            company_name: data.company_name,
+            company_slug: data.company_slug,
+            city_slug: data.city_slug,
+            pickup_datetime: data.pickup_datetime,
+            return_datetime: data.return_datetime,
+            pickup_location: data.pickup_location,
+            return_location: data.return_location || null,
+            vehicle_type: data.vehicle_type,
+            automatic_transmission: data.automatic_transmission,
+            cross_border: data.cross_border,
+            cross_border_countries: data.cross_border_countries,
+            customer_name: data.customer_name.trim(),
+            customer_phone: data.customer_phone.trim(),
+            customer_email: data.customer_email?.trim() || null,
+            driver_age: data.driver_age,
+            payment_method: data.payment_method || null,
+            no_deposit: data.no_deposit,
+            child_seats: data.child_seats,
+            additional_driver: data.additional_driver,
+            notes: data.notes?.trim() || null,
+          });
+        }
+      } catch (e) {
+        console.error("[inquiry] rental email error:", e);
+      }
+    })();
+  }
 
   return { ok: true };
 }
