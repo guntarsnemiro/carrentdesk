@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CITIES, getCityBySlug } from "@/lib/cities";
@@ -105,12 +106,14 @@ export default async function CityPage({ params }: PageProps) {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8">
-        <CityListingsView
-          listings={listings}
-          cityName={city.name}
-          citySlug={city.slug}
-          mapFallbackCenter={city.center}
-        />
+        <Suspense>
+          <CityListingsView
+            listings={listings}
+            cityName={city.name}
+            citySlug={city.slug}
+            mapFallbackCenter={city.center}
+          />
+        </Suspense>
 
         <div className="mt-8 rounded-2xl bg-surface-soft p-6 ring-1 ring-border">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">

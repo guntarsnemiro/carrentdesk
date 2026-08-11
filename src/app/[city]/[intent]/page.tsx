@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CITIES, getCityBySlug } from "@/lib/cities";
@@ -128,12 +129,14 @@ export default async function IntentPage({ params }: PageProps) {
         {listings.length === 0 ? (
           <EmptyState cityName={city.name} />
         ) : (
-          <CityListingsView
-            listings={listings}
-            cityName={city.name}
-            citySlug={citySlug}
-            mapFallbackCenter={city.center}
-          />
+          <Suspense>
+            <CityListingsView
+              listings={listings}
+              cityName={city.name}
+              citySlug={citySlug}
+              mapFallbackCenter={city.center}
+            />
+          </Suspense>
         )}
       </section>
 
