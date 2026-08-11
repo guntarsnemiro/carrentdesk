@@ -17,6 +17,7 @@ interface Props {
   user: { email: string };
   companies: Company[];
   activeCompanyId: string | null;
+  pendingQuotesCount?: number;
   onCloseMobile?: () => void;
 }
 
@@ -102,7 +103,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function Sidebar({ user, companies, activeCompanyId, onCloseMobile }: Props) {
+export function Sidebar({ user, companies, activeCompanyId, pendingQuotesCount = 0, onCloseMobile }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const companyId = activeCompanyId ?? "";
@@ -207,6 +208,11 @@ export function Sidebar({ user, companies, activeCompanyId, onCloseMobile }: Pro
                       {item.icon}
                     </span>
                     {item.label}
+                    {item.label === "Quotes" && pendingQuotesCount > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {pendingQuotesCount}
+                      </span>
+                    )}
                   </Link>
                 )}
               </li>

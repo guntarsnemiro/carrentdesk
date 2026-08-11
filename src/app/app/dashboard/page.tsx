@@ -125,7 +125,19 @@ export default async function DashboardPage({
     ? await db.from("customers").select("company_id").in("company_id", companyIds)
     : { data: [] };
 
-  // Maintenance reminders
+  // Pending quote requests per company
+  const { data: pendingQuoteRows } = companyIds.length
+    ? await db
+        .from("inquiries")
+        .select("company_id")
+        .in("company_id", companyIds)
+        .in("status", ["new", "forwarded"])
+    : { data: [] };
+
+  const pendingQuotesByCompany = new Map<string, number>();
+  for (const r of pendingQuoteRows ?? []) {
+    pendingQuotesByCompany.set(r.company_id, (pendingQuotesByCompany.get(r.company_id) ?? 0) + 1);
+  }
   const { data: maintLogsRaw } = companyIds.length
     ? await db.from("maintenance_logs")
         .select("id, company_id, vehicle_id, type, next_due_km, next_due_date, next_due_label, odometer_km, date, vehicle:vehicles(make, model, plate, odometer_km)")
@@ -181,6 +193,7 @@ export default async function DashboardPage({
             const vehicles  = allVehicles.filter((v) => v.company_id === company.id);
             const bookings  = allBookings.filter((b) => b.company_id === company.id);
             const customers = (customerCounts ?? []).filter((c) => c.company_id === company.id).length;
+            const pendingQuotes = pendingQuotesByCompany.get(company.id) ?? 0;
 
             // Use UTC string slice for reliable date comparison (same as Today page)
             const pickupsToday    = bookings.filter((b) => b.start_at.slice(0, 10) === today)
@@ -261,6 +274,27 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="space-y-4">
+
+                  {/* ── Pending quote requests ── */}
+                  {pendingQuotes > 0 && (
+                    <Link
+                      href={`/app/quotes/${company.id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 hover:bg-orange-100 transition-colors"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white text-sm font-bold">
+                        {pendingQuotes}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-orange-900">
+                          {pendingQuotes === 1 ? "1 unanswered quote request" : `${pendingQuotes} unanswered quote requests`}
+                        </p>
+                        <p className="text-xs text-orange-700">Customers are waiting for your price — click to respond</p>
+                      </div>
+                      <svg className="h-5 w-5 shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
+                      </svg>
+                    </Link>
+                  )}
 
                   {/* ── Overdue renewals — urgent banner ── */}
                   {renewalsOverdue.length > 0 && (

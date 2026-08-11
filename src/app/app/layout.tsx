@@ -39,11 +39,21 @@ export default async function OperatorLayout({
 
   const activeCompanyId = companies[0]?.id ?? null;
 
+  // Count unanswered quote requests for the badge
+  const { count: pendingQuotesCount } = activeCompanyId
+    ? await db
+        .from("inquiries")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", activeCompanyId)
+        .in("status", ["new", "forwarded"])
+    : { count: 0 };
+
   return (
     <AppShell
       user={{ email: user.email ?? "" }}
       companies={companies}
       activeCompanyId={activeCompanyId}
+      pendingQuotesCount={pendingQuotesCount ?? 0}
     >
       {children}
     </AppShell>

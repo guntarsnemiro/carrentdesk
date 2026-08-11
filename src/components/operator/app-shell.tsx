@@ -15,10 +15,11 @@ interface Props {
   user: { email: string };
   companies: Company[];
   activeCompanyId: string | null;
+  pendingQuotesCount: number;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, companies, activeCompanyId, children }: Props) {
+export function AppShell({ user, companies, activeCompanyId, pendingQuotesCount, children }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -57,6 +58,7 @@ export function AppShell({ user, companies, activeCompanyId, children }: Props) 
           user={user}
           companies={companies}
           activeCompanyId={activeCompanyId}
+          pendingQuotesCount={pendingQuotesCount}
           onCloseMobile={() => setOpen(false)}
         />
       </div>
