@@ -33,7 +33,7 @@ type Inquiry = {
   forwarded_at: string | null;
   operator_response: string | null;
   quoted_price: number | null;
-  company: { whatsapp: string | null; phone: string | null; email: string | null } | null;
+  company: { whatsapp: string | null; phone: string | null; email: string | null; country_code: string | null } | null;
 };
 
 const STATUSES: { key: InquiryStatus; label: string; color: string }[] = [
@@ -61,6 +61,12 @@ function fmt(iso: string) {
 }
 function days(a: string, b: string) {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
+}
+
+function countryFlag(code: string) {
+  return code.toUpperCase().replace(/./g, (c) =>
+    String.fromCodePoint(127397 + c.charCodeAt(0))
+  );
 }
 
 export function InquiriesClient({
@@ -295,6 +301,16 @@ function InquiryRow({
             <span className="font-semibold text-sm text-neutral-900">
               {inq.company_name ?? inq.city_slug}
             </span>
+            {inq.company?.country_code && (
+              <span className="text-xs text-neutral-500 font-medium">
+                {countryFlag(inq.company.country_code)} {inq.company.country_code.toUpperCase()}
+              </span>
+            )}
+            {(inq.company?.whatsapp || inq.company?.phone) && (
+              <span className="text-xs text-neutral-400">
+                📞 {inq.company.whatsapp ?? inq.company.phone}
+              </span>
+            )}
             <span className="text-xs text-neutral-400">
               {VEHICLE_LABELS[inq.vehicle_type] ?? inq.vehicle_type} · {d}d
             </span>
