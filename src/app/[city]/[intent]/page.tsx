@@ -131,6 +131,7 @@ export default async function IntentPage({ params }: PageProps) {
           <CityListingsView
             listings={listings}
             cityName={city.name}
+            citySlug={citySlug}
             mapFallbackCenter={city.center}
           />
         )}
