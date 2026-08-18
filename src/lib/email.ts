@@ -366,7 +366,9 @@ export async function sendQuoteResponseToCustomer(data: {
 }
 
 /**
- * Notifies the admin (and optionally the rental) that a customer accepted a quote.
+ * Tells the rental (and CCs admin) that a customer accepted their quote.
+ * Reply-To is the customer so the rental can continue the booking by email.
+ * If the rental has no email, admin still gets the notification.
  */
 export async function sendQuoteAcceptedNotification(data: {
   company_name: string;
@@ -399,14 +401,11 @@ export async function sendQuoteAcceptedNotification(data: {
     " " +
     d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
+  const toRental = Boolean(data.company_email);
   const body = [
-    `🎉 A customer has accepted a quote!`,
-    ``,
-    `── Rental ──`,
-    `Company: ${data.company_name}`,
-    data.company_phone ? `Phone: ${data.company_phone}` : null,
-    data.company_email ? `Email: ${data.company_email}` : null,
-    `Listing: https://carrentdesk.com/c/${data.company_slug}`,
+    toRental
+      ? `Good news — ${data.customer_name} has accepted your quote via CarRentDesk.`
+      : `A customer has accepted a quote.`,
     ``,
     `── Trip ──`,
     `Pickup:   ${fmt(pickup)}`,
@@ -420,15 +419,33 @@ export async function sendQuoteAcceptedNotification(data: {
     `Phone: ${data.customer_phone}`,
     data.customer_email ? `Email: ${data.customer_email}` : null,
     ``,
+    toRental && data.customer_email
+      ? `Reply to this email to reach ${data.customer_name} directly.`
+      : null,
+    ``,
+    `Listing: https://carrentdesk.com/c/${data.company_slug}`,
+    ``,
     `— CarRentDesk`,
   ].filter((l) => l !== null).join("\n");
 
-  await resend.emails.send({
+  const subject = toRental
+    ? `Booking confirmed — ${data.customer_name} accepted your quote${data.quoted_price ? ` (€${Number(data.quoted_price).toFixed(2)})` : ""}`
+    : `Booking accepted — ${data.customer_name} → ${data.company_name}`;
+
+  const result = await resend.emails.send({
     from: FROM_ADDRESS,
-    to: OWNER_EMAIL,
-    subject: `✅ Booking accepted — ${data.customer_name} → ${data.company_name}`,
+    to: data.company_email ?? OWNER_EMAIL,
+    ...(toRental ? { cc: OWNER_EMAIL } : {}),
+    ...(data.customer_email ? { replyTo: data.customer_email } : {}),
+    subject,
     text: body,
   });
+
+  if (result.error) {
+    console.error("[email] Resend error for quote accepted:", result.error);
+  } else {
+    console.log("[email] quote accepted sent to", data.company_email ?? OWNER_EMAIL, "id:", result.data?.id);
+  }
 }
 
 /**
@@ -460,9 +477,9 @@ export async function sendInquiryToRental(data: {
   child_seats: number;
   additional_driver: boolean;
   notes?: string | null;
-}) {
+}): Promise<boolean> {
   const resend = getResend();
-  if (!resend) return;
+  if (!resend) return false;
 
   const vehicleLabels: Record<string, string> = {
     compact: "Compact", mid_size: "Mid-size", big: "Full-size / Big",
@@ -540,9 +557,10 @@ export async function sendInquiryToRental(data: {
 
   if (result.error) {
     console.error("[email] Resend error sending inquiry to rental:", result.error);
-  } else {
-    console.log("[email] inquiry sent to rental, id:", result.data?.id);
+    return false;
   }
+  console.log("[email] inquiry sent to rental, id:", result.data?.id);
+  return true;
 }
 
 /**
