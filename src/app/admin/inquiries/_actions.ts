@@ -1,7 +1,7 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendQuoteResponseToCustomer, sendInquiryToRental } from "@/lib/email";
+import { sendQuoteResponseToCustomer, sendInquiryToRental, sendQuoteAcceptedNotification } from "@/lib/email";
 
 export type InquiryStatus = "new" | "forwarded" | "quoted" | "booked" | "declined" | "lost";
 
@@ -210,6 +210,56 @@ export async function sendInquiryEmailToRental(
     .from("inquiries")
     .update({ status: "forwarded", forwarded_at: new Date().toISOString() })
     .eq("id", inquiryId);
+
+  return { ok: true };
+}
+
+export async function resendAcceptanceToRental(
+  inquiryId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = createServiceRoleClient();
+
+  const { data: inq } = await db
+    .from("inquiries")
+    .select(
+      "customer_name, customer_email, customer_phone, company_id, company_name, company_slug, pickup_datetime, return_datetime, vehicle_type, pickup_location, quoted_price, status, customer_response"
+    )
+    .eq("id", inquiryId)
+    .maybeSingle();
+
+  if (!inq) return { ok: false, error: "Inquiry not found" };
+  if (inq.status !== "booked" && inq.customer_response !== "accepted") {
+    return { ok: false, error: "This inquiry is not an accepted booking" };
+  }
+
+  let companyEmail: string | null = null;
+  let companyPhone: string | null = null;
+  if (inq.company_id) {
+    const { data: co } = await db
+      .from("companies")
+      .select("email, phone, whatsapp")
+      .eq("id", inq.company_id)
+      .maybeSingle();
+    companyEmail = co?.email ?? null;
+    companyPhone = co?.whatsapp ?? co?.phone ?? null;
+  }
+  if (!companyEmail) return { ok: false, error: "Rental has no email on file" };
+
+  await sendQuoteAcceptedNotification({
+    company_name: inq.company_name ?? "the rental",
+    company_id: inq.company_id ?? "",
+    company_slug: inq.company_slug ?? "",
+    company_phone: companyPhone,
+    company_email: companyEmail,
+    customer_name: inq.customer_name,
+    customer_phone: inq.customer_phone,
+    customer_email: inq.customer_email,
+    pickup_datetime: inq.pickup_datetime,
+    return_datetime: inq.return_datetime,
+    vehicle_type: inq.vehicle_type,
+    pickup_location: inq.pickup_location,
+    quoted_price: inq.quoted_price,
+  });
 
   return { ok: true };
 }

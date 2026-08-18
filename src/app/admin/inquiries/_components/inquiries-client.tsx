@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, generateRentalInviteLink, sendInquiryEmailToRental, type InquiryStatus } from "../_actions";
+import { updateInquiryStatus, updateInquiryNotes, adminSendQuoteToCustomer, generateRentalInviteLink, sendInquiryEmailToRental, resendAcceptanceToRental, type InquiryStatus } from "../_actions";
 import { useRouter } from "next/navigation";
 
 type Inquiry = {
@@ -174,6 +174,9 @@ function InquiryRow({
   const [emailError, setEmailError] = useState("");
   const [emailOverride, setEmailOverride] = useState("");
   const rentalEmail = inq.company?.email ?? null;
+  const [acceptResending, setAcceptResending] = useState(false);
+  const [acceptResent, setAcceptResent] = useState(false);
+  const [acceptResendError, setAcceptResendError] = useState("");
 
   const statusMeta = STATUSES.find((s) => s.key === inq.status) ?? STATUSES[0];
   const d = days(inq.pickup_datetime, inq.return_datetime);
@@ -233,6 +236,15 @@ function InquiryRow({
     } else {
       setEmailError(result.error);
     }
+  }
+
+  async function handleResendAcceptance() {
+    setAcceptResendError("");
+    setAcceptResending(true);
+    const result = await resendAcceptanceToRental(inq.id);
+    setAcceptResending(false);
+    if (result.ok) setAcceptResent(true);
+    else setAcceptResendError(result.error);
   }
 
   // Rental's contact number — prefer WhatsApp, fall back to phone
@@ -369,6 +381,37 @@ function InquiryRow({
             )}
             {inq.notes && <Detail label="Notes" value={inq.notes} />}
           </div>
+
+          {inq.status === "booked" && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <h4 className="text-xs font-semibold text-green-900 mb-1">Accepted offer</h4>
+              {inq.quoted_price != null && (
+                <p className="text-sm font-semibold text-green-900">€{Number(inq.quoted_price).toFixed(2)}</p>
+              )}
+              {inq.operator_response && (
+                <p className="mt-1 whitespace-pre-wrap text-sm text-green-800">{inq.operator_response}</p>
+              )}
+              <div className="mt-3">
+                {acceptResent ? (
+                  <p className="text-xs font-medium text-green-700">Acceptance email sent to the rental.</p>
+                ) : (
+                  <>
+                    {acceptResendError && <p className="mb-1 text-xs text-red-600">{acceptResendError}</p>}
+                    <button
+                      onClick={handleResendAcceptance}
+                      disabled={acceptResending || !rentalEmail}
+                      className="rounded-lg bg-green-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                    >
+                      {acceptResending ? "Sending…" : "Resend acceptance email to rental"}
+                    </button>
+                    {!rentalEmail && (
+                      <p className="mt-1 text-xs text-red-600">No rental email on file.</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border">
