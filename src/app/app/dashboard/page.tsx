@@ -136,6 +136,7 @@ export default async function DashboardPage({
 
   const pendingQuotesByCompany = new Map<string, number>();
   for (const r of pendingQuoteRows ?? []) {
+    if (!r.company_id) continue;
     pendingQuotesByCompany.set(r.company_id, (pendingQuotesByCompany.get(r.company_id) ?? 0) + 1);
   }
   const { data: maintLogsRaw } = companyIds.length
