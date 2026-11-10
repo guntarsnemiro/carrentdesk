@@ -39,6 +39,23 @@ export function CityListingsView({ listings, cityName, citySlug, mapFallbackCent
   const searchParams = useSearchParams();
   const typeParam = searchParams.get("type") ?? undefined;
   const activeType = VEHICLE_TYPES.some((v) => v.key === typeParam) ? typeParam : undefined;
+
+  function hrefForType(type?: string) {
+    const params = new URLSearchParams();
+    if (type) params.set("type", type);
+    const pickup = searchParams.get("pickup");
+    const ret = searchParams.get("return");
+    const pickupTime = searchParams.get("pickupTime");
+    const returnTime = searchParams.get("returnTime");
+    const place = searchParams.get("place");
+    if (pickup) params.set("pickup", pickup);
+    if (ret) params.set("return", ret);
+    if (pickupTime) params.set("pickupTime", pickupTime);
+    if (returnTime) params.set("returnTime", returnTime);
+    if (place) params.set("place", place);
+    const qs = params.toString();
+    return qs ? `/${citySlug}?${qs}` : `/${citySlug}`;
+  }
   const activeMeta = activeType ? getVehicleType(activeType) : undefined;
 
   // Filter client-side; listings with no vehicleTypes set appear in "All" only.
@@ -87,9 +104,9 @@ export function CityListingsView({ listings, cityName, citySlug, mapFallbackCent
     <div className="space-y-6">
       {/* Vehicle-type filter chips */}
       <div className="-mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1">
-        <Chip href={`/${citySlug}`} active={!activeType}>All types</Chip>
+        <Chip href={hrefForType()} active={!activeType}>All types</Chip>
         {VEHICLE_TYPES.map((v) => (
-          <Chip key={v.key} href={`/${citySlug}?type=${v.key}`} active={activeType === v.key}>
+          <Chip key={v.key} href={hrefForType(v.key)} active={activeType === v.key}>
             {v.label}
           </Chip>
         ))}

@@ -63,9 +63,8 @@ function Hero() {
               Best local car rentals across Europe. 6,500+ companies,
               direct contact, no booking fees.
             </p>
-
-            <HeroSearch />
           </div>
+          <HeroSearch />
         </div>
       </div>
     </section>
@@ -156,7 +155,7 @@ function ForOwnersStrip() {
             href="/join"
             className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2 text-sm font-semibold text-brand-950 transition-colors hover:bg-brand-100"
           >
-            Start free trial →
+            Create account →
           </Link>
           <Link
             href="/app/login"

@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Inquiries",  href: "/admin/inquiries",  icon: <InquiryIcon /> },
   { label: "Pipeline",   href: "/admin/pipeline",   icon: <PipelineIcon /> },
   { label: "Blacklist",  href: "/admin/blacklist",  icon: <BlacklistIcon /> },
-  { label: "Analytics",  href: "/admin/analytics",  icon: <ChartIcon />, soon: true },
+  { label: "Analytics",  href: "/admin/analytics",  icon: <ChartIcon /> },
   { label: "Operators",  href: "/admin/operators",  icon: <UsersIcon />,  soon: true },
 ];
 

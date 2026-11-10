@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { Listing } from "@/lib/listings";
+import { BOOKING_TIME_SLOTS } from "@/lib/booking/dates";
 import { submitInquiry } from "../_actions/submit-inquiry";
 
 const VEHICLE_TYPES = [
@@ -239,13 +240,13 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
                 }}
                 className={inputCls(errors.pickup_date)}
               />
-              <input
-                type="time"
-                lang="en-GB"
+              <select
                 value={form.pickup_time}
                 onChange={(e) => set("pickup_time", e.target.value)}
                 className={inputCls(undefined)}
-              />
+              >
+                {BOOKING_TIME_SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+              </select>
             </div>
             {errors.pickup_date && <p className="mt-1 text-xs text-red-600">{errors.pickup_date}</p>}
           </div>
@@ -262,13 +263,13 @@ export function QuoteRequestForm({ listing, citySlug, cityName, country }: Props
                 onChange={(e) => set("return_date", e.target.value)}
                 className={inputCls(errors.return_date)}
               />
-              <input
-                type="time"
-                lang="en-GB"
+              <select
                 value={form.return_time}
                 onChange={(e) => set("return_time", e.target.value)}
                 className={inputCls(undefined)}
-              />
+              >
+                {BOOKING_TIME_SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+              </select>
             </div>
             {errors.return_date && <p className="mt-1 text-xs text-red-600">{errors.return_date}</p>}
           </div>

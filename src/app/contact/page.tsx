@@ -32,7 +32,7 @@ export default function ContactPage() {
         <section>
           <h2 className="text-lg font-semibold text-neutral-900">Rental companies</h2>
           <p className="mt-3">
-            If you want to add or claim a listing for your business, please visit the{" "}
+            If you want to register your rental, please visit the{" "}
             <Link href="/join" className="text-brand-700 hover:underline">
               rental owner page
             </Link>{" "}

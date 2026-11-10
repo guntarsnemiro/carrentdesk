@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Use",
@@ -53,13 +52,6 @@ export default function TermsPage() {
             By submitting a listing you confirm that you are authorised to represent the
             business and that the information provided is accurate to the best of your
             knowledge.
-          </p>
-          <p className="mt-3">
-            For details on paid features and subscription terms, see the{" "}
-            <Link href="/join#pricing" className="text-brand-700 hover:underline">
-              pricing section
-            </Link>
-            .
           </p>
         </section>
 

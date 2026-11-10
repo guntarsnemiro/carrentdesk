@@ -3,9 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { CITIES } from "@/lib/cities";
-import { VEHICLE_TYPES } from "@/lib/vehicle-types";
-
+import { CITIES, cityAirports } from "@/lib/cities";
+import { DateTimeRangeFields } from "@/components/booking/datetime-range-fields";
+import {
+  addDaysYmd,
+  defaultPickupYmd,
+  defaultReturnYmd,
+  DEFAULT_PICKUP_TIME,
+  DEFAULT_RETURN_TIME,
+  isValidDateTimeRange,
+  isValidRange,
+} from "@/lib/booking/dates";
 // Group cities by country for the dropdown
 const CITY_GROUPS = Object.entries(
   CITIES.reduce<Record<string, typeof CITIES>>((acc, city) => {
@@ -18,7 +26,11 @@ const CITY_GROUPS = Object.entries(
 export function HeroSearch() {
   const router = useRouter();
   const [citySlug, setCitySlug] = useState("riga");
-  const [type, setType] = useState("any");
+  const [placeCode, setPlaceCode] = useState<string | null>(null);
+  const [pickup, setPickup] = useState(defaultPickupYmd);
+  const [returnDate, setReturnDate] = useState(() => defaultReturnYmd(defaultPickupYmd()));
+  const [pickupTime, setPickupTime] = useState(DEFAULT_PICKUP_TIME);
+  const [returnTime, setReturnTime] = useState(DEFAULT_RETURN_TIME);
   const [query, setQuery] = useState("Riga");
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -27,14 +39,19 @@ export function HeroSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const committedLabel = useRef("Riga");
+  const pinningCity = useRef(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const cityLabel = useCallback((slug: string) => {
+  const cityLabel = useCallback((slug: string, code: string | null = placeCode) => {
     if (slug === "all") return "All cities";
     const c = CITIES.find((c) => c.slug === slug);
-    return c ? `${c.name}, ${c.country}` : "";
-  }, []);
+    if (!c) return "";
+    if (code === "city") return `${c.name}, city delivery`;
+    const airport = code ? cityAirports(c).find((item) => item.code === code) : null;
+    return airport?.name ?? `${c.name}, ${c.country}`;
+  }, [placeCode]);
 
   // Recalculate dropdown position whenever it opens or the page scrolls
   const updateDropdownPos = useCallback(() => {
@@ -44,7 +61,7 @@ export function HeroSearch() {
       position: "fixed",
       top: rect.bottom + 6,
       left: rect.left,
-      width: rect.width,
+      width: Math.max(rect.width, 360),
       zIndex: 9999,
     });
   }, []);
@@ -64,21 +81,50 @@ export function HeroSearch() {
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const q = normalize(query);
 
+  const cityMatches = (c: (typeof CITIES)[number]) =>
+    normalize(c.name).includes(q) ||
+    normalize(c.country).includes(q) ||
+    c.slug.includes(q) ||
+    cityAirports(c).some(
+      (airport) =>
+        normalize(airport.name).includes(q) ||
+        airport.code.toLowerCase().includes(q),
+    );
+
   const filteredGroups = CITY_GROUPS.map(({ 0: country, 1: cities }) => ({
     country,
-    cities: cities.filter(
-      (c) =>
-        normalize(c.name).includes(q) ||
-        normalize(c.country).includes(q) ||
-        c.slug.includes(q)
-    ),
+    cities: cities.filter(cityMatches),
   })).filter((g) => g.cities.length > 0);
+
+  const matchCount = filteredGroups.reduce((sum, group) => sum + group.cities.length, 0);
+  const expandLocations = q.length > 0 && matchCount > 0 && matchCount <= 6;
 
   const showAll = query === "" || "all cities".includes(q);
 
-  function selectCity(slug: string) {
+  function selectAllCities() {
+    committedLabel.current = "All cities";
+    setCitySlug("all");
+    setPlaceCode(null);
+    setQuery("All cities");
+    setOpen(false);
+  }
+
+  function focusCity(slug: string) {
+    const c = CITIES.find((item) => item.slug === slug);
+    pinningCity.current = true;
+    committedLabel.current = c?.name ?? "";
     setCitySlug(slug);
-    setQuery(cityLabel(slug));
+    setPlaceCode(null);
+    setQuery(c?.name ?? "");
+    setOpen(true);
+  }
+
+  function selectLocation(slug: string, code: string) {
+    const label = cityLabel(slug, code);
+    committedLabel.current = label;
+    setCitySlug(slug);
+    setPlaceCode(code);
+    setQuery(label);
     setOpen(false);
   }
 
@@ -94,8 +140,12 @@ export function HeroSearch() {
 
   function onBlur() {
     setTimeout(() => {
+      if (pinningCity.current) {
+        pinningCity.current = false;
+        return;
+      }
       if (document.activeElement !== inputRef.current && !listRef.current?.contains(document.activeElement)) {
-        setQuery(cityLabel(citySlug));
+        setQuery(committedLabel.current);
         setOpen(false);
       }
     }, 150);
@@ -106,21 +156,44 @@ export function HeroSearch() {
       !containerRef.current?.contains(e.target as Node) &&
       !listRef.current?.contains(e.target as Node)
     ) {
-      setQuery(cityLabel(citySlug));
+      setQuery(committedLabel.current);
       setOpen(false);
     }
-  }, [citySlug, cityLabel]);
+  }, []);
 
   useEffect(() => {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [handleOutsideClick]);
 
+  function onPickupChange(value: string) {
+    setPickup(value);
+    if (!isValidDateTimeRange(value, pickupTime, returnDate, returnTime)) {
+      setReturnDate(addDaysYmd(value, 3));
+    }
+  }
+
+  function onPickupTimeChange(value: string) {
+    setPickupTime(value);
+    if (!isValidDateTimeRange(pickup, value, returnDate, returnTime)) {
+      setReturnDate(addDaysYmd(pickup, 3));
+    }
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const path = citySlug === "all" ? "/all" : `/${citySlug}`;
-    const params = type !== "any" ? `?type=${type}` : "";
-    router.push(`${path}${params}`);
+    const params = new URLSearchParams();
+    if (citySlug !== "all") {
+      const nextReturn = isValidRange(pickup, returnDate) ? returnDate : addDaysYmd(pickup, 3);
+      params.set("pickup", pickup);
+      params.set("return", nextReturn);
+      params.set("pickupTime", pickupTime);
+      params.set("returnTime", returnTime);
+      if (placeCode) params.set("place", placeCode);
+    }
+    const qs = params.toString();
+    router.push(qs ? `${path}?${qs}` : path);
   }
 
   const dropdown = mounted && open ? createPortal(
@@ -132,7 +205,7 @@ export function HeroSearch() {
       {showAll && (
         <button
           type="button"
-          onMouseDown={() => selectCity("all")}
+          onMouseDown={() => selectAllCities()}
           className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-soft ${citySlug === "all" ? "font-semibold text-brand-900" : "text-neutral-700"}`}
         >
           All cities
@@ -146,16 +219,39 @@ export function HeroSearch() {
             <p className="sticky top-0 bg-surface-soft px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
               {country}
             </p>
-            {cities.map((c) => (
-              <button
-                key={c.slug}
-                type="button"
-                onMouseDown={() => selectCity(c.slug)}
-                className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug ? "font-semibold text-brand-900" : "text-neutral-700"}`}
-              >
-                {c.name}
-              </button>
-            ))}
+            {cities.map((c) =>
+              expandLocations ? (
+                <div key={c.slug} className="pb-1">
+                  <p className="px-4 pt-2 text-xs font-semibold text-brand-950">{c.name}</p>
+                  <button
+                    type="button"
+                    onMouseDown={() => selectLocation(c.slug, "city")}
+                    className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug && placeCode === "city" ? "font-semibold text-brand-900" : "text-neutral-700"}`}
+                  >
+                    City delivery
+                  </button>
+                  {cityAirports(c).map((airport) => (
+                    <button
+                      key={airport.code}
+                      type="button"
+                      onMouseDown={() => selectLocation(c.slug, airport.code)}
+                      className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug && placeCode === airport.code ? "font-semibold text-brand-900" : "text-neutral-700"}`}
+                    >
+                      {airport.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  key={c.slug}
+                  type="button"
+                  onMouseDown={() => focusCity(c.slug)}
+                  className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-surface-soft ${citySlug === c.slug ? "font-semibold text-brand-900" : "text-neutral-700"}`}
+                >
+                  {c.name}
+                </button>
+              ),
+            )}
           </div>
         ))
       )}
@@ -166,13 +262,13 @@ export function HeroSearch() {
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto mt-8 flex w-full max-w-2xl flex-col gap-2 rounded-2xl bg-white p-2 text-left shadow-2xl ring-1 ring-black/10 sm:flex-row sm:items-stretch sm:gap-0 sm:p-1.5"
+      className="mx-auto mt-8 flex w-full max-w-full flex-col gap-2 rounded-2xl bg-white p-2 text-left shadow-2xl ring-1 ring-black/10 sm:w-fit sm:flex-row sm:items-stretch sm:gap-0 sm:p-1.5"
     >
-      {/* City search */}
-      <div ref={containerRef} className="relative flex flex-1">
-        <label className="group flex flex-1 flex-col justify-center rounded-xl px-4 py-2.5 transition-colors hover:bg-surface-soft">
+      {/* City search — wide enough for the longest city name, not the leftover bar */}
+      <div ref={containerRef} className="relative flex w-full shrink-0 sm:w-72">
+        <label className="group flex w-full flex-col justify-center rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-soft">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-            City
+            Where
           </span>
           <span className="relative mt-0.5 flex items-center">
             <input
@@ -182,7 +278,7 @@ export function HeroSearch() {
               onChange={onInputChange}
               onFocus={onFocus}
               onBlur={onBlur}
-              placeholder="Search city…"
+              placeholder="Search city or airport…"
               autoComplete="off"
               className="w-full bg-transparent pr-6 text-sm font-medium text-brand-950 outline-none placeholder:text-neutral-400"
             />
@@ -196,23 +292,16 @@ export function HeroSearch() {
       {dropdown}
 
       <Divider />
-
-      {/* Car type */}
-      <Field label="Car type">
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="w-full appearance-none bg-transparent pr-6 text-sm font-medium text-brand-950 outline-none"
-        >
-          <option value="any">Any type</option>
-          {VEHICLE_TYPES.map((v) => (
-            <option key={v.key} value={v.key}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
+      <DateTimeRangeFields
+        pickup={pickup}
+        returnDate={returnDate}
+        pickupTime={pickupTime}
+        returnTime={returnTime}
+        onPickupChange={onPickupChange}
+        onReturnChange={setReturnDate}
+        onPickupTimeChange={onPickupTimeChange}
+        onReturnTimeChange={setReturnTime}
+      />
       <button
         type="submit"
         className="flex h-12 shrink-0 items-center justify-center rounded-xl bg-brand-900 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-800 sm:h-auto sm:px-8"
@@ -220,22 +309,6 @@ export function HeroSearch() {
         Search
       </button>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="group flex flex-1 flex-col justify-center rounded-xl px-4 py-2.5 transition-colors hover:bg-surface-soft">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-        {label}
-      </span>
-      <span className="relative mt-0.5 flex items-center">
-        {children}
-        <span aria-hidden className="pointer-events-none absolute right-0 text-neutral-400">
-          ▾
-        </span>
-      </span>
-    </label>
   );
 }
 

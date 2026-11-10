@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CITIES, getCityBySlug } from "@/lib/cities";
+import { CITIES, cityAirports, getCityBySlug } from "@/lib/cities";
 import { filterListings } from "@/lib/listings";
 import { isReservedRootSlug } from "@/lib/reserved-slugs";
 import { CityListingsView } from "@/components/marketing/city-listings-view";
+import { BookableCarsSection } from "@/components/booking/bookable-cars-section";
+import { DemandCapture } from "@/components/marketing/demand-capture";
 import { getIntentsForCity, YEAR } from "@/lib/seo/intents";
 
 // City listings change only on re-scrape. Pages are prerendered at build
@@ -89,7 +91,7 @@ export default async function CityPage({ params }: PageProps) {
                 Car rentals in {city.name}
               </h1>
               <p className="mt-2 max-w-2xl text-base text-neutral-600">
-                {city.tagline}. Direct phone, WhatsApp, and email — contact the rental directly.
+                Pick dates to see cars you can book. Pay a small confirmation fee by card; the rental is paid at pickup. Other local companies are listed below.
               </p>
             </div>
 
@@ -106,6 +108,17 @@ export default async function CityPage({ params }: PageProps) {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8">
+        <Suspense>
+          <DemandCapture citySlug={city.slug} cityName={city.name} airports={cityAirports(city)} />
+        </Suspense>
+        <div className="mb-12">
+          <Suspense>
+            <BookableCarsSection citySlug={city.slug} cityName={city.name} />
+          </Suspense>
+        </div>
+        <h2 className="mb-6 text-lg font-semibold tracking-tight text-brand-950">
+          Local rental companies
+        </h2>
         <Suspense>
           <CityListingsView
             listings={listings}

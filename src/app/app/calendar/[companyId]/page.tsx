@@ -61,13 +61,17 @@ export default async function CalendarPage({
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, vehicle_id, status, start_at, end_at, is_maintenance, is_longterm, renewal_period_days, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, customers(id, full_name, phone)")
+    .select("id, vehicle_id, status, start_at, end_at, pending_expires_at, is_maintenance, is_longterm, renewal_period_days, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, flight_number, customer_request, platform_fee, fee_paid_at, fee_refunded_at, customers(id, full_name, phone)")
     .eq("company_id", companyId)
     .neq("status", "cancelled")
     .gte("end_at", start)
     .lte("start_at", end);
 
-  const bookings = (rawBookings ?? []).map((b) => ({
+  const bookings = (rawBookings ?? []).filter((b) => {
+    if (b.status !== "pending_payment") return true;
+    if (!b.pending_expires_at) return true;
+    return new Date(b.pending_expires_at) > now;
+  }).map((b) => ({
     id:                 b.id,
     vehicle_id:         b.vehicle_id,
     status:             b.status,
@@ -87,6 +91,11 @@ export default async function CalendarPage({
     pickup_location:    b.pickup_location,
     return_location:    b.return_location,
     notes:              b.notes,
+    flight_number:      b.flight_number,
+    customer_request:   b.customer_request,
+    platform_fee:       b.platform_fee,
+    fee_paid_at:        b.fee_paid_at,
+    fee_refunded_at:    b.fee_refunded_at,
     customer_name:  (b.customers as { id: string; full_name: string; phone: string } | null)?.full_name ?? null,
     customer_phone: (b.customers as { id: string; full_name: string; phone: string } | null)?.phone ?? null,
     customer_id:    (b.customers as { id: string; full_name: string; phone: string } | null)?.id ?? null,

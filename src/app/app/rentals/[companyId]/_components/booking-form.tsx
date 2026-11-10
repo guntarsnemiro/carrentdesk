@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { cancelBooking, type CancelReason } from "@/lib/booking/cancel-booking";
+import { formatEur } from "@/lib/booking/money";
 import { LocationInput } from "@/components/operator/location-input";
 import { DateInput } from "@/components/ui/date-input";
 
-type BookingStatus   = "confirmed" | "active" | "returned" | "cancelled";
+type BookingStatus   = "confirmed" | "active" | "returned" | "cancelled" | "pending_payment";
 type Insurance       = "none" | "partial" | "full";
 type PaymentMethod   = "cash" | "card" | "bank_transfer" | "other";
 
@@ -35,6 +37,13 @@ interface Booking {
   notes: string | null;
   is_longterm: boolean;
   renewal_period_days: number | null;
+  source?: string | null;
+  platform_fee?: number | null;
+  fee_paid_at?: string | null;
+  fee_refunded_at?: string | null;
+  flight_number?: string | null;
+  customer_request?: string | null;
+  cancel_reason?: string | null;
 }
 
 interface Props {
@@ -178,6 +187,7 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
   })();
 
   const [submitStatus, setSubmitStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
+  const [cancelling, setCancelling] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -186,6 +196,15 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     if (!form.vehicle_id)  { setErrorMsg("Please select a vehicle."); return; }
     if (new Date(form.end_at) <= new Date(form.start_at)) {
       setErrorMsg("Return date must be after pickup date."); return;
+    }
+    if (
+      booking?.fee_paid_at &&
+      !booking.fee_refunded_at &&
+      form.status === "cancelled" &&
+      booking.status !== "cancelled"
+    ) {
+      setErrorMsg("Use the cancel buttons below. Cancelling because the car is unavailable refunds the confirmation fee.");
+      return;
     }
     setSubmitStatus("saving");
     setErrorMsg("");
@@ -223,6 +242,26 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     if (error) { setSubmitStatus("error"); setErrorMsg(error.message); return; }
     router.push(`/app/rentals/${companyId}`);
     router.refresh();
+  }
+
+  async function cancelOnline(reason: CancelReason) {
+    if (!booking) return;
+    const refunds = reason === "unavailable" && Boolean(booking.fee_paid_at) && !booking.fee_refunded_at;
+    const question = refunds
+      ? "Cancel because the car is unavailable and refund the confirmation fee?"
+      : "Cancel this booking? The confirmation fee is not refunded.";
+    if (!confirm(question)) return;
+    setCancelling(true);
+    setErrorMsg("");
+    try {
+      await cancelBooking(companyId, booking.id, reason);
+      setErrorMsg("");
+      router.push(`/app/rentals/${companyId}`);
+      router.refresh();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Could not cancel the booking.");
+      setCancelling(false);
+    }
   }
 
   async function handleDelete() {
@@ -435,8 +474,8 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
       <Section title="Extras">
         <Field label="Insurance">
           <select name="insurance" value={form.insurance} onChange={set} className={inp}>
-            <option value="none">No insurance</option>
-            <option value="partial">Partial</option>
+            <option value="none">Basic</option>
+            {form.insurance === "partial" && <option value="partial">Partial</option>}
             <option value="full">Full</option>
           </select>
         </Field>
@@ -506,10 +545,47 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
         </div>
       </Section>
 
+      {booking && (booking.flight_number || booking.customer_request || booking.fee_paid_at) && (
+        <Section title="From the customer">
+          {booking.flight_number && (
+            <p className="text-sm text-neutral-800"><span className="font-medium">Flight</span> {booking.flight_number}</p>
+          )}
+          {booking.customer_request && (
+            <p className="whitespace-pre-wrap text-sm text-neutral-800">{booking.customer_request}</p>
+          )}
+          {!booking.flight_number && !booking.customer_request && (
+            <p className="text-sm text-neutral-500">No flight number or special request.</p>
+          )}
+          {booking.fee_paid_at && (
+            <p className="text-sm text-neutral-700">
+              Confirmation fee {formatEur(Number(booking.platform_fee ?? 0))}
+              {booking.fee_refunded_at ? " — refunded" : " — paid by card"}
+            </p>
+          )}
+          {booking.status !== "cancelled" && booking.fee_paid_at && !booking.fee_refunded_at && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button type="button" disabled={cancelling} onClick={() => cancelOnline("unavailable")}
+                className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+                Car unavailable — refund fee
+              </button>
+              <button type="button" disabled={cancelling} onClick={() => cancelOnline("customer")}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-neutral-800 disabled:opacity-50">
+                Customer cancelled — keep fee
+              </button>
+              <button type="button" disabled={cancelling} onClick={() => cancelOnline("operator")}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-neutral-800 disabled:opacity-50">
+                Office cancelled — keep fee
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
+
       {/* ── Status & notes ── */}
       <Section title="Status & notes">
         <Field label="Booking status">
           <select name="status" value={form.status} onChange={set} className={inp}>
+            <option value="pending_payment">Awaiting card</option>
             <option value="confirmed">Confirmed</option>
             <option value="active">Active (car is out)</option>
             <option value="returned">Returned</option>

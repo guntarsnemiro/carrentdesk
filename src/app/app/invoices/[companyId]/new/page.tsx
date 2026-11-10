@@ -58,7 +58,7 @@ export default async function NewInvoicePage({
   if (bookingId) {
     const { data: booking } = await db
       .from("bookings")
-      .select("*, vehicles(make, model, year, plate), customers(full_name, email, address, customer_type, company_name, billing_address)")
+      .select("*, vehicles!vehicle_id(make, model, year, plate), customers(full_name, email, address, customer_type, company_name, billing_address)")
       .eq("id", bookingId).eq("company_id", companyId).maybeSingle();
 
     if (booking) {

@@ -66,7 +66,7 @@ const STATUS_PRIORITY: Record<CompanyStatus, number> = {
 export async function filterListings(filter: ListingFilter = {}): Promise<Listing[]> {
   const supabase = createServerClient();
 
-  let q = supabase.from("companies").select(SELECT_LISTING);
+  let q = supabase.from("companies").select(SELECT_LISTING).not("listed_at", "is", null);
 
   if (filter.city && filter.city !== "all") {
     q = q.eq("city", filter.city as "riga" | "tallinn" | "vilnius" | "parnu" | "kaunas");
@@ -98,6 +98,7 @@ export async function getListingBySlug(slug: string): Promise<Listing | null> {
     .from("companies")
     .select(SELECT_LISTING)
     .eq("slug", slug)
+    .not("listed_at", "is", null)
     .maybeSingle();
 
   if (error) throw error;
@@ -126,6 +127,7 @@ export async function getAllListingSlugs(): Promise<string[]> {
     const { data, error } = await supabase
       .from("companies")
       .select("slug")
+      .not("listed_at", "is", null)
       .order("slug")
       .range(from, from + PAGE - 1);
 

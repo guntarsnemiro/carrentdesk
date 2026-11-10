@@ -24,6 +24,11 @@ export type City = {
    * Undefined for cities without a major airport.
    */
   airport?: { code: string; lat: number; lng: number };
+  /**
+   * Every airport a customer can choose for this city. One entry per IATA code.
+   * When omitted, the primary `airport` is the only choice.
+   */
+  airports?: { code: string; name: string; lat: number; lng: number }[];
   /** Default currency code for the country. */
   currency: string;
 };
@@ -840,6 +845,11 @@ export const CITIES: City[] = [
     photoUrl: "",
     center: [48.8566, 2.3522],
     airport: { code: "CDG", lat: 49.0097, lng: 2.5479 },
+    airports: [
+      { code: "CDG", name: "Paris Charles de Gaulle Airport (CDG)", lat: 49.0097, lng: 2.5479 },
+      { code: "ORY", name: "Paris Orly Airport (ORY)", lat: 48.7233, lng: 2.3794 },
+      { code: "BVA", name: "Paris Beauvais Airport (BVA)", lat: 49.4544, lng: 2.1128 },
+    ],
   },
   {
     slug: "lyon",
@@ -1039,6 +1049,10 @@ export const CITIES: City[] = [
     photoUrl: "",
     center: [28.4636, -16.2518],
     airport: { code: "TFS", lat: 28.0445, lng: -16.5725 },
+    airports: [
+      { code: "TFS", name: "Tenerife South Airport (TFS)", lat: 28.0445, lng: -16.5725 },
+      { code: "TFN", name: "Tenerife North Airport (TFN)", lat: 28.4827, lng: -16.3415 },
+    ],
   },
   {
     slug: "gran-canaria",
@@ -2033,4 +2047,18 @@ export const CITIES: City[] = [
 
 export function getCityBySlug(slug: string): City | undefined {
   return CITIES.find((c) => c.slug === slug);
+}
+
+export type CityAirport = { code: string; name: string; lat: number; lng: number };
+
+/** Airports a customer can pick for this city. One option per IATA code. */
+export function cityAirports(city: City): CityAirport[] {
+  if (city.airports && city.airports.length > 0) return city.airports;
+  if (!city.airport) return [];
+  return [{
+    code: city.airport.code,
+    name: `${city.name} Airport (${city.airport.code})`,
+    lat: city.airport.lat,
+    lng: city.airport.lng,
+  }];
 }

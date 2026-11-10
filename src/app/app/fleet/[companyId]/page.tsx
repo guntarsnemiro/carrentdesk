@@ -91,7 +91,7 @@ export default async function FleetPage({
 
   const { data: vehicles } = await db
     .from("vehicles")
-    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin, registration_number, gov_inspection_next, insurance_valid_until, updated_at, purchase_price, purchase_date, depreciation_rate, residual_value, depreciation_mode")
+    .select("id, make, model, year, plate, color, fuel, seats, category, status, odometer_km, vin, registration_number, gov_inspection_next, insurance_valid_until, updated_at, purchase_price, purchase_date, depreciation_rate, residual_value, depreciation_mode, bookable, daily_rate, photo_urls")
     .eq("company_id", companyId)
     .order("make")
     .order("model")
@@ -112,20 +112,12 @@ export default async function FleetPage({
           <h1 className="text-2xl font-bold text-neutral-900">Cars</h1>
           <p className="mt-1 text-sm text-neutral-500">{company.name}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/app/fleet/${companyId}/import`}
-            className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-slate-50"
-          >
-            ↑ Import from Excel
-          </Link>
-          <Link
-            href={`/app/fleet/${companyId}/add`}
-            className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
-          >
-            + Add car
-          </Link>
-        </div>
+        <Link
+          href={`/app/fleet/${companyId}/add`}
+          className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+        >
+          + Add car
+        </Link>
       </div>
 
       {/* Stats row */}
@@ -162,6 +154,7 @@ export default async function FleetPage({
                 <th className="px-4 py-3 font-medium text-neutral-500">Insurance until</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">VIN</th>
                 <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
+                <th className="px-4 py-3 font-medium text-neutral-500">Online</th>
                 <th className="px-4 py-3 font-medium text-neutral-500"></th>
               </tr>
             </thead>
@@ -211,6 +204,19 @@ export default async function FleetPage({
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[v.status] ?? ""}`}>
                       {v.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {v.bookable ? (
+                      <div>
+                        <p className="font-medium text-emerald-700">Bookable</p>
+                        <p className="text-xs text-neutral-500">
+                          {v.daily_rate != null ? `€${Number(v.daily_rate)}/day` : "No rate"}
+                          {(v.photo_urls?.length ?? 0) === 0 ? " · no photo" : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-neutral-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link href={`/app/fleet/${companyId}/${v.id}`} className="text-xs text-brand-700 hover:underline">Edit</Link>

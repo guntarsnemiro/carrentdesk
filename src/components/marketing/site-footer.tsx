@@ -59,12 +59,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link href="/join" className="hover:text-brand-900">
-                Claim your listing
-              </Link>
-            </li>
-            <li>
-              <Link href="/join#pricing" className="hover:text-brand-900">
-                Pricing
+                Create an account
               </Link>
             </li>
           </ul>

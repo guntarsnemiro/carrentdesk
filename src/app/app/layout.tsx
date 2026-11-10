@@ -29,11 +29,11 @@ export default async function OperatorLayout({
   const db = createServiceRoleClient();
   const { data: memberships } = await db
     .from("company_members")
-    .select("role, company:companies(id, name, slug, status)")
+    .select("role, company:companies(id, name, slug, status, onboarding_step)")
     .eq("user_id", user.id);
 
   const companies = (memberships ?? []).map((m) => ({
-    ...(m.company as { id: string; name: string; slug: string; status: string }),
+    ...(m.company as { id: string; name: string; slug: string; status: string; onboarding_step: number }),
     role: m.role,
   }));
 

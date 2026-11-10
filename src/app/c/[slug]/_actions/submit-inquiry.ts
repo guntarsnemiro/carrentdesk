@@ -53,7 +53,7 @@ export async function submitInquiry(
   }
 
   const db = createServiceRoleClient();
-  const { error } = await db.from("inquiries").insert({
+  const { data: inserted, error } = await db.from("inquiries").insert({
     company_id: data.company_id || null,
     company_slug: data.company_slug,
     company_name: data.company_name,
@@ -77,9 +77,9 @@ export async function submitInquiry(
     additional_driver: data.additional_driver,
     notes: data.notes?.trim() || null,
     status: "new",
-  });
+  }).select("id").maybeSingle();
 
-  if (error) {
+  if (error || !inserted) {
     console.error("[inquiry] DB error:", error);
     return { ok: false, error: "Failed to save. Please try again." };
   }
@@ -99,7 +99,7 @@ export async function submitInquiry(
           .eq("id", data.company_id)
           .maybeSingle();
         if (co?.email) {
-          await sendInquiryToRental({
+          const sent = await sendInquiryToRental({
             rental_email: co.email,
             rental_name: co.name ?? data.company_name,
             claim_url: null,
@@ -124,6 +124,15 @@ export async function submitInquiry(
             additional_driver: data.additional_driver,
             notes: data.notes?.trim() || null,
           });
+          if (sent) {
+            await db
+              .from("inquiries")
+              .update({
+                status: "forwarded",
+                forwarded_at: new Date().toISOString(),
+              })
+              .eq("id", inserted.id);
+          }
         }
       } catch (e) {
         console.error("[inquiry] rental email error:", e);

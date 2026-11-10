@@ -6,7 +6,7 @@ type Item = {
 const ITEMS: Item[] = [
   {
     q: "How much does CarRentDesk cost?",
-    a: "One simple plan priced by fleet size, with every feature included: Starter (up to 10 vehicles) €29/month, Growth (11–25 vehicles) €49/month, and Pro (26–40 vehicles) €90/month. Larger fleets get custom pricing. Pay yearly and get one month free. Start with a free trial — no credit card required.",
+    a: "Joining CarRentDesk is free. Create an account with your email and a password, then add your cars.",
   },
   {
     q: "Do you take a commission on bookings?",
@@ -34,7 +34,7 @@ const ITEMS: Item[] = [
   },
   {
     q: "What's the catch?",
-    a: "There isn't one. Pricing is simple and transparent — a flat monthly fee based on your fleet size, with every feature included and no commission on bookings. Cancel anytime and export your data. We have to earn your subscription every month.",
+    a: "Joining is free. There is no monthly fee and no commission on bookings.",
   },
 ];
 

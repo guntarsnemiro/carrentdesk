@@ -9,6 +9,7 @@ interface Company {
   name: string;
   slug: string;
   status: string;
+  onboarding_step?: number;
 }
 
 interface Props {

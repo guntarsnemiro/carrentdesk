@@ -8,13 +8,13 @@ import {
   getAllListingSlugs,
   getListingBySlug,
   type AmenityKey,
-  type Listing,
 } from "@/lib/listings";
 import { seoPageTitle } from "@/lib/seo/title";
 import { LocationMapLoader } from "@/components/marketing/location-map-loader";
+import { Suspense } from "react";
 import { ContactCTAs } from "./_components/contact-ctas";
 import { ContactSidebarCard } from "./_components/contact-sidebar-card";
-import { QuoteRequestForm } from "./_components/quote-request-form";
+import { BookableCarsSection } from "@/components/booking/bookable-cars-section";
 
 // Company data only changes on re-scrape / operator edits (rare), so cache for
 // a month. Time-based revalidation that finds no change costs no ISR write, so
@@ -209,9 +209,17 @@ export default async function CompanyPage({ params }: PageProps) {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-8">
+        <div className="mb-12">
+            <Suspense>
+              <BookableCarsSection
+                citySlug={listing.city}
+                cityName={city?.name ?? listing.city}
+                companySlug={listing.slug}
+              />
+            </Suspense>
+          </div>
         <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
           <div className="space-y-10">
-            <FleetBlock listing={listing} />
             <AmenitiesBlock amenities={listing.amenities} />
           </div>
 
@@ -220,12 +228,6 @@ export default async function CompanyPage({ params }: PageProps) {
               listing={listing}
               cityName={city?.name ?? ""}
               claimed={claimed}
-            />
-            <QuoteRequestForm
-              listing={listing}
-              citySlug={listing.city}
-              cityName={city?.name ?? listing.city}
-              country={city?.country ?? listing.country}
             />
 
             <SidebarCard title="Location">
@@ -281,10 +283,10 @@ export default async function CompanyPage({ params }: PageProps) {
             <p className="text-xs text-neutral-400">
               Are you the owner of {listing.name}?{" "}
               <Link
-                href={`/claim?company=${listing.id}`}
+                href="/join"
                 className="text-neutral-500 underline underline-offset-2 hover:text-brand-700"
               >
-                Claim this listing
+                Create an account
               </Link>
             </p>
           </div>
@@ -294,45 +296,6 @@ export default async function CompanyPage({ params }: PageProps) {
   );
 }
 
-
-function FleetBlock({ listing }: { listing: Listing | null }) {
-  if (!listing) return null;
-
-  const hasFleetCount =
-    listing.fleet.countMin > 0 || listing.fleet.countMax > 0;
-  const fleetText =
-    listing.fleet.description ||
-    "Independent local rental. Contact directly for the current fleet, availability, and rates.";
-
-  return (
-    <div>
-      <h2 className="text-2xl font-semibold tracking-tight text-brand-950">
-        Fleet overview
-      </h2>
-      <div className="mt-4 rounded-2xl bg-background p-6 ring-1 ring-border">
-        {hasFleetCount && (
-          <p className="text-3xl font-semibold tracking-tight text-brand-900">
-            {listing.fleet.countMin}–{listing.fleet.countMax}
-            <span className="ml-2 text-base font-medium text-neutral-500">
-              vehicles
-            </span>
-          </p>
-        )}
-        <p
-          className={`${hasFleetCount ? "mt-3" : ""} text-base leading-7 text-neutral-700`}
-        >
-          {fleetText}
-        </p>
-        {listing.status !== "verified" && (
-          <p className="mt-4 text-xs text-neutral-500">
-            Per-vehicle pricing and photos appear once the rental joins our
-            verified-operator program.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function AmenitiesBlock({ amenities }: { amenities: AmenityKey[] }) {
   // When we have no amenity data for a listing yet, don't render a grid of

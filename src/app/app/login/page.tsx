@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MagicLinkForm } from "./_components/magic-link-form";
+import { PasswordForm } from "./_components/password-form";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -23,14 +23,13 @@ export default function LoginPage({
 
         <div className="rounded-2xl border border-border bg-white px-8 py-8 shadow-sm">
           <h1 className="mb-1 text-lg font-semibold text-neutral-900">
-            Sign in to your account
+            Sign in
           </h1>
           <p className="mb-6 text-sm text-neutral-500">
-            Enter your email and we&apos;ll send you a one-time sign-in link.
-            No password needed.
+            Use the email and password from your account.
           </p>
 
-          <MagicLinkForm searchParams={searchParams} />
+          <PasswordForm searchParams={searchParams} />
         </div>
 
         <p className="mt-6 text-center text-xs text-neutral-400">
@@ -39,7 +38,7 @@ export default function LoginPage({
             href="/join"
             className="text-brand-700 underline-offset-2 hover:underline"
           >
-            Start free trial
+            Create an account
           </a>
         </p>
       </div>

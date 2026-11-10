@@ -78,9 +78,9 @@ type VehicleAlert = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ claimed?: string }>;
+  searchParams: Promise<{ claimed?: string; listed?: string }>;
 }) {
-  const { claimed } = await searchParams;
+  const { claimed, listed } = await searchParams;
 
   const authClient = await createAuthServerClient();
   const { data: { user } } = await authClient.auth.getUser();
@@ -89,11 +89,20 @@ export default async function DashboardPage({
   const db = createServiceRoleClient();
   const { data: memberships } = await db
     .from("company_members")
-    .select("role, company:companies(id, name, slug, status, city)")
+    .select("role, company:companies(id, name, slug, status, city, listed_at, invoice_legal_name, onboarding_step)")
     .eq("user_id", user.id);
 
   const companies = (memberships ?? []).map((m) => ({
-    ...(m.company as { id: string; name: string; slug: string; status: string; city: string }),
+    ...(m.company as {
+      id: string;
+      name: string;
+      slug: string;
+      status: string;
+      city: string;
+      listed_at: string | null;
+      invoice_legal_name: string | null;
+      onboarding_step: number;
+    }),
     role: m.role,
   }));
 
@@ -114,7 +123,7 @@ export default async function DashboardPage({
   // All non-cancelled, non-returned bookings (broad — Today page approach)
   const { data: bookingRows } = companyIds.length
     ? await db.from("bookings")
-        .select("id, company_id, status, start_at, end_at, is_longterm, renewal_period_days, deposit_amount, deposit_returned_at, vehicles(id, make, model, plate), customers(id, full_name, phone)")
+        .select("id, company_id, status, start_at, end_at, is_longterm, renewal_period_days, deposit_amount, deposit_returned_at, vehicles!vehicle_id(id, make, model, plate), customers(id, full_name, phone)")
         .in("company_id", companyIds)
         .neq("status", "cancelled")
         .neq("status", "returned")
@@ -160,6 +169,26 @@ export default async function DashboardPage({
 
   return (
     <div className="px-8 py-8">
+      {listed === "1" && (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+          <p className="text-sm font-medium text-emerald-800">Your rental is on the city page.</p>
+        </div>
+      )}
+
+      {companies.some((company) => company.onboarding_step < 6) && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+          <p className="text-sm font-medium text-amber-950">Your page is hidden until setup is finished.</p>
+          <Link href="/app/setup" className="mt-1 inline-block text-sm font-semibold text-amber-900 underline">Continue setup</Link>
+        </div>
+      )}
+
+      {companies.some((company) => company.onboarding_step >= 6 && !company.invoice_legal_name) && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+          <p className="text-sm font-medium text-amber-950">Add the legal company name. Customers keep seeing the brand.</p>
+          <Link href="/app/setup?focus=names" className="mt-1 inline-block text-sm font-semibold text-amber-900 underline">Add legal name</Link>
+        </div>
+      )}
+
       {claimed === "1" && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
           <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

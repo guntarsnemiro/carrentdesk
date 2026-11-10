@@ -18,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
+import { cancelBooking, type CancelReason } from "@/lib/booking/cancel-booking";
+import { formatEur } from "@/lib/booking/money";
 import { DateInput } from "@/components/ui/date-input";
 
 type Insurance     = "none" | "partial" | "full";
@@ -46,6 +48,11 @@ interface Booking {
   pickup_location: string | null;
   return_location: string | null;
   notes: string | null;
+  flight_number?: string | null;
+  customer_request?: string | null;
+  platform_fee?: number | null;
+  fee_paid_at?: string | null;
+  fee_refunded_at?: string | null;
 }
 
 interface Vehicle {
@@ -76,12 +83,14 @@ const STATUS_COLOR: Record<string, string> = {
   active:      "bg-emerald-500 hover:bg-emerald-600",
   returned:    "bg-neutral-300 hover:bg-neutral-400",
   maintenance: "bg-slate-400 hover:bg-slate-500",
+  pending_payment: "bg-sky-300 hover:bg-sky-400",
 };
 const STATUS_TEXT: Record<string, string> = {
   confirmed:   "text-amber-900",
   active:      "text-white",
   returned:    "text-neutral-600",
   maintenance: "text-white",
+  pending_payment: "text-sky-950",
 };
 
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -462,8 +471,8 @@ function CreateBookingPopup({
               <div className="pt-1">
                 <label className="block text-xs font-medium text-neutral-600">Insurance</label>
                 <select name="insurance" value={form.insurance} onChange={setField} className={INP}>
-                  <option value="none">No insurance</option>
-                  <option value="partial">Partial</option>
+                  <option value="none">Basic</option>
+                  {form.insurance === "partial" && <option value="partial">Partial</option>}
                   <option value="full">Full</option>
                 </select>
               </div>
@@ -601,13 +610,37 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
     onClose();
   }
 
-  async function handleCancel() {
-    if (!confirm("Cancel this booking?")) return;
+  async function cancelWith(reason: CancelReason) {
+    const feeHeld = Boolean(booking.fee_paid_at) && !booking.fee_refunded_at;
+    const question = reason === "unavailable" && feeHeld
+      ? "Cancel because the car is unavailable and refund the confirmation fee?"
+      : feeHeld
+        ? "Cancel this booking? The confirmation fee is not refunded."
+        : "Cancel this booking?";
+    if (!confirm(question)) return;
     setCancelling(true);
-    await getAuthBrowserClient().from("bookings")
-      .update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", booking.id);
-    onUpdated(booking.id, { status: "cancelled" });
-    onClose();
+    setError("");
+    try {
+      await cancelBooking(companyId, booking.id, reason);
+      onUpdated(booking.id, { status: "cancelled" });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not cancel the booking.");
+      setCancelling(false);
+    }
+  }
+
+  async function handleCancel() {
+    if (booking.is_maintenance) {
+      if (!confirm("Cancel this block?")) return;
+      setCancelling(true);
+      await getAuthBrowserClient().from("bookings")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", booking.id);
+      onUpdated(booking.id, { status: "cancelled" });
+      onClose();
+      return;
+    }
+    await cancelWith("operator");
   }
 
   return (
@@ -709,8 +742,8 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
               <div className="pt-1">
                 <label className="block text-xs font-medium text-neutral-600">Insurance</label>
                 <select name="insurance" value={form.insurance} onChange={setField} className={INP}>
-                  <option value="none">No insurance</option>
-                  <option value="partial">Partial</option>
+                  <option value="none">Basic</option>
+                  {form.insurance === "partial" && <option value="partial">Partial</option>}
                   <option value="full">Full</option>
                 </select>
               </div>
@@ -749,8 +782,22 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             </div>
           </div>
 
+          {(booking.flight_number || booking.customer_request || booking.fee_paid_at) && (
+            <div className="rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">From the customer</p>
+              {booking.flight_number && <p>Flight {booking.flight_number}</p>}
+              {booking.customer_request && <p className="whitespace-pre-wrap">{booking.customer_request}</p>}
+              {booking.fee_paid_at && (
+                <p>
+                  Confirmation fee {formatEur(Number(booking.platform_fee ?? 0))}
+                  {booking.fee_refunded_at ? " — refunded" : " — paid by card"}
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Notes</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Internal notes</p>
             <textarea name="notes" rows={2} value={form.notes} onChange={setField}
               placeholder="Anything the team should know…" className={INP} />
           </div>
@@ -764,10 +811,23 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
             {saving ? "Saving…" : "Save changes"}
           </button>
-          <button onClick={handleCancel} disabled={cancelling || saving}
-            className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50">
-            {cancelling ? "Cancelling…" : "Cancel booking"}
-          </button>
+          {booking.fee_paid_at && !booking.fee_refunded_at ? (
+            <div className="flex flex-col items-end gap-1">
+              <button type="button" onClick={() => cancelWith("unavailable")} disabled={cancelling || saving}
+                className="text-sm font-medium text-neutral-900 underline-offset-2 hover:underline disabled:opacity-50">
+                {cancelling ? "Cancelling…" : "Unavailable — refund fee"}
+              </button>
+              <button type="button" onClick={() => cancelWith("customer")} disabled={cancelling || saving}
+                className="text-sm text-red-500 underline-offset-2 hover:underline disabled:opacity-50">
+                Customer cancelled — keep fee
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={handleCancel} disabled={cancelling || saving}
+              className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50">
+              {cancelling ? "Cancelling…" : "Cancel booking"}
+            </button>
+          )}
         </div>
       </div>
     </div>

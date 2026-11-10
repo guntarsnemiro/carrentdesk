@@ -17,6 +17,7 @@ export type Database = {
       bookings: {
         Row: {
           booking_price: number | null
+          cancel_reason: string | null
           child_seat_child: boolean
           child_seat_infant: boolean
           child_seat_toddler: boolean
@@ -27,23 +28,34 @@ export type Database = {
           deposit_paid: boolean
           deposit_returned_at: string | null
           end_at: string
+          fee_paid_at: string | null
+          fee_refunded_at: string | null
+          flight_number: string | null
+          customer_request: string | null
           id: string
           insurance: Database["public"]["Enums"]["booking_insurance"]
           is_longterm: boolean
           is_maintenance: boolean
+          listed_vehicle_id: string | null
           notes: string | null
           paid_at: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          pending_expires_at: string | null
           pickup_location: string | null
+          platform_fee: number | null
           renewal_period_days: number | null
+          rental_total: number | null
           return_location: string | null
+          source: string
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id: string | null
           updated_at: string
           vehicle_id: string
         }
         Insert: {
           booking_price?: number | null
+          cancel_reason?: string | null
           child_seat_child?: boolean
           child_seat_infant?: boolean
           child_seat_toddler?: boolean
@@ -54,23 +66,34 @@ export type Database = {
           deposit_paid?: boolean
           deposit_returned_at?: string | null
           end_at: string
+          fee_paid_at?: string | null
+          fee_refunded_at?: string | null
+          flight_number?: string | null
+          customer_request?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean
           is_maintenance?: boolean
+          listed_vehicle_id?: string | null
           notes?: string | null
           paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          pending_expires_at?: string | null
           pickup_location?: string | null
+          platform_fee?: number | null
           renewal_period_days?: number | null
+          rental_total?: number | null
           return_location?: string | null
+          source?: string
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           updated_at?: string
           vehicle_id: string
         }
         Update: {
           booking_price?: number | null
+          cancel_reason?: string | null
           child_seat_child?: boolean
           child_seat_infant?: boolean
           child_seat_toddler?: boolean
@@ -81,18 +104,28 @@ export type Database = {
           deposit_paid?: boolean
           deposit_returned_at?: string | null
           end_at?: string
+          fee_paid_at?: string | null
+          fee_refunded_at?: string | null
+          flight_number?: string | null
+          customer_request?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean
           is_maintenance?: boolean
+          listed_vehicle_id?: string | null
           notes?: string | null
           paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          pending_expires_at?: string | null
           pickup_location?: string | null
+          platform_fee?: number | null
           renewal_period_days?: number | null
+          rental_total?: number | null
           return_location?: string | null
+          source?: string
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           updated_at?: string
           vehicle_id?: string
         }
@@ -109,6 +142,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_listed_vehicle_id_fkey"
+            columns: ["listed_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
           {
@@ -233,8 +273,10 @@ export type Database = {
           invoice_swift: string | null
           invoice_vat_number: string | null
           last_active_at: string | null
+          listed_at: string | null
           logo_url: string | null
           name: string
+          onboarding_step: number
           next_followup_at: string | null
           outreach_notes: string | null
           phone: string | null
@@ -277,8 +319,10 @@ export type Database = {
           invoice_swift?: string | null
           invoice_vat_number?: string | null
           last_active_at?: string | null
+          listed_at?: string | null
           logo_url?: string | null
           name: string
+          onboarding_step?: number
           next_followup_at?: string | null
           outreach_notes?: string | null
           phone?: string | null
@@ -321,8 +365,10 @@ export type Database = {
           invoice_swift?: string | null
           invoice_vat_number?: string | null
           last_active_at?: string | null
+          listed_at?: string | null
           logo_url?: string | null
           name?: string
+          onboarding_step?: number
           next_followup_at?: string | null
           outreach_notes?: string | null
           phone?: string | null
@@ -1080,33 +1126,241 @@ export type Database = {
           },
         ]
       }
+      company_booking_offers: {
+        Row: {
+          additional_driver_max_price: number | null
+          additional_driver_price_per_day: number | null
+          airport_delivery_max_price: number | null
+          airport_delivery_price: number | null
+          airport_delivery_price_per_day: number | null
+          child_seat_max_price: number | null
+          child_seat_price_per_day: number | null
+          city_delivery_enabled: boolean
+          city_delivery_price: number | null
+          company_id: string
+          credit_card_required: boolean
+          cross_border_allowed: boolean
+          cross_border_countries: string[]
+          cross_border_max_price: number | null
+          cross_border_price: number | null
+          cross_border_price_kind: string
+          cross_border_price_per_day: number | null
+          deposit_amount: number | null
+          deposit_pay_card: boolean
+          deposit_pay_cash: boolean
+          deposit_required: boolean
+          deposit_returned_when: string | null
+          extra_km_price: number | null
+          free_cancel_hours: number | null
+          fuel_policy: string
+          gps_max_price: number | null
+          gps_price_per_day: number | null
+          km_per_day: number | null
+          min_driver_age: number
+          min_rental_days: number
+          monthly_km_cap: number | null
+          one_way_fee: number | null
+          pay_card: boolean
+          pay_cash: boolean
+          pay_transfer: boolean
+          prices_include_vat: boolean
+          unlimited_km: boolean
+          updated_at: string
+          weekly_km_cap: number | null
+          winter_tires_included: boolean
+          young_driver_max_age: number | null
+          young_driver_price_per_day: number | null
+        }
+        Insert: {
+          additional_driver_max_price?: number | null
+          additional_driver_price_per_day?: number | null
+          airport_delivery_max_price?: number | null
+          airport_delivery_price?: number | null
+          airport_delivery_price_per_day?: number | null
+          child_seat_max_price?: number | null
+          child_seat_price_per_day?: number | null
+          city_delivery_enabled?: boolean
+          city_delivery_price?: number | null
+          company_id: string
+          credit_card_required?: boolean
+          cross_border_allowed?: boolean
+          cross_border_countries?: string[]
+          cross_border_max_price?: number | null
+          cross_border_price?: number | null
+          cross_border_price_kind?: string
+          cross_border_price_per_day?: number | null
+          deposit_amount?: number | null
+          deposit_pay_card?: boolean
+          deposit_pay_cash?: boolean
+          deposit_required?: boolean
+          deposit_returned_when?: string | null
+          extra_km_price?: number | null
+          free_cancel_hours?: number | null
+          fuel_policy?: string
+          gps_max_price?: number | null
+          gps_price_per_day?: number | null
+          km_per_day?: number | null
+          min_driver_age?: number
+          min_rental_days?: number
+          monthly_km_cap?: number | null
+          one_way_fee?: number | null
+          pay_card?: boolean
+          pay_cash?: boolean
+          pay_transfer?: boolean
+          prices_include_vat?: boolean
+          unlimited_km?: boolean
+          updated_at?: string
+          weekly_km_cap?: number | null
+          winter_tires_included?: boolean
+          young_driver_max_age?: number | null
+          young_driver_price_per_day?: number | null
+        }
+        Update: {
+          additional_driver_max_price?: number | null
+          additional_driver_price_per_day?: number | null
+          airport_delivery_max_price?: number | null
+          airport_delivery_price?: number | null
+          airport_delivery_price_per_day?: number | null
+          child_seat_max_price?: number | null
+          child_seat_price_per_day?: number | null
+          city_delivery_enabled?: boolean
+          city_delivery_price?: number | null
+          company_id?: string
+          credit_card_required?: boolean
+          cross_border_allowed?: boolean
+          cross_border_countries?: string[]
+          cross_border_max_price?: number | null
+          cross_border_price?: number | null
+          cross_border_price_kind?: string
+          cross_border_price_per_day?: number | null
+          deposit_amount?: number | null
+          deposit_pay_card?: boolean
+          deposit_pay_cash?: boolean
+          deposit_required?: boolean
+          deposit_returned_when?: string | null
+          extra_km_price?: number | null
+          free_cancel_hours?: number | null
+          fuel_policy?: string
+          gps_max_price?: number | null
+          gps_price_per_day?: number | null
+          km_per_day?: number | null
+          min_driver_age?: number
+          min_rental_days?: number
+          monthly_km_cap?: number | null
+          one_way_fee?: number | null
+          pay_card?: boolean
+          pay_cash?: boolean
+          pay_transfer?: boolean
+          prices_include_vat?: boolean
+          unlimited_km?: boolean
+          updated_at?: string
+          weekly_km_cap?: number | null
+          winter_tires_included?: boolean
+          young_driver_max_age?: number | null
+          young_driver_price_per_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_booking_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_insurance_options: {
+        Row: {
+          code: string
+          company_id: string
+          excess: number
+          id: string
+          label: string
+          price: number
+          price_kind: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          excess?: number
+          id?: string
+          label: string
+          price?: number
+          price_kind?: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          excess?: number
+          id?: string
+          label?: string
+          price?: number
+          price_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_insurance_options_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string
+          after_hours_fee: number | null
+          closes_at: string | null
           company_id: string
           created_at: string
+          delivery_fee: number | null
+          iata_code: string | null
           id: string
           is_primary: boolean
+          kind: string
           lat: number | null
           lng: number | null
+          name: string | null
+          opens_at: string | null
+          pickup_allowed: boolean
+          return_allowed: boolean
         }
         Insert: {
           address: string
+          after_hours_fee?: number | null
+          closes_at?: string | null
           company_id: string
           created_at?: string
+          delivery_fee?: number | null
+          iata_code?: string | null
           id?: string
           is_primary?: boolean
+          kind?: string
           lat?: number | null
           lng?: number | null
+          name?: string | null
+          opens_at?: string | null
+          pickup_allowed?: boolean
+          return_allowed?: boolean
         }
         Update: {
           address?: string
+          after_hours_fee?: number | null
+          closes_at?: string | null
           company_id?: string
           created_at?: string
+          delivery_fee?: number | null
+          iata_code?: string | null
           id?: string
           is_primary?: boolean
+          kind?: string
           lat?: number | null
           lng?: number | null
+          name?: string | null
+          opens_at?: string | null
+          pickup_allowed?: boolean
+          return_allowed?: boolean
         }
         Relationships: [
           {
@@ -1117,6 +1371,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      search_demand: {
+        Row: {
+          city_slug: string
+          created_at: string
+          id: string
+          pickup_date: string | null
+          pickup_time: string | null
+          place_code: string | null
+          place_kind: string | null
+          place_label: string | null
+          return_date: string | null
+          return_time: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          city_slug: string
+          created_at?: string
+          id?: string
+          pickup_date?: string | null
+          pickup_time?: string | null
+          place_code?: string | null
+          place_kind?: string | null
+          place_label?: string | null
+          return_date?: string | null
+          return_time?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          city_slug?: string
+          created_at?: string
+          id?: string
+          pickup_date?: string | null
+          pickup_time?: string | null
+          place_code?: string | null
+          place_kind?: string | null
+          place_label?: string | null
+          return_date?: string | null
+          return_time?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       maintenance_logs: {
         Row: {
@@ -1278,10 +1577,20 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          always_available: boolean
+          bookable: boolean
           category: Database["public"]["Enums"]["vehicle_category"]
           color: string | null
           company_id: string
           created_at: string
+          daily_rate: number | null
+          rate_1_day: number | null
+          rate_2_3_day: number | null
+          rate_4_6_day: number | null
+          rate_monthly: number | null
+          rate_weekly: number | null
+          deposit_basic: number | null
+          deposit_partial: number | null
           depreciation_mode: string | null
           depreciation_rate: number | null
           disposal_price: number | null
@@ -1296,6 +1605,7 @@ export type Database = {
           model: string
           notes: string | null
           odometer_km: number | null
+          photo_urls: string[]
           plate: string
           purchase_date: string | null
           purchase_price: number | null
@@ -1310,10 +1620,20 @@ export type Database = {
           year: number
         }
         Insert: {
+          always_available?: boolean
+          bookable?: boolean
           category?: Database["public"]["Enums"]["vehicle_category"]
           color?: string | null
           company_id: string
           created_at?: string
+          daily_rate?: number | null
+          rate_1_day?: number | null
+          rate_2_3_day?: number | null
+          rate_4_6_day?: number | null
+          rate_monthly?: number | null
+          rate_weekly?: number | null
+          deposit_basic?: number | null
+          deposit_partial?: number | null
           depreciation_mode?: string | null
           depreciation_rate?: number | null
           disposal_price?: number | null
@@ -1328,6 +1648,7 @@ export type Database = {
           model: string
           notes?: string | null
           odometer_km?: number | null
+          photo_urls?: string[]
           plate: string
           purchase_date?: string | null
           purchase_price?: number | null
@@ -1342,10 +1663,20 @@ export type Database = {
           year: number
         }
         Update: {
+          always_available?: boolean
+          bookable?: boolean
           category?: Database["public"]["Enums"]["vehicle_category"]
           color?: string | null
           company_id?: string
           created_at?: string
+          daily_rate?: number | null
+          rate_1_day?: number | null
+          rate_2_3_day?: number | null
+          rate_4_6_day?: number | null
+          rate_monthly?: number | null
+          rate_weekly?: number | null
+          deposit_basic?: number | null
+          deposit_partial?: number | null
           depreciation_mode?: string | null
           depreciation_rate?: number | null
           disposal_price?: number | null
@@ -1360,6 +1691,7 @@ export type Database = {
           model?: string
           notes?: string | null
           odometer_km?: number | null
+          photo_urls?: string[]
           plate?: string
           purchase_date?: string | null
           purchase_price?: number | null
@@ -1392,7 +1724,7 @@ export type Database = {
     }
     Enums: {
       booking_insurance: "none" | "partial" | "full"
-      booking_status: "confirmed" | "active" | "returned" | "cancelled"
+      booking_status: "confirmed" | "active" | "returned" | "cancelled" | "pending_payment"
       city_slug:
         | "riga"
         | "tallinn"
@@ -1761,7 +2093,7 @@ export const Constants = {
   public: {
     Enums: {
       booking_insurance: ["none", "partial", "full"],
-      booking_status: ["confirmed", "active", "returned", "cancelled"],
+      booking_status: ["confirmed", "active", "returned", "cancelled", "pending_payment"],
       city_slug: [
         "riga",
         "tallinn",

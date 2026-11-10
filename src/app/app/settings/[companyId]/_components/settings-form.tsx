@@ -1,19 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
-
-/* ── localStorage time format (per-browser) ─────────────────────────── */
-
-function storageKey(companyId: string) { return `crd-settings-${companyId}`; }
-
-interface LocalSettings { timeFormat: "12h" | "24h"; }
-
-function loadLocal(companyId: string): LocalSettings {
-  if (typeof window === "undefined") return { timeFormat: "24h" };
-  try { return { timeFormat: "24h", ...JSON.parse(localStorage.getItem(storageKey(companyId)) ?? "{}") }; }
-  catch { return { timeFormat: "24h" }; }
-}
 
 /* ── Invoice settings shape ─────────────────────────────────────────── */
 
@@ -40,9 +28,6 @@ interface Props {
 /* ── Component ──────────────────────────────────────────────────────── */
 
 export function SettingsForm({ companyId, invoiceDefaults }: Props) {
-  const [local, setLocal] = useState<LocalSettings>({ timeFormat: "24h" });
-  const [localSaved, setLocalSaved] = useState(false);
-
   const [inv, setInv] = useState({
     invoice_legal_name:    invoiceDefaults.invoice_legal_name    ?? "",
     invoice_reg_number:    invoiceDefaults.invoice_reg_number    ?? "",
@@ -65,17 +50,9 @@ export function SettingsForm({ companyId, invoiceDefaults }: Props) {
   const [depStatus, setDepStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [depError, setDepError] = useState("");
 
-  useEffect(() => { setLocal(loadLocal(companyId)); }, [companyId]);
-
   function setInvField(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setInv((p) => ({ ...p, [e.target.name]: e.target.value }));
     setInvStatus("idle");
-  }
-
-  function handleLocalSave() {
-    localStorage.setItem(storageKey(companyId), JSON.stringify(local));
-    setLocalSaved(true);
-    setTimeout(() => setLocalSaved(false), 2000);
   }
 
   async function handleInvSave(e: React.FormEvent) {
@@ -160,36 +137,11 @@ export function SettingsForm({ companyId, invoiceDefaults }: Props) {
         </button>
       </form>
 
-      {/* ── Time format ── */}
       <div className="rounded-2xl border border-border bg-white p-6">
         <h2 className="mb-1 text-base font-semibold text-neutral-900">Time format</h2>
-        <p className="mb-5 text-sm text-neutral-500">
-          Controls how times are displayed in booking forms and the calendar.
+        <p className="text-sm text-neutral-500">
+          All times are shown as <strong>24-hour</strong> (13:00). AM and PM are not used.
         </p>
-        <div className="flex gap-3">
-          {(["24h", "12h"] as const).map((fmt) => (
-            <button
-              key={fmt}
-              type="button"
-              onClick={() => { setLocal((p) => ({ ...p, timeFormat: fmt })); setLocalSaved(false); }}
-              className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
-                local.timeFormat === fmt
-                  ? "border-brand-700 bg-brand-50 text-brand-700"
-                  : "border-border text-neutral-500 hover:bg-slate-50"
-              }`}
-            >
-              {fmt === "24h" ? "24-hour (13:00)" : "12-hour (1:00 PM)"}
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-neutral-400">Settings are saved per browser.</p>
-        <button
-          type="button"
-          onClick={handleLocalSave}
-          className="mt-4 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
-        >
-          {localSaved ? "Saved ✓" : "Save display settings"}
-        </button>
       </div>
 
       {/* ── Date format note ── */}

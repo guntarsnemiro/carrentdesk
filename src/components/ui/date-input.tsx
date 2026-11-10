@@ -104,6 +104,7 @@ export function DateInput({
         placeholder={placeholder}
         required={required}
         maxLength={10}
+        onClick={openPicker}
         className={`${className ?? ""} pr-8`}
       />
 

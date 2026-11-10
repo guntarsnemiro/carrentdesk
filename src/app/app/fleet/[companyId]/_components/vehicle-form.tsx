@@ -6,6 +6,7 @@ import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { OdometerHint } from "@/components/operator/odometer-hint";
 import { DateInput } from "@/components/ui/date-input";
 import type { OdometerReading } from "@/components/operator/odometer-hint";
+import { VehiclePhotos } from "./vehicle-photos";
 export type { OdometerReading };
 
 type VehicleStatus   = "available" | "rented" | "maintenance" | "retired";
@@ -25,6 +26,16 @@ interface Vehicle {
   service_date: string | null; service_next: string | null;
   insurance_number: string | null; insurance_valid_until: string | null;
   notes: string | null;
+  bookable: boolean;
+  daily_rate: number | null;
+  rate_1_day?: number | null;
+  rate_2_3_day?: number | null;
+  rate_4_6_day?: number | null;
+  rate_weekly?: number | null;
+  rate_monthly?: number | null;
+  deposit_basic?: number | null;
+  always_available?: boolean;
+  photo_urls: string[];
   // Asset & depreciation
   purchase_price: number | null; purchase_date: string | null;
   depreciation_mode: DepreciationMode | null; depreciation_rate: number | null;
@@ -73,6 +84,15 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
     insurance_number:       vehicle?.insurance_number ?? "",
     insurance_valid_until:  vehicle?.insurance_valid_until ?? "",
     notes:    vehicle?.notes ?? "",
+    bookable: vehicle?.bookable ?? false,
+    rate_1_day: vehicle?.rate_1_day != null ? String(vehicle.rate_1_day) : vehicle?.daily_rate != null ? String(vehicle.daily_rate) : "",
+    rate_2_3_day: vehicle?.rate_2_3_day != null ? String(vehicle.rate_2_3_day) : "",
+    rate_4_6_day: vehicle?.rate_4_6_day != null ? String(vehicle.rate_4_6_day) : "",
+    rate_weekly: vehicle?.rate_weekly != null ? String(vehicle.rate_weekly) : "",
+    rate_monthly: vehicle?.rate_monthly != null ? String(vehicle.rate_monthly) : "",
+    deposit_basic: vehicle?.deposit_basic != null ? String(vehicle.deposit_basic) : "",
+    always_available: vehicle?.always_available ?? false,
+    photo_urls: vehicle?.photo_urls ?? [],
     // Asset & depreciation
     depreciation_mode:  (vehicle?.depreciation_mode ?? "none") as DepreciationMode,
     purchase_price:     vehicle?.purchase_price != null ? String(vehicle.purchase_price) : "",
@@ -117,6 +137,16 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
       insurance_number:       form.insurance_number.trim()     || null,
       insurance_valid_until:  form.insurance_valid_until  || null,
       notes:                  form.notes.trim()           || null,
+      bookable:               form.bookable,
+      rate_1_day:             form.rate_1_day ? parseFloat(form.rate_1_day) : null,
+      rate_2_3_day:           form.rate_2_3_day ? parseFloat(form.rate_2_3_day) : null,
+      rate_4_6_day:           form.rate_4_6_day ? parseFloat(form.rate_4_6_day) : null,
+      rate_weekly:            form.rate_weekly ? parseFloat(form.rate_weekly) : null,
+      rate_monthly:           form.rate_monthly ? parseFloat(form.rate_monthly) : null,
+      daily_rate:             form.rate_1_day ? parseFloat(form.rate_1_day) : null,
+      deposit_basic:          form.deposit_basic ? parseFloat(form.deposit_basic) : null,
+      always_available:       form.always_available,
+      photo_urls:             form.photo_urls,
       // Asset & depreciation
       depreciation_mode:  form.depreciation_mode !== "none" ? form.depreciation_mode : "none",
       purchase_price:     form.purchase_price ? parseFloat(form.purchase_price) : null,
@@ -218,6 +248,60 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
             </Field>
           </div>
         </div>
+      </Section>
+
+      {/* ── Online booking ── */}
+      <Section title="Online booking">
+        <p className="text-xs text-neutral-400">
+          Customers book this as {form.make || "Make"} {form.model || "model"} or similar — the plate stays private.
+        </p>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
+          <input
+            type="checkbox"
+            checked={form.bookable}
+            onChange={(e) => setForm((p) => ({ ...p, bookable: e.target.checked }))}
+            className="mt-0.5"
+          />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Show this car on CarRentDesk</p>
+            <p className="mt-0.5 text-xs text-neutral-400">Needs a daily rate and at least one photo before it can be booked.</p>
+          </div>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
+          <input
+            type="checkbox"
+            checked={form.always_available}
+            onChange={(e) => setForm((p) => ({ ...p, always_available: e.target.checked }))}
+            className="mt-0.5"
+          />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Always available</p>
+            <p className="mt-0.5 text-xs text-neutral-400">You have more than one of this car, so one booking does not take it off the list.</p>
+          </div>
+        </label>
+        <p className="text-xs text-neutral-400">
+          Price per day for the length of the rental. A blank longer rate uses the next shorter one. The customer pays 10% or €19 minimum by card now, and the full rental at pickup.
+          Company extras, insurance, and places are set under Online offer.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="1 day (€/day)"><input name="rate_1_day" type="number" min={0} step={0.01} value={form.rate_1_day} onChange={set} placeholder="40" className={inp} /></Field>
+          <Field label="2–3 days (€/day)"><input name="rate_2_3_day" type="number" min={0} step={0.01} value={form.rate_2_3_day} onChange={set} placeholder="32" className={inp} /></Field>
+          <Field label="4–6 days (€/day)"><input name="rate_4_6_day" type="number" min={0} step={0.01} value={form.rate_4_6_day} onChange={set} placeholder="28" className={inp} /></Field>
+          <Field label="7–27 days (€/day)"><input name="rate_weekly" type="number" min={0} step={0.01} value={form.rate_weekly} onChange={set} placeholder="24" className={inp} /></Field>
+          <Field label="28+ days (€/day)"><input name="rate_monthly" type="number" min={0} step={0.01} value={form.rate_monthly} onChange={set} placeholder="18" className={inp} /></Field>
+        </div>
+        <p className="text-xs text-neutral-400">
+          Deposit for this car when the customer chooses basic insurance. Full insurance has no deposit.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Deposit with basic insurance (€)"><input name="deposit_basic" type="number" min={0} step={0.01} value={form.deposit_basic} onChange={set} placeholder="500" className={inp} /></Field>
+        </div>
+        <VehiclePhotos
+          companyId={companyId}
+          vehicleId={vehicle?.id}
+          urls={form.photo_urls}
+          onChange={(photo_urls) => setForm((p) => ({ ...p, photo_urls }))}
+        />
       </Section>
 
       {/* ── Documents ── */}

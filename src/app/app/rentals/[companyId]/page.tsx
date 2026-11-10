@@ -11,6 +11,7 @@ const STATUS_STYLES: Record<string, string> = {
   active:    "bg-emerald-50 text-emerald-700",
   returned:  "bg-neutral-100 text-neutral-500",
   cancelled: "bg-red-50 text-red-400",
+  pending_payment: "bg-sky-50 text-sky-700",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,6 +19,7 @@ const STATUS_LABELS: Record<string, string> = {
   active:    "Active",
   returned:  "Returned",
   cancelled: "Cancelled",
+  pending_payment: "Awaiting card",
 };
 
 function formatDate(iso: string) {
@@ -39,9 +41,18 @@ type Booking = {
   end_at: string;
   booking_price: number | null;
   deposit_paid: boolean;
+  pending_expires_at?: string | null;
   vehicles: { make: string; model: string; year: number; plate: string } | null;
   customers: { full_name: string; phone: string; blacklisted: boolean } | null;
 };
+
+function statusLabel(b: Booking): string {
+  if (b.status === "pending_payment") {
+    const exp = b.pending_expires_at ? new Date(b.pending_expires_at) : null;
+    if (!exp || exp <= new Date()) return "Card not finished";
+  }
+  return STATUS_LABELS[b.status] ?? b.status;
+}
 
 function groupBookings(bookings: Booking[]) {
   const now = new Date();
@@ -52,6 +63,12 @@ function groupBookings(bookings: Booking[]) {
   for (const b of bookings) {
     if (b.status === "cancelled") { past.push(b); continue; }
     if (b.status === "returned")  { past.push(b); continue; }
+    if (b.status === "pending_payment") {
+      const exp = b.pending_expires_at ? new Date(b.pending_expires_at) : null;
+      if (!exp || exp <= now) { past.push(b); continue; }
+      upcoming.push(b);
+      continue;
+    }
     const start = new Date(b.start_at);
     const end   = new Date(b.end_at);
     if (start <= now && end >= now) active.push(b);
@@ -91,7 +108,7 @@ export default async function RentalsPage({
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, status, start_at, end_at, booking_price, deposit_paid, vehicles(make, model, year, plate), customers(full_name, phone, blacklisted)")
+    .select("id, status, start_at, end_at, booking_price, deposit_paid, pending_expires_at, vehicles!vehicle_id(make, model, year, plate), customers(full_name, phone, blacklisted)")
     .eq("company_id", companyId)
     .order("start_at", { ascending: false });
 
@@ -201,7 +218,7 @@ function BookingGroup({
                   <td className="px-4 py-3 text-neutral-700">{formatPrice(b.booking_price)}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[b.status] ?? ""}`}>
-                      {STATUS_LABELS[b.status] ?? b.status}
+                      {statusLabel(b)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">

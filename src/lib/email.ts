@@ -171,13 +171,13 @@ export async function sendJoinSignupNotification(data: {
     replyTo: data.email,
     subject: `New operator signup — ${data.companyName} (${data.city})`,
     text: [
-      `${data.contactName} signed up on /join and created a new listing.`,
+      `${data.contactName} signed up and started setup.`,
       ``,
       `Company: ${data.companyName}`,
       `City: ${data.city}, ${data.country}`,
       `Email: ${data.email}`,
       `Phone: ${data.phone}`,
-      `Listing: ${data.listingUrl}`,
+      ...(data.listingUrl ? [`Listing: ${data.listingUrl}`] : []),
       ``,
       `Pipeline: ${data.adminUrl}`,
     ].join("\n"),
@@ -235,7 +235,7 @@ export async function sendInquiryNotification(data: {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const extras: string[] = [];
   if (data.child_seats > 0) extras.push(`Child seat ×${data.child_seats}`);
@@ -316,7 +316,7 @@ export async function sendQuoteResponseToCustomer(data: {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const respondUrl = data.response_token
     ? `https://carrentdesk.com/q/${data.response_token}`
@@ -399,7 +399,7 @@ export async function sendQuoteAcceptedNotification(data: {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const toRental = Boolean(data.company_email);
   const body = [
@@ -496,7 +496,7 @@ export async function sendInquiryToRental(data: {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
     " " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const extras: string[] = [];
   if (data.child_seats > 0) extras.push(`Child seat ×${data.child_seats}`);

@@ -40,6 +40,9 @@ export default function PrivacyPage() {
             analytics data (pages visited, approximate location by country, device type,
             referral source) via Google Analytics 4 and Ahrefs Web Analytics. This data
             does not identify you personally. We use cookies as described in section 4.
+            When you search a city we also store that city, the dates and times, and the
+            airport or “in the city” if you choose one. That record uses a random id in
+            this browser. It does not store your name, email, or street address.
           </p>
           <p className="mt-3">
             <strong>Rental company accounts</strong> — If you register a business account
