@@ -50,7 +50,6 @@ interface Booking {
   notes: string | null;
   flight_number?: string | null;
   customer_request?: string | null;
-  platform_fee?: number | null;
   fee_paid_at?: string | null;
   fee_refunded_at?: string | null;
 }
@@ -59,7 +58,7 @@ interface Vehicle {
   id: string;
   make: string;
   model: string;
-  plate: string;
+  plate: string | null;
   status: string;
   gov_inspection_next: string | null;
 }
@@ -612,10 +611,11 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
 
   async function cancelWith(reason: CancelReason) {
     const feeHeld = Boolean(booking.fee_paid_at) && !booking.fee_refunded_at;
-    const question = reason === "unavailable" && feeHeld
-      ? "Cancel because the car is unavailable and refund the confirmation fee?"
+    const refunds = reason !== "customer" && feeHeld;
+    const question = refunds
+      ? "Cancel this booking and refund the customer?"
       : feeHeld
-        ? "Cancel this booking? The confirmation fee is not refunded."
+        ? "Mark this booking as cancelled by the customer? Their card payment is not refunded."
         : "Cancel this booking?";
     if (!confirm(question)) return;
     setCancelling(true);
@@ -789,8 +789,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
               {booking.customer_request && <p className="whitespace-pre-wrap">{booking.customer_request}</p>}
               {booking.fee_paid_at && (
                 <p>
-                  Confirmation fee {formatEur(Number(booking.platform_fee ?? 0))}
-                  {booking.fee_refunded_at ? " — refunded" : " — paid by card"}
+                  Confirmation fee{booking.fee_refunded_at ? " — refunded" : " — paid by card"}
                 </p>
               )}
             </div>
@@ -813,9 +812,9 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
           </button>
           {booking.fee_paid_at && !booking.fee_refunded_at ? (
             <div className="flex flex-col items-end gap-1">
-              <button type="button" onClick={() => cancelWith("unavailable")} disabled={cancelling || saving}
+              <button type="button" onClick={() => cancelWith("operator")} disabled={cancelling || saving}
                 className="text-sm font-medium text-neutral-900 underline-offset-2 hover:underline disabled:opacity-50">
-                {cancelling ? "Cancelling…" : "Unavailable — refund fee"}
+                {cancelling ? "Cancelling…" : "Cancel booking — refund the customer"}
               </button>
               <button type="button" onClick={() => cancelWith("customer")} disabled={cancelling || saving}
                 className="text-sm text-red-500 underline-offset-2 hover:underline disabled:opacity-50">

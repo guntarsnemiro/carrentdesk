@@ -18,10 +18,12 @@ export type Database = {
         Row: {
           booking_price: number | null
           cancel_reason: string | null
+          cancel_notice_sent_at: string | null
           child_seat_child: boolean
           child_seat_infant: boolean
           child_seat_toddler: boolean
           company_id: string
+          confirmation_sent_at: string | null
           created_at: string
           customer_id: string | null
           deposit_amount: number | null
@@ -32,6 +34,7 @@ export type Database = {
           fee_refunded_at: string | null
           flight_number: string | null
           customer_request: string | null
+          customer_cancel_token: string | null
           id: string
           insurance: Database["public"]["Enums"]["booking_insurance"]
           is_longterm: boolean
@@ -56,10 +59,12 @@ export type Database = {
         Insert: {
           booking_price?: number | null
           cancel_reason?: string | null
+          cancel_notice_sent_at?: string | null
           child_seat_child?: boolean
           child_seat_infant?: boolean
           child_seat_toddler?: boolean
           company_id: string
+          confirmation_sent_at?: string | null
           created_at?: string
           customer_id?: string | null
           deposit_amount?: number | null
@@ -70,6 +75,7 @@ export type Database = {
           fee_refunded_at?: string | null
           flight_number?: string | null
           customer_request?: string | null
+          customer_cancel_token?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean
@@ -94,10 +100,12 @@ export type Database = {
         Update: {
           booking_price?: number | null
           cancel_reason?: string | null
+          cancel_notice_sent_at?: string | null
           child_seat_child?: boolean
           child_seat_infant?: boolean
           child_seat_toddler?: boolean
           company_id?: string
+          confirmation_sent_at?: string | null
           created_at?: string
           customer_id?: string | null
           deposit_amount?: number | null
@@ -108,6 +116,7 @@ export type Database = {
           fee_refunded_at?: string | null
           flight_number?: string | null
           customer_request?: string | null
+          customer_cancel_token?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean
@@ -1162,6 +1171,7 @@ export type Database = {
           one_way_fee: number | null
           pay_card: boolean
           pay_cash: boolean
+          pay_credit_card: boolean
           pay_transfer: boolean
           prices_include_vat: boolean
           unlimited_km: boolean
@@ -1206,6 +1216,7 @@ export type Database = {
           one_way_fee?: number | null
           pay_card?: boolean
           pay_cash?: boolean
+          pay_credit_card?: boolean
           pay_transfer?: boolean
           prices_include_vat?: boolean
           unlimited_km?: boolean
@@ -1250,6 +1261,7 @@ export type Database = {
           one_way_fee?: number | null
           pay_card?: boolean
           pay_cash?: boolean
+          pay_credit_card?: boolean
           pay_transfer?: boolean
           prices_include_vat?: boolean
           unlimited_km?: boolean
@@ -1365,6 +1377,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_views: {
+        Row: {
+          city_slug: string | null
+          company_id: string
+          company_slug: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          city_slug?: string | null
+          company_id: string
+          company_slug: string
+          created_at?: string
+          id?: string
+          session_id: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          city_slug?: string | null
+          company_id?: string
+          company_slug?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_views_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -1606,7 +1659,7 @@ export type Database = {
           notes: string | null
           odometer_km: number | null
           photo_urls: string[]
-          plate: string
+          plate: string | null
           purchase_date: string | null
           purchase_price: number | null
           registration_number: string | null
@@ -1649,7 +1702,7 @@ export type Database = {
           notes?: string | null
           odometer_km?: number | null
           photo_urls?: string[]
-          plate: string
+          plate?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
           registration_number?: string | null
@@ -1692,7 +1745,7 @@ export type Database = {
           notes?: string | null
           odometer_km?: number | null
           photo_urls?: string[]
-          plate?: string
+          plate?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
           registration_number?: string | null
@@ -1757,6 +1810,7 @@ export type Database = {
         | "faro"
         | "rome"
         | "milan"
+        | "bergamo"
         | "naples"
         | "catania"
         | "athens"
@@ -1961,6 +2015,8 @@ export type Database = {
         | "midsize"
         | "suv"
         | "van"
+        | "electric"
+        | "cargo"
         | "luxury"
         | "other"
       vehicle_fuel: "diesel" | "petrol" | "electric" | "hybrid" | "lpg"
@@ -2337,6 +2393,8 @@ export const Constants = {
         "midsize",
         "suv",
         "van",
+        "electric",
+        "cargo",
         "luxury",
         "other",
       ],

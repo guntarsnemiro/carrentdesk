@@ -10,14 +10,14 @@ import { VehiclePhotos } from "./vehicle-photos";
 export type { OdometerReading };
 
 type VehicleStatus   = "available" | "rented" | "maintenance" | "retired";
-type VehicleCategory = "economy" | "compact" | "midsize" | "suv" | "van" | "luxury" | "other";
+type VehicleCategory = "economy" | "compact" | "midsize" | "suv" | "van" | "electric" | "cargo" | "luxury" | "other";
 type VehicleFuel     = "diesel" | "petrol" | "electric" | "hybrid" | "lpg";
 
 type DepreciationMode = "none" | "current_value" | "original";
 
 interface Vehicle {
   id: string;
-  make: string; model: string; year: number; plate: string; color: string | null;
+  make: string; model: string; year: number; plate: string | null; color: string | null;
   category: VehicleCategory; status: VehicleStatus;
   fuel: VehicleFuel | null; seats: number | null;
   vin: string | null; registration_number: string | null;
@@ -45,10 +45,11 @@ interface Vehicle {
 interface Props { companyId: string; vehicle?: Vehicle; lastOdoReading?: OdometerReading; }
 
 const CATEGORIES: { value: VehicleCategory; label: string }[] = [
-  { value: "economy", label: "Economy" }, { value: "compact", label: "Compact" },
-  { value: "midsize", label: "Midsize" }, { value: "suv",     label: "SUV"     },
-  { value: "van",     label: "Van"     }, { value: "luxury",  label: "Luxury"  },
-  { value: "other",   label: "Other"   },
+  { value: "economy",  label: "Economy"  }, { value: "compact",  label: "Compact"  },
+  { value: "midsize",  label: "Midsize"  }, { value: "suv",      label: "SUV"      },
+  { value: "van",      label: "Van"      }, { value: "electric", label: "Electric" },
+  { value: "cargo",    label: "Cargo"    }, { value: "luxury",   label: "Luxury"   },
+  { value: "other",    label: "Other"    },
 ];
 const FUELS: { value: VehicleFuel; label: string }[] = [
   { value: "diesel",   label: "Diesel"   }, { value: "petrol",  label: "Petrol"  },

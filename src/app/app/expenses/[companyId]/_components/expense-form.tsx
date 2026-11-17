@@ -48,7 +48,7 @@ const CAR_CATS: CostCategory[] = ["car_insurance", "gov_inspection", "service_re
 const BIZ_CATS: CostCategory[] = ["salary", "tax", "rent", "phone_internet", "accounting_legal", "supplies_stock", "company_insurance", "other"];
 
 export interface Payee { id: string; name: string; }
-export interface Vehicle { id: string; make: string; model: string; plate: string; }
+export interface Vehicle { id: string; make: string; model: string; plate: string | null; }
 
 interface Expense {
   id: string; date: string; category: CostCategory; description: string;

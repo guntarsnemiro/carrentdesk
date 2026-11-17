@@ -4,20 +4,29 @@ import Link from "next/link";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { cityAirports, getCityBySlug } from "@/lib/cities";
-import { DRAFT_BRAND, homepageField, isDraftSlug } from "@/lib/onboarding";
+import { DRAFT_BRAND, isDraftSlug } from "@/lib/onboarding";
 import { SetupWizard, type SetupWizardProps } from "./_components/setup-wizard";
 
 export const metadata: Metadata = { title: "Setup" };
 
-function clock(value: string | null | undefined): string {
+function clockField(value: string | null | undefined): string {
   if (!value) return "";
   return value.slice(0, 5);
 }
 
-function money(value: number | string | null | undefined): string {
+function moneyField(value: number | string | null | undefined): string {
   if (value == null || value === "") return "";
   const n = Number(value);
   return Number.isFinite(n) ? String(n) : "";
+}
+
+/** Map DB onboarding_step (0-6) to wizard step index (0-4). */
+function dbToWizardStep(dbStep: number): number {
+  if (dbStep <= 1) return 0; // company details
+  if (dbStep === 2) return 1; // office
+  if (dbStep === 3) return 2; // pickup
+  if (dbStep <= 5) return 3; // car + payment
+  return 4;                  // go live
 }
 
 export default async function SetupPage({
@@ -43,14 +52,16 @@ export default async function SetupPage({
       <div className="mx-auto max-w-lg px-6 py-16">
         <h1 className="text-2xl font-bold text-neutral-900">Create your account first</h1>
         <p className="mt-2 text-sm text-neutral-600">Setup starts after registration.</p>
-        <Link href="/join" className="mt-4 inline-block text-sm font-semibold text-brand-700">Create an account</Link>
+        <Link href="/join" className="mt-4 inline-block text-sm font-semibold text-brand-700">
+          Create an account
+        </Link>
       </div>
     );
   }
 
   const { data: company } = await db
     .from("companies")
-    .select("id, name, slug, city, phone, email, website, invoice_legal_name, listed_at, onboarding_step")
+    .select("id, name, slug, city, phone, email, description, invoice_legal_name, listed_at, onboarding_step")
     .eq("id", membership.company_id)
     .maybeSingle();
   if (!company) redirect("/join");
@@ -60,23 +71,49 @@ export default async function SetupPage({
   }
 
   const city = getCityBySlug(company.city);
-  const [{ data: locations }, { data: offer }, { data: insurance }, { data: vehicles }] = await Promise.all([
-    db.from("locations").select("id, name, address, lat, lng, is_primary, kind, iata_code, pickup_allowed, delivery_fee, opens_at, closes_at").eq("company_id", company.id),
-    db.from("company_booking_offers").select("city_delivery_enabled, city_delivery_price, pay_cash, pay_card, credit_card_required, unlimited_km, km_per_day, cross_border_allowed, cross_border_price_per_day, cross_border_max_price, cross_border_countries, child_seat_price_per_day, child_seat_max_price, additional_driver_price_per_day, additional_driver_max_price").eq("company_id", company.id).maybeSingle(),
-    db.from("company_insurance_options").select("code, price").eq("company_id", company.id),
-    db.from("vehicles").select("id, make, model, year, plate, rate_1_day, deposit_basic, photo_urls, status").eq("company_id", company.id).neq("status", "retired"),
-  ]);
+
+  const [{ data: locations }, { data: offer }, { data: insurance }, { data: vehicles }] =
+    await Promise.all([
+      db
+        .from("locations")
+        .select(
+          "id, name, address, lat, lng, is_primary, kind, iata_code, pickup_allowed, delivery_fee, opens_at, closes_at",
+        )
+        .eq("company_id", company.id),
+      db
+        .from("company_booking_offers")
+        .select(
+          "city_delivery_enabled, city_delivery_price, pay_cash, pay_card, pay_credit_card, credit_card_required, deposit_pay_cash, deposit_pay_card",
+        )
+        .eq("company_id", company.id)
+        .maybeSingle(),
+      db.from("company_insurance_options").select("code, price").eq("company_id", company.id),
+      db
+        .from("vehicles")
+        .select("id, make, model, year, plate, rate_1_day, deposit_basic, photo_urls, status")
+        .eq("company_id", company.id)
+        .neq("status", "retired"),
+    ]);
 
   const office = (locations ?? []).find((place) => place.is_primary) ?? null;
-  const insuranceByCode = new Map((insurance ?? []).map((row) => [row.code, row]));
+  // insurance loaded for future use (fleet settings)
+
   const cars = (vehicles ?? []).map((car) => ({
     id: car.id,
     make: car.make,
     model: car.model,
     year: car.year,
     plate: car.plate,
-    ready: car.rate_1_day != null && car.deposit_basic != null && (car.photo_urls?.length ?? 0) > 0,
+    ready:
+      car.rate_1_day != null &&
+      car.deposit_basic != null &&
+      (car.photo_urls?.length ?? 0) > 0,
   }));
+
+  const alwaysOpen =
+    clockField(office?.opens_at) === "00:00" && clockField(office?.closes_at) === "23:59";
+
+  const wizardStep = focus === "names" ? 0 : dbToWizardStep(company.onboarding_step);
 
   const initial: SetupWizardProps["initial"] = {
     companyId: company.id,
@@ -84,68 +121,63 @@ export default async function SetupPage({
     cityName: city?.name ?? company.city,
     slug: company.slug,
     listed: Boolean(company.listed_at),
-    step: focus === "names" ? 0 : Math.min(company.onboarding_step, 5),
-    legalName: company.invoice_legal_name ?? "",
+    step: wizardStep,
+
+    // Step 0 — Company
     brandName: company.name === DRAFT_BRAND ? "" : company.name,
-    homepage: homepageField(company.website),
+    legalName: company.invoice_legal_name ?? "",
+    description: company.description ?? "",
     phone: company.phone ?? "",
     email: company.email ?? "",
-    office: office?.address && office.lat != null && office.lng != null
-      ? {
-          label: office.address,
-          lat: office.lat,
-          lng: office.lng,
-          opensAt: clock(office.opens_at) || "09:00",
-          closesAt: clock(office.closes_at) || "18:00",
-          pickup: Boolean(office.pickup_allowed),
-          fee: money(office.delivery_fee) || "0",
-        }
-      : null,
+
+    // Step 1 — Office
+    office:
+      office?.address && office.lat != null && office.lng != null
+        ? {
+            label: office.address,
+            lat: office.lat,
+            lng: office.lng,
+            alwaysOpen,
+            opensAt: alwaysOpen ? "09:00" : clockField(office.opens_at) || "09:00",
+            closesAt: alwaysOpen ? "18:00" : clockField(office.closes_at) || "18:00",
+          }
+        : null,
+
+    // Step 2 — Pickup
+    officePickup: Boolean(office?.pickup_allowed),
+    officeFee: moneyField(office?.delivery_fee) || "0",
     cityDeliveryEnabled: offer?.city_delivery_enabled ?? false,
-    cityDeliveryPrice: money(offer?.city_delivery_price),
-    places: (locations ?? [])
-      .filter((place) => !place.is_primary && !place.iata_code && place.kind !== "airport" && place.lat != null && place.lng != null)
-      .map((place) => ({
-        name: place.name ?? "",
-        address: place.address,
-        lat: place.lat as number,
-        lng: place.lng as number,
-        fee: money(place.delivery_fee) || "0",
-        opensAt: clock(place.opens_at) || "09:00",
-        closesAt: clock(place.closes_at) || "18:00",
-      })),
+    cityDeliveryPrice: moneyField(offer?.city_delivery_price),
     airports: (city ? cityAirports(city) : []).map((airport) => {
-      const row = (locations ?? []).find((place) => place.iata_code === airport.code);
+      const row = (locations ?? []).find((p) => p.iata_code === airport.code);
       return {
         code: airport.code,
         name: airport.name,
-        enabled: Boolean(row && row.pickup_allowed),
-        fee: money(row?.delivery_fee),
+        enabled: Boolean(row?.pickup_allowed),
+        fee: moneyField(row?.delivery_fee) || "0",
       };
     }),
+
+    // Step 3 — Payment + Insurance
     payCash: offer?.pay_cash ?? true,
-    payCard: offer?.pay_card ?? true,
-    creditCardRequired: offer?.credit_card_required ?? false,
-    unlimitedKm: offer?.unlimited_km ?? true,
-    kmPerDay: offer?.km_per_day != null ? String(offer.km_per_day) : "",
-    crossBorderAllowed: offer?.cross_border_allowed ?? false,
-    crossBorderPricePerDay: money(offer?.cross_border_price_per_day),
-    crossBorderMaxPrice: money(offer?.cross_border_max_price),
-    crossBorderCountries: offer?.cross_border_countries ?? [],
-    childSeatPricePerDay: money(offer?.child_seat_price_per_day),
-    childSeatMaxPrice: money(offer?.child_seat_max_price),
-    additionalDriverPricePerDay: money(offer?.additional_driver_price_per_day),
-    additionalDriverMaxPrice: money(offer?.additional_driver_max_price),
-    insurance: (["none", "full"] as const).map((code) => ({
-      code,
-      price: money(insuranceByCode.get(code)?.price) || (code === "none" ? "0" : ""),
-    })),
+    payCard: offer?.pay_card ?? false,
+    payCreditCard: offer?.pay_credit_card ?? false,
+    depositCash: offer?.deposit_pay_cash ?? true,
+    depositCard: offer?.deposit_pay_card ?? false,
+
     cars,
+
     progress: {
-      names: Boolean(company.invoice_legal_name && company.name !== DRAFT_BRAND && !isDraftSlug(company.slug)),
+      names: Boolean(
+        company.invoice_legal_name &&
+          company.name !== DRAFT_BRAND &&
+          !isDraftSlug(company.slug) &&
+          company.phone &&
+          company.email,
+      ),
       office: Boolean(office?.address && office.opens_at && office.closes_at),
       places: company.onboarding_step >= 3,
-      extras: company.onboarding_step >= 4,
+      offer: company.onboarding_step >= 5,
       car: cars.some((car) => car.ready),
       listed: Boolean(company.listed_at),
     },

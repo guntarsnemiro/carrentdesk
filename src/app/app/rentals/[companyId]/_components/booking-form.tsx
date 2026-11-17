@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 import { cancelBooking, type CancelReason } from "@/lib/booking/cancel-booking";
-import { formatEur } from "@/lib/booking/money";
 import { LocationInput } from "@/components/operator/location-input";
 import { DateInput } from "@/components/ui/date-input";
 
@@ -12,7 +11,7 @@ type BookingStatus   = "confirmed" | "active" | "returned" | "cancelled" | "pend
 type Insurance       = "none" | "partial" | "full";
 type PaymentMethod   = "cash" | "card" | "bank_transfer" | "other";
 
-interface Vehicle { id: string; make: string; model: string; year: number; plate: string; }
+interface Vehicle { id: string; make: string; model: string; year: number; plate: string | null; }
 interface Customer { id: string; full_name: string; phone: string; blacklisted: boolean; blacklist_reason: string | null; }
 
 interface Booking {
@@ -38,7 +37,6 @@ interface Booking {
   is_longterm: boolean;
   renewal_period_days: number | null;
   source?: string | null;
-  platform_fee?: number | null;
   fee_paid_at?: string | null;
   fee_refunded_at?: string | null;
   flight_number?: string | null;
@@ -203,7 +201,7 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
       form.status === "cancelled" &&
       booking.status !== "cancelled"
     ) {
-      setErrorMsg("Use the cancel buttons below. Cancelling because the car is unavailable refunds the confirmation fee.");
+      setErrorMsg("Use the cancel buttons below.");
       return;
     }
     setSubmitStatus("saving");
@@ -246,10 +244,10 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
 
   async function cancelOnline(reason: CancelReason) {
     if (!booking) return;
-    const refunds = reason === "unavailable" && Boolean(booking.fee_paid_at) && !booking.fee_refunded_at;
+    const refunds = reason !== "customer" && Boolean(booking.fee_paid_at) && !booking.fee_refunded_at;
     const question = refunds
-      ? "Cancel because the car is unavailable and refund the confirmation fee?"
-      : "Cancel this booking? The confirmation fee is not refunded.";
+      ? "Cancel this booking and refund the customer?"
+      : "Mark this booking as cancelled by the customer? Their card payment is not refunded.";
     if (!confirm(question)) return;
     setCancelling(true);
     setErrorMsg("");
@@ -558,23 +556,18 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
           )}
           {booking.fee_paid_at && (
             <p className="text-sm text-neutral-700">
-              Confirmation fee {formatEur(Number(booking.platform_fee ?? 0))}
-              {booking.fee_refunded_at ? " — refunded" : " — paid by card"}
+              Confirmation fee{booking.fee_refunded_at ? " — refunded" : " — paid by card"}
             </p>
           )}
           {booking.status !== "cancelled" && booking.fee_paid_at && !booking.fee_refunded_at && (
             <div className="flex flex-wrap gap-2 pt-1">
-              <button type="button" disabled={cancelling} onClick={() => cancelOnline("unavailable")}
+              <button type="button" disabled={cancelling} onClick={() => cancelOnline("operator")}
                 className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
-                Car unavailable — refund fee
+                Cancel booking — refund the customer
               </button>
               <button type="button" disabled={cancelling} onClick={() => cancelOnline("customer")}
                 className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-neutral-800 disabled:opacity-50">
                 Customer cancelled — keep fee
-              </button>
-              <button type="button" disabled={cancelling} onClick={() => cancelOnline("operator")}
-                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-neutral-800 disabled:opacity-50">
-                Office cancelled — keep fee
               </button>
             </div>
           )}

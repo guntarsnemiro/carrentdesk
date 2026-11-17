@@ -7,7 +7,7 @@ import { DateInput } from "@/components/ui/date-input";
 
 type MaintenanceType = "oil_change" | "tires" | "brakes" | "gov_inspection_fee" | "insurance_payment" | "bodywork" | "cleaning" | "other";
 
-interface Vehicle { id: string; make: string; model: string; plate: string; year: number; odometer_km: number | null; }
+interface Vehicle { id: string; make: string; model: string; plate: string | null; year: number; odometer_km: number | null; }
 interface Garage  { id: string; name: string; phone: string | null; }
 export interface OdoMap { [vehicleId: string]: { km: number; date: string; source: string } }
 

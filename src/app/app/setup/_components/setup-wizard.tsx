@@ -1,20 +1,54 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AddressSearch } from "@/components/booking/address-search";
 import { VehiclePhotos } from "@/app/app/fleet/[companyId]/_components/vehicle-photos";
-import { CROSS_BORDER_COUNTRIES } from "@/lib/booking/countries";
 import { OFFICE_TIME_SLOTS } from "@/lib/booking/dates";
 import type { AddressHit } from "@/lib/booking/address";
 
-const STEPS = ["Names", "Office", "Places", "Extras", "Cars", "Go live"] as const;
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type CarRow = { id: string; make: string; model: string; year: number; plate: string; ready: boolean };
-type InsuranceRow = { code: "none" | "full"; price: string };
-type AirportRow = { code: string; name: string; enabled: boolean; fee: string };
-type PlaceRow = { name: string; address: string; lat: number; lng: number; fee: string; opensAt: string; closesAt: string };
-type Progress = { names: boolean; office: boolean; places: boolean; extras: boolean; car: boolean; listed: boolean };
+type VehicleCategory =
+  | "economy" | "compact" | "midsize" | "suv" | "van"
+  | "electric" | "cargo" | "luxury" | "other";
+
+const CATEGORIES: { value: VehicleCategory; label: string; emoji: string }[] = [
+  { value: "economy",  label: "Small / Economy", emoji: "🚗" },
+  { value: "compact",  label: "Compact",          emoji: "🚗" },
+  { value: "midsize",  label: "Midsize",           emoji: "🚙" },
+  { value: "suv",      label: "SUV / Crossover",   emoji: "🚐" },
+  { value: "van",      label: "Van / Minivan",      emoji: "🚌" },
+  { value: "electric", label: "Electric",           emoji: "⚡" },
+  { value: "cargo",    label: "Cargo van",          emoji: "📦" },
+  { value: "luxury",   label: "Premium / Luxury",   emoji: "🏎️" },
+  { value: "other",    label: "Other",              emoji: "🚘" },
+];
+
+type CarRow = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  plate: string | null;
+  ready: boolean;
+};
+
+type AirportRow = {
+  code: string;
+  name: string;
+  enabled: boolean;
+  fee: string;
+};
+
+type Progress = {
+  names: boolean;
+  office: boolean;
+  places: boolean;
+  offer: boolean;
+  car: boolean;
+  listed: boolean;
+};
 
 export type SetupWizardProps = {
   initial: {
@@ -24,643 +58,1310 @@ export type SetupWizardProps = {
     slug: string;
     listed: boolean;
     step: number;
-    legalName: string;
+    // Step 0 — Company
     brandName: string;
-    homepage: string;
+    legalName: string;
+    description: string;
     phone: string;
     email: string;
-    office: (AddressHit & { opensAt: string; closesAt: string; pickup: boolean; fee: string }) | null;
+    // Step 1 — Office
+    office: (AddressHit & { alwaysOpen: boolean; opensAt: string; closesAt: string }) | null;
+    // Step 2 — Pickup
+    officePickup: boolean;
+    officeFee: string;
     cityDeliveryEnabled: boolean;
     cityDeliveryPrice: string;
-    places: PlaceRow[];
     airports: AirportRow[];
+    // Step 3 — Payment methods (company-wide)
     payCash: boolean;
     payCard: boolean;
-    creditCardRequired: boolean;
-    unlimitedKm: boolean;
-    kmPerDay: string;
-    crossBorderAllowed: boolean;
-    crossBorderPricePerDay: string;
-    crossBorderMaxPrice: string;
-    crossBorderCountries: string[];
-    childSeatPricePerDay: string;
-    childSeatMaxPrice: string;
-    additionalDriverPricePerDay: string;
-    additionalDriverMaxPrice: string;
-    insurance: InsuranceRow[];
+    payCreditCard: boolean;
+    depositCash: boolean;
+    depositCard: boolean;
+    // Cars
     cars: CarRow[];
     progress: Progress;
   };
 };
 
-const inp = "mt-1 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-neutral-900 outline-none focus:ring-2 focus:ring-brand-500";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function SetupWizard({ initial }: SetupWizardProps) {
-  const router = useRouter();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState(initial.step);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [note, setNote] = useState("");
-  const [progress, setProgress] = useState(initial.progress);
-  const [homepage, setHomepage] = useState(initial.homepage);
+async function post(body: Record<string, unknown>) {
+  const res = await fetch("/api/setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
+  return json;
+}
 
-  const [legalName, setLegalName] = useState(initial.legalName);
+// ─── Shared UI atoms ──────────────────────────────────────────────────────────
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="block text-sm font-medium text-neutral-700">{children}</label>;
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
+}
+
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={
+        "mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm " +
+        "focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 " +
+        (props.className ?? "")
+      }
+    />
+  );
+}
+
+function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      rows={3}
+      {...props}
+      className={
+        "mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm resize-none " +
+        "focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 " +
+        (props.className ?? "")
+      }
+    />
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left hover:bg-neutral-50 transition-colors"
+    >
+      <span
+        className={
+          "mt-0.5 flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors " +
+          (checked ? "bg-brand-600" : "bg-neutral-300")
+        }
+      >
+        <span
+          className={
+            "h-4 w-4 rounded-full bg-white shadow transition-transform " +
+            (checked ? "translate-x-4" : "translate-x-0.5")
+          }
+        />
+      </span>
+      <span>
+        <span className="block text-sm font-medium text-neutral-900">{label}</span>
+        {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+      </span>
+    </button>
+  );
+}
+
+function FeeToggle({
+  free,
+  onToggle,
+  fee,
+  onFee,
+  freeLabel = "Free",
+  feeLabel = "Set fee (€)",
+}: {
+  free: boolean;
+  onToggle: (v: boolean) => void;
+  fee: string;
+  onFee: (v: string) => void;
+  freeLabel?: string;
+  feeLabel?: string;
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => onToggle(true)}
+        className={
+          "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors " +
+          (free
+            ? "border-brand-600 bg-brand-50 text-brand-700"
+            : "border-neutral-300 bg-white text-neutral-600 hover:bg-neutral-50")
+        }
+      >
+        {freeLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => onToggle(false)}
+        className={
+          "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors " +
+          (!free
+            ? "border-brand-600 bg-brand-50 text-brand-700"
+            : "border-neutral-300 bg-white text-neutral-600 hover:bg-neutral-50")
+        }
+      >
+        {feeLabel}
+      </button>
+      {!free && (
+        <Input
+          type="number"
+          min="0"
+          step="1"
+          value={fee}
+          onChange={(e) => onFee(e.target.value)}
+          placeholder="0"
+          className="w-24"
+        />
+      )}
+    </div>
+  );
+}
+
+function Checkbox({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 transition-colors">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+      />
+      <span>
+        <span className="block text-sm font-medium text-neutral-900">{label}</span>
+        {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">{children}</h3>;
+}
+
+function SaveButton({
+  saving,
+  label = "Continue",
+  disabled,
+}: {
+  saving: boolean;
+  label?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={saving || disabled}
+      className="mt-6 w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
+    >
+      {saving ? "Saving…" : label}
+    </button>
+  );
+}
+
+function ErrorBox({ msg }: { msg: string }) {
+  return (
+    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {msg}
+    </div>
+  );
+}
+
+// ─── Sidebar progress ─────────────────────────────────────────────────────────
+
+const STEP_LABELS = ["Company", "Office", "Pickup", "First car", "Go live"];
+
+function Sidebar({ step, progress }: { step: number; progress: Progress }) {
+  const done = [
+    progress.names,
+    progress.office,
+    progress.places,
+    progress.car && progress.offer,
+    progress.listed,
+  ];
+  return (
+    <nav className="mb-6 flex gap-1 overflow-x-auto pb-1 md:mb-0 md:flex-col md:gap-2">
+      {STEP_LABELS.map((label, i) => {
+        const isActive = i === step;
+        const isDone = done[i];
+        return (
+          <div
+            key={label}
+            className={
+              "flex min-w-[90px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors md:min-w-0 " +
+              (isActive
+                ? "bg-brand-50 text-brand-700"
+                : isDone
+                ? "text-neutral-500"
+                : "text-neutral-400")
+            }
+          >
+            <span
+              className={
+                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold " +
+                (isActive
+                  ? "bg-brand-600 text-white"
+                  : isDone
+                  ? "bg-neutral-200 text-neutral-500"
+                  : "border border-neutral-300 text-neutral-400")
+              }
+            >
+              {isDone && !isActive ? "✓" : i + 1}
+            </span>
+            <span className="hidden md:inline">{label}</span>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ─── Step 0: Company ──────────────────────────────────────────────────────────
+
+function StepCompany({
+  initial,
+  companyId,
+  onDone,
+}: {
+  initial: SetupWizardProps["initial"];
+  companyId: string;
+  onDone: () => void;
+}) {
   const [brandName, setBrandName] = useState(initial.brandName);
+  const [legalName, setLegalName] = useState(initial.legalName);
+  const [description, setDescription] = useState(initial.description);
   const [phone, setPhone] = useState(initial.phone);
   const [email, setEmail] = useState(initial.email);
-  const [office, setOffice] = useState<AddressHit | null>(
-    initial.office && initial.office.lat ? { label: initial.office.label, lat: initial.office.lat, lng: initial.office.lng } : null,
-  );
-  const [opensAt, setOpensAt] = useState(initial.office?.opensAt || "09:00");
-  const [closesAt, setClosesAt] = useState(initial.office?.closesAt || "18:00");
-  const [officePickup, setOfficePickup] = useState(initial.office?.pickup ?? false);
-  const [officeFee, setOfficeFee] = useState(initial.office?.fee || "0");
-  const [cityDeliveryEnabled, setCityDeliveryEnabled] = useState(initial.cityDeliveryEnabled);
-  const [cityDeliveryPrice, setCityDeliveryPrice] = useState(initial.cityDeliveryPrice);
-  const [places, setPlaces] = useState(initial.places);
-  const [placeName, setPlaceName] = useState("");
-  const [placeAddress, setPlaceAddress] = useState<AddressHit | null>(null);
-  const [placeFee, setPlaceFee] = useState("0");
-  const [placeOpens, setPlaceOpens] = useState(initial.office?.opensAt || "09:00");
-  const [placeCloses, setPlaceCloses] = useState(initial.office?.closesAt || "18:00");
-  const [placeFormKey, setPlaceFormKey] = useState(0);
-  const [airports, setAirports] = useState(initial.airports);
-  const [payCash, setPayCash] = useState(initial.payCash);
-  const [payCard, setPayCard] = useState(initial.payCard);
-  const [creditCardRequired, setCreditCardRequired] = useState(initial.creditCardRequired);
-  const [unlimitedKm, setUnlimitedKm] = useState(initial.unlimitedKm);
-  const [kmPerDay, setKmPerDay] = useState(initial.kmPerDay);
-  const [crossBorderAllowed, setCrossBorderAllowed] = useState(initial.crossBorderAllowed);
-  const [crossBorderPricePerDay, setCrossBorderPricePerDay] = useState(initial.crossBorderPricePerDay);
-  const [crossBorderMaxPrice, setCrossBorderMaxPrice] = useState(initial.crossBorderMaxPrice);
-  const [crossBorderCountries, setCrossBorderCountries] = useState(initial.crossBorderCountries);
-  const [childSeatPricePerDay, setChildSeatPricePerDay] = useState(initial.childSeatPricePerDay);
-  const [childSeatMaxPrice, setChildSeatMaxPrice] = useState(initial.childSeatMaxPrice);
-  const [additionalDriverPricePerDay, setAdditionalDriverPricePerDay] = useState(initial.additionalDriverPricePerDay);
-  const [additionalDriverMaxPrice, setAdditionalDriverMaxPrice] = useState(initial.additionalDriverMaxPrice);
-  const [insurance, setInsurance] = useState(initial.insurance);
-  const [cars, setCars] = useState(initial.cars);
-  const [car, setCar] = useState({
-    make: "", model: "", year: String(new Date().getFullYear()), plate: "",
-    rate1Day: "", rate23Day: "", rate46Day: "", rateWeekly: "", rateMonthly: "",
-    depositBasic: "", photoUrls: [] as string[], alwaysAvailable: false,
-  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  async function post(payload: Record<string, unknown>) {
-    setSaving(true);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError("");
-    setNote("");
+    setSaving(true);
     try {
-      const res = await fetch("/api/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: initial.companyId, ...payload }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not save.");
-      return data as { slug?: string; car?: CarRow };
+      await post({ step: "names", companyId, brandName, legalName, description, phone, email });
+      onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
-      return null;
     } finally {
       setSaving(false);
     }
   }
 
-  useEffect(() => {
-    const node = rootRef.current;
-    if (!node) return;
-    const handler = (event: Event) => {
-      const input = event.target as HTMLInputElement;
-      if (!input?.validationMessage) return;
-      event.preventDefault();
-      setError(input.validationMessage);
-    };
-    node.addEventListener("invalid", handler, true);
-    return () => node.removeEventListener("invalid", handler, true);
-  }, []);
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>Brand name <span className="text-red-500">*</span></Label>
+        <Input
+          value={brandName}
+          onChange={(e) => setBrandName(e.target.value)}
+          placeholder="e.g. Sunny Cars Riga"
+          required
+        />
+        <p className="mt-1 text-xs text-neutral-500">The name customers see on your listing page.</p>
+      </div>
 
-  useEffect(() => {
-    if (!error) return;
-    document.getElementById("setup-alert")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [error]);
+      <div>
+        <Label>Legal company name <span className="text-red-500">*</span></Label>
+        <Input
+          value={legalName}
+          onChange={(e) => setLegalName(e.target.value)}
+          placeholder="e.g. SIA Sunny Cars"
+          required
+        />
+        <p className="mt-1 text-xs text-neutral-500">Used on invoices. Not shown to customers.</p>
+      </div>
 
-  async function saveNames(e: React.FormEvent) {
+      <div>
+        <Label>Short description</Label>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. English-speaking rental based in Riga city centre. Free airport transfers."
+          maxLength={280}
+        />
+        <p className="mt-1 text-xs text-neutral-500">
+          Up to 280 characters. Shown on your listing page.
+        </p>
+      </div>
+
+      <div>
+        <Label>Phone / WhatsApp <span className="text-red-500">*</span></Label>
+        <Input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+371 20 000 000"
+          required
+        />
+      </div>
+
+      <div>
+        <Label>Email <span className="text-red-500">*</span></Label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="contact@yourcompany.com"
+          required
+        />
+      </div>
+
+      {error && <ErrorBox msg={error} />}
+      <SaveButton saving={saving} />
+    </form>
+  );
+}
+
+// ─── Step 1: Office ───────────────────────────────────────────────────────────
+
+function StepOffice({
+  initial,
+  companyId,
+  onBack,
+  onDone,
+}: {
+  initial: SetupWizardProps["initial"];
+  companyId: string;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const [office, setOffice] = useState<AddressHit | null>(
+    initial.office ? { label: initial.office.label, lat: initial.office.lat, lng: initial.office.lng } : null,
+  );
+  const [alwaysOpen, setAlwaysOpen] = useState(initial.office?.alwaysOpen ?? false);
+  const [opensAt, setOpensAt] = useState(initial.office?.opensAt ?? "09:00");
+  const [closesAt, setClosesAt] = useState(initial.office?.closesAt ?? "18:00");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const data = await post({ step: "names", legalName, brandName, homepage });
-    if (!data) return;
-    setProgress((prev) => ({ ...prev, names: true }));
-    if (initial.listed) setNote("Saved. Customers still see the brand name.");
-    else setStep(1);
-  }
-
-  async function saveOffice(e: React.FormEvent) {
-    e.preventDefault();
-    if (!office) {
-      setError("Choose the office address from the search results.");
-      return;
-    }
-    const data = await post({
-      step: "office",
-      address: office.label,
-      lat: office.lat,
-      lng: office.lng,
-      opensAt,
-      closesAt,
-      phone,
-      email,
-    });
-    if (!data) return;
-    setProgress((prev) => ({ ...prev, office: true }));
-    setStep(2);
-  }
-
-  async function savePlaces(e: React.FormEvent) {
-    e.preventDefault();
-    const data = await post({
-      step: "places",
-      cityDeliveryEnabled,
-      cityDeliveryPrice,
-      officePickup,
-      officeFee,
-      places,
-      airports: airports.map((airport) => ({ code: airport.code, enabled: airport.enabled, fee: airport.fee })),
-    });
-    if (!data) return;
-    setProgress((prev) => ({ ...prev, places: true }));
-    setStep(3);
-  }
-
-  async function saveExtras(e: React.FormEvent) {
-    e.preventDefault();
-    const data = await post({
-      step: "extras",
-      payCash,
-      payCard,
-      creditCardRequired,
-      unlimitedKm,
-      kmPerDay,
-      crossBorderAllowed,
-      crossBorderPricePerDay,
-      crossBorderMaxPrice,
-      crossBorderCountries,
-      childSeatPricePerDay,
-      childSeatMaxPrice,
-      additionalDriverPricePerDay,
-      additionalDriverMaxPrice,
-      insurance,
-    });
-    if (!data) return;
-    setProgress((prev) => ({ ...prev, extras: true }));
-    setStep(4);
-  }
-
-  async function saveCar(e: React.FormEvent) {
-    e.preventDefault();
-    if (car.photoUrls.length < 1) {
-      setError("Add at least one photo of the car.");
-      return;
-    }
-    const data = await post({ step: "car", ...car });
-    if (!data?.car) return;
-    setCars((prev) => [...prev, data.car as CarRow]);
-    setProgress((prev) => ({ ...prev, car: true }));
-    setCar({
-      make: "", model: "", year: String(new Date().getFullYear()), plate: "",
-      rate1Day: "", rate23Day: "", rate46Day: "", rateWeekly: "", rateMonthly: "",
-      depositBasic: "", photoUrls: [], alwaysAvailable: false,
-    });
-    setNote("Car added. Add another, or continue.");
-  }
-
-  async function continueCars() {
-    const data = await post({ step: "cars", creditCardRequired, payCard });
-    if (!data) return;
-    setStep(5);
-  }
-
-  async function goLive() {
-    const data = await post({ step: "live" });
-    if (!data) return;
-    router.push(`/app/offer/${initial.companyId}`);
-    router.refresh();
-  }
-
-  function addPlace() {
-    if (!placeAddress) {
-      setError("Choose the place address from the search results.");
-      return;
-    }
-    if (placeName.trim().length < 2) {
-      setError("Name the pickup place.");
-      return;
-    }
+    if (!office) { setError("Choose the office address from the search results."); return; }
     setError("");
-    setPlaces((prev) => [...prev, {
-      name: placeName.trim(),
-      address: placeAddress.label,
-      lat: placeAddress.lat,
-      lng: placeAddress.lng,
-      fee: placeFee,
-      opensAt: placeOpens,
-      closesAt: placeCloses,
-    }]);
-    setPlaceName("");
-    setPlaceAddress(null);
-    setPlaceFee("0");
-    setPlaceFormKey((key) => key + 1);
+    setSaving(true);
+    try {
+      await post({
+        step: "office",
+        companyId,
+        address: office.label,
+        lat: office.lat,
+        lng: office.lng,
+        alwaysOpen,
+        opensAt,
+        closesAt,
+      });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setSaving(false);
+    }
   }
-
-  function goBack() {
-    setError("");
-    setNote("");
-    setStep((current) => Math.max(0, current - 1));
-  }
-
-  const ready = progress.names && progress.office && progress.places && progress.extras && progress.car;
 
   return (
-    <div ref={rootRef}>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Setup</p>
-      <h1 className="mt-2 text-2xl font-bold text-neutral-900">Set up {initial.cityName}</h1>
-      <p className="mt-1 text-sm text-neutral-500">The city page stays hidden until the last step.</p>
-
-      <ol className="mt-6 flex flex-wrap gap-2">
-        {STEPS.map((label, index) => (
-          <li key={label}>
-            <button
-              type="button"
-              onClick={() => { setError(""); setNote(""); setStep(index); }}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                step === index ? "bg-brand-700 text-white" : "bg-surface-soft text-neutral-600"
-              }`}
-            >
-              {index + 1}. {label}
-            </button>
-          </li>
-        ))}
-      </ol>
-
-      {error && <p id="setup-alert" className="mt-4 scroll-mt-24 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
-      {note && <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{note}</p>}
-
-      {step === 0 && (
-        <form onSubmit={saveNames} className="mt-6 space-y-4">
-          <Field label="Legal company name" hint="Invoices and the legal line. Aspero SIA">
-            <input className={inp} value={legalName} onChange={(e) => setLegalName(e.target.value)} required />
-          </Field>
-          <Field label="Brand name" hint="What customers see. Baltic Car Rent">
-            <input className={inp} value={brandName} onChange={(e) => setBrandName(e.target.value)} required />
-          </Field>
-          <Field label="Homepage" hint="Your own website. A dot stays a dot, so balticcar.lv is saved as balticcar.lv.">
-            <input
-              className={inp}
-              value={homepage}
-              onChange={(e) => setHomepage(e.target.value)}
-              placeholder="balticcar.lv"
-              inputMode="url"
-              autoComplete="url"
-              required
-            />
-          </Field>
-          <Actions saving={saving} label={initial.listed ? "Save names" : "Continue"} />
-          {initial.listed && <Back />}
-        </form>
-      )}
-
-      {step === 1 && (
-        <form onSubmit={saveOffice} className="mt-6 space-y-4">
-          <p className="text-sm text-neutral-600">This is the company address. It is not a pickup place. Add pickup places on the next step if customers can collect a car here.</p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <Label>Office address <span className="text-red-500">*</span></Label>
+        <div className="mt-1">
           <AddressSearch
             citySlug={initial.citySlug}
             cityName={initial.cityName}
             label="Office address"
-            initial={office}
-            onSelect={setOffice}
+            initial={initial.office ? { label: initial.office.label, lat: initial.office.lat, lng: initial.office.lng } : null}
+            onSelect={(hit) => setOffice(hit)}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TimeField label="Opens" value={opensAt} onChange={setOpensAt} />
-            <TimeField label="Closes" value={closesAt} onChange={setClosesAt} />
-            <Field label="Phone">
-              <input className={inp} value={phone} onChange={(e) => setPhone(e.target.value)} required />
-            </Field>
-            <Field label="Email">
-              <input className={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </Field>
-          </div>
-          <Actions saving={saving} label="Continue" onBack={goBack} />
-        </form>
-      )}
+        </div>
+        <p className="mt-1 text-xs text-neutral-500">
+          Your office or parking location. Shown on the map.
+        </p>
+      </div>
 
-      {step === 2 && (
-        <form onSubmit={savePlaces} className="mt-6 space-y-5">
-          <p className="text-sm text-neutral-600">Choose where a customer can collect and return a car. Then add any other address.</p>
-          <Choice
-            title={`Deliver and collect inside ${initial.cityName}`}
-            checked={cityDeliveryEnabled}
-            onChange={setCityDeliveryEnabled}
-          >
-            <Field label="Price per trip (€)" hint="Charged once for delivery and once for collection.">
-              <input className={inp} inputMode="decimal" value={cityDeliveryPrice} onChange={(e) => setCityDeliveryPrice(e.target.value)} />
-            </Field>
-          </Choice>
-          {airports.map((airport) => (
-            <Choice
-              key={airport.code}
-              title={airport.name}
-              checked={airport.enabled}
-              onChange={(enabled) => setAirports((prev) => prev.map((item) => item.code === airport.code ? { ...item, enabled } : item))}
+      <div>
+        <Toggle
+          checked={alwaysOpen}
+          onChange={setAlwaysOpen}
+          label="24/7 — always open"
+          hint="Your rental accepts pickups and returns at any hour."
+        />
+      </div>
+
+      {!alwaysOpen && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Opens at</Label>
+            <select
+              value={opensAt}
+              onChange={(e) => setOpensAt(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
-              <Field label="Price (€)">
-                <input
-                  className={inp}
-                  inputMode="decimal"
-                  value={airport.fee}
-                  onChange={(e) => setAirports((prev) => prev.map((item) => item.code === airport.code ? { ...item, fee: e.target.value } : item))}
-                />
-              </Field>
-            </Choice>
-          ))}
-          {initial.office && (
-            <Choice
-              title="Office address"
-              detail={initial.office.label}
-              checked={officePickup}
-              onChange={setOfficePickup}
-            >
-              <Field label="Price (€)" hint="Use 0 when pickup at the office is free.">
-                <input className={inp} inputMode="decimal" value={officeFee} onChange={(e) => setOfficeFee(e.target.value)} />
-              </Field>
-            </Choice>
-          )}
-          <div className="space-y-3 rounded-xl border border-neutral-300 bg-white p-4">
-            <p className="text-sm font-semibold text-neutral-950">Add your own place</p>
-            <p className="text-sm text-neutral-600">A hotel, station, or address in another city.</p>
-            {places.length > 0 && (
-              <ul className="space-y-2">
-                {places.map((place, index) => (
-                  <li key={`${place.address}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
-                    <span>
-                      <span className="block font-semibold">{place.name}</span>
-                      <span className="text-neutral-600">{place.address}</span>
-                    </span>
-                    <button type="button" className="text-sm font-semibold text-neutral-700 underline" onClick={() => setPlaces((prev) => prev.filter((_, i) => i !== index))}>Remove</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Field label="Name">
-              <input className={inp} value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder="Hotel or station" />
-            </Field>
-            <AddressSearch
-              key={placeFormKey}
-              citySlug={initial.citySlug}
-              cityName={initial.cityName}
-              label="Address"
-              anywhere
-              onSelect={setPlaceAddress}
-            />
-            <Field label="Price (€)" hint="Use 0 when pickup here is free.">
-              <input className={inp} inputMode="decimal" value={placeFee} onChange={(e) => setPlaceFee(e.target.value)} />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TimeField label="Opens" value={placeOpens} onChange={setPlaceOpens} />
-              <TimeField label="Closes" value={placeCloses} onChange={setPlaceCloses} />
-            </div>
-            <button type="button" onClick={addPlace} className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900">Add this place</button>
-          </div>
-          <Actions saving={saving} label="Continue" onBack={goBack} />
-        </form>
-      )}
-
-      {step === 3 && (
-        <form onSubmit={saveExtras} className="mt-6 space-y-5">
-          <PricePair label="Child seat" perDay={childSeatPricePerDay} max={childSeatMaxPrice} onPerDay={setChildSeatPricePerDay} onMax={setChildSeatMaxPrice} />
-          <PricePair label="Additional driver" perDay={additionalDriverPricePerDay} max={additionalDriverMaxPrice} onPerDay={setAdditionalDriverPricePerDay} onMax={setAdditionalDriverMaxPrice} />
-          <label className="flex items-center gap-2 text-sm text-neutral-800">
-            <input type="checkbox" checked={crossBorderAllowed} onChange={(e) => setCrossBorderAllowed(e.target.checked)} />
-            Cross-border travel is allowed
-          </label>
-          {crossBorderAllowed && (
-            <>
-              <PricePair label="Cross-border" perDay={crossBorderPricePerDay} max={crossBorderMaxPrice} onPerDay={setCrossBorderPricePerDay} onMax={setCrossBorderMaxPrice} />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {CROSS_BORDER_COUNTRIES.map((country) => (
-                  <label key={country} className="flex items-center gap-2 text-sm text-neutral-700">
-                    <input
-                      type="checkbox"
-                      checked={crossBorderCountries.includes(country)}
-                      onChange={(e) => setCrossBorderCountries((prev) => e.target.checked ? [...prev, country] : prev.filter((item) => item !== country))}
-                    />
-                    {country}
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-neutral-950">Insurance</p>
-            <p className="text-sm text-neutral-600">Basic insurance is included in the daily price. Full insurance is optional.</p>
-          <div className="rounded-xl border border-neutral-300 bg-white p-4">
-            <p className="text-base font-semibold text-neutral-950">Basic insurance</p>
-            <p className="mt-1 text-sm text-neutral-700">Included in the daily price. The deposit is entered on each car.</p>
-          </div>
-          {insurance.filter((row) => row.code === "full").map((row) => (
-            <div key={row.code} className="rounded-xl border border-neutral-300 bg-white p-4">
-              <p className="text-base font-semibold text-neutral-950">Full insurance</p>
-              <p className="mt-1 text-sm text-neutral-700">No deposit. This price is added to the rental.</p>
-              <div className="mt-3 max-w-xs">
-                <Field label="Price per day (€)">
-                  <input className={inp} inputMode="decimal" value={row.price} onChange={(e) => setInsurance((prev) => prev.map((item) => item.code === row.code ? { ...item, price: e.target.value } : item))} />
-                </Field>
-              </div>
-            </div>
-          ))}
-          </div>
-          <div className="flex flex-wrap gap-4 text-sm text-neutral-900">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={payCash} onChange={(e) => setPayCash(e.target.checked)} /> Cash at pickup</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={payCard} onChange={(e) => setPayCard(e.target.checked)} /> Debit card at pickup</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={unlimitedKm} onChange={(e) => setUnlimitedKm(e.target.checked)} /> Unlimited kilometres</label>
-          </div>
-          {!unlimitedKm && (
-            <Field label="Kilometres per day">
-              <input className={inp} inputMode="numeric" value={kmPerDay} onChange={(e) => setKmPerDay(e.target.value)} />
-            </Field>
-          )}
-          <Actions saving={saving} label="Continue" onBack={goBack} />
-        </form>
-      )}
-
-      {step === 4 && (
-        <form onSubmit={saveCar} className="mt-6 space-y-4">
-          {cars.length > 0 && (
-            <ul className="space-y-2">
-              {cars.map((item) => (
-                <li key={item.id} className="rounded-xl border border-border px-4 py-3 text-sm text-neutral-800">
-                  {item.year} {item.make} {item.model}
-                  <span className="ml-2 text-neutral-400">{item.plate}</span>
-                </li>
+              {OFFICE_TIME_SLOTS.map((t) => (
+                <option key={t} value={t}>{t}</option>
               ))}
-            </ul>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Make"><input className={inp} value={car.make} onChange={(e) => setCar({ ...car, make: e.target.value })} required /></Field>
-            <Field label="Model"><input className={inp} value={car.model} onChange={(e) => setCar({ ...car, model: e.target.value })} required /></Field>
-            <Field label="Year"><input className={inp} inputMode="numeric" value={car.year} onChange={(e) => setCar({ ...car, year: e.target.value })} required /></Field>
-            <Field label="Plate, office only"><input className={inp} value={car.plate} onChange={(e) => setCar({ ...car, plate: e.target.value })} required /></Field>
-            <Field label="1 day (€/day)"><input className={inp} inputMode="decimal" value={car.rate1Day} onChange={(e) => setCar({ ...car, rate1Day: e.target.value })} required /></Field>
-            <Field label="2–3 days (€/day)"><input className={inp} inputMode="decimal" value={car.rate23Day} onChange={(e) => setCar({ ...car, rate23Day: e.target.value })} /></Field>
-            <Field label="4–6 days (€/day)"><input className={inp} inputMode="decimal" value={car.rate46Day} onChange={(e) => setCar({ ...car, rate46Day: e.target.value })} /></Field>
-            <Field label="Weekly (€/day)"><input className={inp} inputMode="decimal" value={car.rateWeekly} onChange={(e) => setCar({ ...car, rateWeekly: e.target.value })} /></Field>
-            <Field label="Monthly (€/day)"><input className={inp} inputMode="decimal" value={car.rateMonthly} onChange={(e) => setCar({ ...car, rateMonthly: e.target.value })} /></Field>
-            <Field label="Deposit with basic insurance (€)" hint="Basic insurance is included in the daily price. Full insurance has no deposit."><input className={inp} inputMode="decimal" value={car.depositBasic} onChange={(e) => setCar({ ...car, depositBasic: e.target.value })} required /></Field>
+            </select>
           </div>
-          <label className="flex items-start gap-2 rounded-xl border border-neutral-300 bg-white p-4 text-sm text-neutral-900">
-            <input type="checkbox" className="mt-1" checked={creditCardRequired} onChange={(e) => setCreditCardRequired(e.target.checked)} />
-            <span>
-              <span className="font-medium">Credit card required for the deposit</span>
-              <span className="mt-0.5 block text-neutral-600">The deposit amount is the field above, on each car.</span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2 text-sm text-neutral-900">
-            <input type="checkbox" className="mt-1" checked={car.alwaysAvailable} onChange={(e) => setCar({ ...car, alwaysAvailable: e.target.checked })} />
-            <span>
-              <span className="font-medium">Always available</span>
-              <span className="mt-0.5 block text-neutral-600">Turn this on when you have more than one of this car. One booking does not take it off the list.</span>
-            </span>
-          </label>
-          <VehiclePhotos
-            companyId={initial.companyId}
-            allowDraft
-            urls={car.photoUrls}
-            onChange={(photoUrls) => setCar({ ...car, photoUrls })}
+          <div>
+            <Label>Closes at</Label>
+            <select
+              value={closesAt}
+              onChange={(e) => setClosesAt(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              {OFFICE_TIME_SLOTS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {error && <ErrorBox msg={error} />}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+        >
+          Back
+        </button>
+        <SaveButton saving={saving} />
+      </div>
+    </form>
+  );
+}
+
+// ─── Step 2: Pickup ───────────────────────────────────────────────────────────
+
+type AirportState = { code: string; name: string; enabled: boolean; free: boolean; fee: string };
+
+function StepPickup({
+  initial,
+  companyId,
+  onBack,
+  onDone,
+}: {
+  initial: SetupWizardProps["initial"];
+  companyId: string;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const [officePickup, setOfficePickup] = useState(initial.officePickup);
+  const [officeFree, setOfficeFree] = useState(
+    !initial.officeFee || initial.officeFee === "0",
+  );
+  const [officeFee, setOfficeFee] = useState(initial.officeFee || "0");
+
+  const [cityDelivery, setCityDelivery] = useState(initial.cityDeliveryEnabled);
+  const [cityFree, setCityFree] = useState(
+    !initial.cityDeliveryPrice || initial.cityDeliveryPrice === "0",
+  );
+  const [cityFee, setCityFee] = useState(initial.cityDeliveryPrice || "0");
+
+  const [airports, setAirports] = useState<AirportState[]>(() =>
+    initial.airports.map((a) => ({
+      ...a,
+      free: !a.fee || a.fee === "0",
+      fee: a.fee || "0",
+    })),
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function setAirport(code: string, patch: Partial<AirportState>) {
+    setAirports((prev) => prev.map((a) => (a.code === code ? { ...a, ...patch } : a)));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    try {
+      await post({
+        step: "places",
+        companyId,
+        officePickup,
+        officeFee: officeFree ? "0" : officeFee,
+        cityDeliveryEnabled: cityDelivery,
+        cityDeliveryPrice: cityDelivery ? (cityFree ? "0" : cityFee) : "0",
+        airports: airports.map((a) => ({
+          code: a.code,
+          enabled: a.enabled,
+          fee: a.enabled ? (a.free ? "0" : a.fee) : "0",
+        })),
+      });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Office pickup */}
+      <div>
+        <SectionTitle>Office pickup</SectionTitle>
+        <Toggle
+          checked={officePickup}
+          onChange={setOfficePickup}
+          label="Customers can pick up and return at your office"
+        />
+        {officePickup && (
+          <FeeToggle
+            free={officeFree}
+            onToggle={setOfficeFree}
+            fee={officeFee}
+            onFee={setOfficeFee}
           />
-          <div className="flex flex-wrap gap-3">
-            <button type="button" disabled={saving} onClick={goBack} className="rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900">Back</button>
-            <button type="submit" disabled={saving} className="rounded-xl bg-brand-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">
-              {saving ? "Saving…" : "Add this car"}
+        )}
+      </div>
+
+      {/* City delivery */}
+      <div>
+        <SectionTitle>City delivery</SectionTitle>
+        <Toggle
+          checked={cityDelivery}
+          onChange={setCityDelivery}
+          label={`Deliver anywhere in ${initial.cityName}`}
+          hint="You drive the car to the customer's address."
+        />
+        {cityDelivery && (
+          <FeeToggle
+            free={cityFree}
+            onToggle={setCityFree}
+            fee={cityFee}
+            onFee={setCityFee}
+          />
+        )}
+      </div>
+
+      {/* Airports */}
+      {airports.length > 0 && (
+        <div>
+          <SectionTitle>Airports</SectionTitle>
+          <p className="mb-2 text-xs text-neutral-500">
+            Auto-detected for {initial.cityName}. Enable the ones you serve.
+          </p>
+          <div className="space-y-2">
+            {airports.map((airport) => (
+              <div key={airport.code} className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-neutral-900">{airport.name}</span>
+                    <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-mono text-neutral-600">
+                      {airport.code}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAirport(airport.code, { enabled: !airport.enabled })}
+                    className={
+                      "flex h-6 w-11 items-center rounded-full transition-colors " +
+                      (airport.enabled ? "bg-brand-600" : "bg-neutral-300")
+                    }
+                  >
+                    <span
+                      className={
+                        "h-5 w-5 rounded-full bg-white shadow transition-transform " +
+                        (airport.enabled ? "translate-x-5" : "translate-x-0.5")
+                      }
+                    />
+                  </button>
+                </div>
+                {airport.enabled && (
+                  <FeeToggle
+                    free={airport.free}
+                    onToggle={(v) => setAirport(airport.code, { free: v })}
+                    fee={airport.fee}
+                    onFee={(v) => setAirport(airport.code, { fee: v })}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {error && <ErrorBox msg={error} />}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+        >
+          Back
+        </button>
+        <SaveButton saving={saving} />
+      </div>
+    </form>
+  );
+}
+
+// ─── Step 3: First car + payment ──────────────────────────────────────────────
+
+type CarFormState = {
+  category: VehicleCategory;
+  make: string;
+  model: string;
+  year: string;
+  plate: string;
+  alwaysAvailable: boolean;
+  rate1Day: string;
+  rateWeekly: string;
+  rateMonthly: string;
+  depositBasic: string;
+  fullInsuranceEnabled: boolean;
+  fullInsurancePrice: string;
+};
+
+function emptyCarForm(): CarFormState {
+  return {
+    category: "economy",
+    make: "",
+    model: "",
+    year: "",
+    plate: "",
+    alwaysAvailable: false,
+    rate1Day: "",
+    rateWeekly: "",
+    rateMonthly: "",
+    depositBasic: "",
+    fullInsuranceEnabled: false,
+    fullInsurancePrice: "",
+  };
+}
+
+function StepCar({
+  initial,
+  companyId,
+  onBack,
+  onDone,
+}: {
+  initial: SetupWizardProps["initial"];
+  companyId: string;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const [cars, setCars] = useState<CarRow[]>(initial.cars);
+  const [form, setForm] = useState<CarFormState>(emptyCarForm());
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [addingCar, setAddingCar] = useState(cars.length === 0);
+  const [carSaving, setCarSaving] = useState(false);
+  const [carError, setCarError] = useState("");
+
+  // Company-wide payment options
+  const [payCash, setPayCash] = useState(initial.payCash);
+  const [payCard, setPayCard] = useState(initial.payCard);
+  const [payCreditCard, setPayCreditCard] = useState(initial.payCreditCard);
+  const [depositCash, setDepositCash] = useState(initial.depositCash);
+  const [depositCard, setDepositCard] = useState(initial.depositCard);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function field<K extends keyof CarFormState>(key: K, value: CarFormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function addCar(e: React.FormEvent) {
+    e.preventDefault();
+    setCarError("");
+    setCarSaving(true);
+    try {
+      const result = await post({
+        step: "car",
+        companyId,
+        category: form.category,
+        make: form.make,
+        model: form.model,
+        year: Number(form.year),
+        plate: form.plate,
+        alwaysAvailable: form.alwaysAvailable,
+        rate1Day: Number(form.rate1Day),
+        rateWeekly: form.rateWeekly ? Number(form.rateWeekly) : null,
+        rateMonthly: form.rateMonthly ? Number(form.rateMonthly) : null,
+        depositBasic: Number(form.depositBasic),
+        fullInsuranceEnabled: form.fullInsuranceEnabled,
+        fullInsurancePrice: form.fullInsuranceEnabled ? Number(form.fullInsurancePrice) : null,
+        photoUrls,
+      });
+      setCars((prev) => [...prev, result.car]);
+      setForm(emptyCarForm());
+      setPhotoUrls([]);
+      setAddingCar(false);
+    } catch (err) {
+      setCarError(err instanceof Error ? err.message : "Could not add the car.");
+    } finally {
+      setCarSaving(false);
+    }
+  }
+
+  async function handleContinue(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    try {
+      await post({
+        step: "offer",
+        companyId,
+        payCash,
+        payCard,
+        payCreditCard,
+        depositCash,
+        depositCard,
+      });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const hasCar = cars.length > 0;
+  const catEmoji = (c: string) => CATEGORIES.find((x) => x.value === c)?.emoji ?? "🚗";
+
+  return (
+    <div className="space-y-6">
+      {/* Saved cars list */}
+      {cars.length > 0 && (
+        <div className="space-y-2">
+          {cars.map((car) => (
+            <div
+              key={car.id}
+              className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3"
+            >
+              <span className="text-xl">{catEmoji((car as CarRow & { category?: string }).category ?? "economy")}</span>
+              <div>
+                <p className="text-sm font-medium text-neutral-900">
+                  {car.year} {car.make} {car.model}
+                </p>
+                {car.plate && <p className="text-xs text-neutral-500">{car.plate}</p>}
+              </div>
+              {car.ready && (
+                <span className="ml-auto rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  Ready
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add car form */}
+      {addingCar ? (
+        <form onSubmit={addCar} className="rounded-xl border border-brand-100 bg-brand-50/30 p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-neutral-800">
+            {cars.length === 0 ? "Add your first car" : "Add another car"}
+          </h3>
+
+          {/* Category */}
+          <div>
+            <Label>Category <span className="text-red-500">*</span></Label>
+            <select
+              value={form.category}
+              onChange={(e) => field("category", e.target.value as VehicleCategory)}
+              className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Make / Model */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Make <span className="text-red-500">*</span></Label>
+              <Input
+                value={form.make}
+                onChange={(e) => field("make", e.target.value)}
+                placeholder="Toyota"
+                required
+              />
+            </div>
+            <div>
+              <Label>Model <span className="text-red-500">*</span></Label>
+              <Input
+                value={form.model}
+                onChange={(e) => field("model", e.target.value)}
+                placeholder="Corolla"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Year / Plate */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Year <span className="text-red-500">*</span></Label>
+              <Input
+                type="number"
+                value={form.year}
+                onChange={(e) => field("year", e.target.value)}
+                placeholder="2022"
+                min="1980"
+                max={String(new Date().getFullYear() + 1)}
+                required
+              />
+            </div>
+            <div>
+              <Label>Plate <span className="text-neutral-400 text-xs">(optional)</span></Label>
+              <Input
+                value={form.plate}
+                onChange={(e) => field("plate", e.target.value)}
+                placeholder="AA-0000"
+              />
+              <p className="mt-0.5 text-xs text-neutral-400">Not shown to customers.</p>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div>
+            <SectionTitle>Rental price</SectionTitle>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Per day (€) <span className="text-red-500">*</span></Label>
+                <Input
+                  type="number"
+                  value={form.rate1Day}
+                  onChange={(e) => field("rate1Day", e.target.value)}
+                  placeholder="45"
+                  min="0"
+                  step="1"
+                  required
+                />
+              </div>
+              <div>
+                <Label>Per week (€)</Label>
+                <Input
+                  type="number"
+                  value={form.rateWeekly}
+                  onChange={(e) => field("rateWeekly", e.target.value)}
+                  placeholder="250"
+                  min="0"
+                  step="1"
+                />
+              </div>
+              <div>
+                <Label>Per month (€)</Label>
+                <Input
+                  type="number"
+                  value={form.rateMonthly}
+                  onChange={(e) => field("rateMonthly", e.target.value)}
+                  placeholder="800"
+                  min="0"
+                  step="1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Insurance */}
+          <div>
+            <SectionTitle>Insurance &amp; deposit</SectionTitle>
+            <div>
+              <Label>Deposit with basic insurance (€) <span className="text-red-500">*</span></Label>
+              <Input
+                type="number"
+                value={form.depositBasic}
+                onChange={(e) => field("depositBasic", e.target.value)}
+                placeholder="300"
+                min="0"
+                step="1"
+                required
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Basic insurance always included. This is the security deposit amount.
+              </p>
+            </div>
+            <div className="mt-3">
+              <Toggle
+                checked={form.fullInsuranceEnabled}
+                onChange={(v) => field("fullInsuranceEnabled", v)}
+                label="Offer full insurance (no deposit)"
+                hint="Customer pays extra per day — no excess or deposit."
+              />
+              {form.fullInsuranceEnabled && (
+                <div className="mt-2">
+                  <Label>Full insurance price per day (€) <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="number"
+                    value={form.fullInsurancePrice}
+                    onChange={(e) => field("fullInsurancePrice", e.target.value)}
+                    placeholder="15"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Always available */}
+          <div>
+            <Toggle
+              checked={form.alwaysAvailable}
+              onChange={(v) => field("alwaysAvailable", v)}
+              label="This car is always available"
+              hint="If it's booked on the customer's dates, I'll offer an equal or better option."
+            />
+          </div>
+
+          {/* Photos */}
+          <div>
+            <Label>Photos <span className="text-red-500">*</span></Label>
+            <p className="mb-2 text-xs text-neutral-500">Add at least one photo. Customers see these.</p>
+            <VehiclePhotos
+              companyId={companyId}
+              allowDraft={true}
+              urls={photoUrls}
+              onChange={setPhotoUrls}
+            />
+          </div>
+
+          {carError && <ErrorBox msg={carError} />}
+
+          <div className="flex gap-2">
+            {cars.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setAddingCar(false)}
+                className="flex-1 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={carSaving}
+              className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {carSaving ? "Saving…" : "Save car"}
             </button>
-            <button type="button" disabled={saving || !progress.car} onClick={continueCars} className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-neutral-800 disabled:opacity-50">
-              Continue
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAddingCar(true)}
+          className="w-full rounded-xl border-2 border-dashed border-neutral-300 py-4 text-sm font-medium text-neutral-500 hover:border-brand-400 hover:text-brand-600 transition-colors"
+        >
+          + Add another car
+        </button>
+      )}
+
+      {/* Company-wide payment options — shown after first car is saved */}
+      {hasCar && !addingCar && (
+        <form onSubmit={handleContinue} className="space-y-6 border-t border-neutral-200 pt-6">
+          <div>
+            <SectionTitle>How the customer pays you at pickup</SectionTitle>
+            <p className="mb-3 text-xs text-neutral-500">
+              Customer pays you the full rental at pickup. We take nothing.
+            </p>
+            <div className="space-y-2">
+              <Checkbox checked={payCash} onChange={setPayCash} label="Cash" />
+              <Checkbox checked={payCreditCard} onChange={setPayCreditCard} label="Credit card" />
+              <Checkbox checked={payCard} onChange={setPayCard} label="Debit card" />
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle>How the deposit is taken</SectionTitle>
+            <div className="space-y-2">
+              <Checkbox
+                checked={depositCard}
+                onChange={setDepositCard}
+                label="Credit card pre-authorisation"
+                hint="Most common. Card is blocked but not charged."
+              />
+              <Checkbox
+                checked={depositCash}
+                onChange={setDepositCash}
+                label="Cash deposit"
+                hint="You hold the cash and return it on car return."
+              />
+            </div>
+          </div>
+
+          {error && <ErrorBox msg={error} />}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+            >
+              Back
             </button>
+            <SaveButton saving={saving} label="Continue to preview" />
           </div>
         </form>
       )}
 
-      {step === 5 && (
-        <div className="mt-6 space-y-4">
-          <ul className="space-y-2 text-sm">
-            <Check done={progress.names} label="Legal name, brand, and page address" />
-            <Check done={progress.office} label="Office address" />
-            <Check done={progress.places} label="At least one pickup place" />
-            <Check done={progress.extras} label="Extras and insurance" />
-            <Check done={progress.car} label="At least one car with a price, a deposit, and a photo" />
-          </ul>
-          {progress.listed ? (
-            <Back />
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={saving} onClick={goBack} className="rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900">Back</button>
-              <button type="button" disabled={saving || !ready} onClick={goLive} className="rounded-xl bg-brand-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">
-                {saving ? "Saving…" : "See online offer"}
-              </button>
-            </div>
-          )}
+      {!hasCar && !addingCar && (
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            Back
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function Choice({
-  title, detail, checked, onChange, children,
+// ─── Step 4: Go live ──────────────────────────────────────────────────────────
+
+function StepLive({
+  initial,
+  companyId,
+  onBack,
+  onDone,
 }: {
-  title: string;
-  detail?: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  children?: React.ReactNode;
+  initial: SetupWizardProps["initial"];
+  companyId: string;
+  onBack: () => void;
+  onDone: () => void;
 }) {
-  return (
-    <div className="rounded-xl border border-neutral-300 bg-white p-4">
-      <label className="flex items-start gap-2 text-sm font-medium text-neutral-950">
-        <input type="checkbox" className="mt-1" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <span>
-          {title}
-          {detail && <span className="mt-0.5 block font-normal text-neutral-600">{detail}</span>}
-        </span>
-      </label>
-      {checked && children && <div className="mt-3">{children}</div>}
-    </div>
-  );
-}
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block text-sm font-medium text-neutral-700">
-      {label}
-      {hint && <span className="mt-0.5 block text-xs font-normal text-neutral-500">{hint}</span>}
-      {children}
-    </label>
-  );
-}
+  const checks = [
+    { label: "Company details", done: initial.progress.names },
+    { label: "Office address", done: initial.progress.office },
+    { label: "Pickup options", done: initial.progress.places },
+    { label: "First car with photos & price", done: initial.progress.car },
+    { label: "Payment options", done: initial.progress.offer },
+  ];
+  const allDone = checks.every((c) => c.done);
 
-function Actions({ saving, label, onBack }: { saving: boolean; label: string; onBack?: () => void }) {
+  async function goLive() {
+    setError("");
+    setSaving(true);
+    try {
+      await post({ step: "live", companyId });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not go live.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="flex flex-wrap gap-3">
-      {onBack && (
-        <button type="button" disabled={saving} onClick={onBack} className="rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900">
+    <div className="space-y-6">
+      {/* Preview card */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+              {initial.cityName}
+            </p>
+            <h2 className="mt-0.5 text-lg font-bold text-neutral-900">
+              {initial.brandName || "Your rental name"}
+            </h2>
+            {initial.description && (
+              <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{initial.description}</p>
+            )}
+            <p className="mt-2 text-sm text-neutral-500">
+              {initial.cars.length} car{initial.cars.length !== 1 ? "s" : ""} listed
+            </p>
+          </div>
+          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-3xl">
+            🚗
+          </div>
+        </div>
+        <div className="mt-4 border-t border-neutral-100 pt-4">
+          <p className="text-xs text-neutral-500">
+            Your listing will appear at{" "}
+            <span className="font-mono text-brand-700">
+              carrentdesk.com/{initial.citySlug}/{initial.slug}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Checklist */}
+      <div>
+        <SectionTitle>Before you go live</SectionTitle>
+        <div className="space-y-2">
+          {checks.map((check) => (
+            <div
+              key={check.label}
+              className={
+                "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm " +
+                (check.done
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-neutral-200 bg-white text-neutral-500")
+              }
+            >
+              <span className={check.done ? "text-green-600" : "text-neutral-300"}>
+                {check.done ? "✓" : "○"}
+              </span>
+              {check.label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {error && <ErrorBox msg={error} />}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+        >
           Back
         </button>
+        <button
+          type="button"
+          onClick={goLive}
+          disabled={saving || !allDone}
+          className="flex-1 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
+        >
+          {saving ? "Publishing…" : "Go live 🚀"}
+        </button>
+      </div>
+
+      {!allDone && (
+        <p className="text-center text-xs text-neutral-400">
+          Complete all steps above to publish your rental.
+        </p>
       )}
-      <button type="submit" disabled={saving} className="rounded-xl bg-brand-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">
-        {saving ? "Saving…" : label}
-      </button>
     </div>
   );
 }
 
-function Back() {
-  return <a href="/app/dashboard" className="inline-block text-sm font-semibold text-brand-700">Back to the office</a>;
-}
+// ─── Root Wizard ──────────────────────────────────────────────────────────────
 
-function Check({ done, label }: { done: boolean; label: string }) {
-  return (
-    <li className={done ? "text-emerald-800" : "text-neutral-500"}>
-      {done ? "✓" : "○"} {label}
-    </li>
-  );
-}
+export function SetupWizard({ initial }: SetupWizardProps) {
+  const router = useRouter();
+  const [step, setStep] = useState(initial.step);
+  const [progress, setProgress] = useState<Progress>(initial.progress);
 
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <label className="block text-sm font-medium text-neutral-700">
-      {label}
-      <select className={inp} value={value} onChange={(e) => onChange(e.target.value)}>
-        {OFFICE_TIME_SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
-      </select>
-    </label>
-  );
-}
+  function advance(nextStep: number, progressPatch: Partial<Progress> = {}) {
+    setProgress((prev) => ({ ...prev, ...progressPatch }));
+    setStep(nextStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-function PricePair({
-  label, perDay, max, onPerDay, onMax,
-}: {
-  label: string;
-  perDay: string;
-  max: string;
-  onPerDay: (value: string) => void;
-  onMax: (value: string) => void;
-}) {
+  if (initial.listed && step === 4) {
+    return (
+      <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
+        <p className="text-4xl">🎉</p>
+        <h2 className="mt-3 text-xl font-bold text-green-800">You are live!</h2>
+        <p className="mt-2 text-sm text-green-700">
+          Your rental is on{" "}
+          <a
+            href={`/${initial.citySlug}/${initial.slug}`}
+            className="underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            carrentdesk.com/{initial.citySlug}/{initial.slug}
+          </a>
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push("/app/dashboard")}
+          className="mt-5 rounded-xl bg-green-700 px-6 py-3 text-sm font-semibold text-white hover:bg-green-800"
+        >
+          Go to dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const updatedInitial: SetupWizardProps["initial"] = { ...initial, progress };
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Field label={`${label} per day (€)`}>
-        <input className={inp} inputMode="decimal" value={perDay} onChange={(e) => onPerDay(e.target.value)} placeholder="Blank to hide" />
-      </Field>
-      <Field label={`${label} total (€)`}>
-        <input className={inp} inputMode="decimal" value={max} onChange={(e) => onMax(e.target.value)} placeholder="Blank if no cap" />
-      </Field>
+    <div className="md:flex md:gap-8">
+      <div className="md:w-40 md:flex-shrink-0">
+        <Sidebar step={step} progress={progress} />
+      </div>
+
+      <div className="mt-6 flex-1 md:mt-0">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-neutral-900">{STEP_LABELS[step]}</h1>
+          <p className="mt-1 text-sm text-neutral-500">Step {step + 1} of {STEP_LABELS.length}</p>
+        </div>
+
+        {step === 0 && (
+          <StepCompany
+            initial={updatedInitial}
+            companyId={initial.companyId}
+            onDone={() => advance(1, { names: true })}
+          />
+        )}
+        {step === 1 && (
+          <StepOffice
+            initial={updatedInitial}
+            companyId={initial.companyId}
+            onBack={() => setStep(0)}
+            onDone={() => advance(2, { office: true })}
+          />
+        )}
+        {step === 2 && (
+          <StepPickup
+            initial={updatedInitial}
+            companyId={initial.companyId}
+            onBack={() => setStep(1)}
+            onDone={() => advance(3, { places: true })}
+          />
+        )}
+        {step === 3 && (
+          <StepCar
+            initial={updatedInitial}
+            companyId={initial.companyId}
+            onBack={() => setStep(2)}
+            onDone={() => advance(4, { car: true, offer: true })}
+          />
+        )}
+        {step === 4 && (
+          <StepLive
+            initial={updatedInitial}
+            companyId={initial.companyId}
+            onBack={() => setStep(3)}
+            onDone={() => {
+              advance(4, { listed: true });
+              router.push("/app/dashboard");
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
