@@ -13,32 +13,32 @@ const joinCityOptions = CITIES.map((c) => ({
 /* ── SEO metadata ───────────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
-  title: "Join CarRentDesk",
+  title: "Get More Bookings for Your Car Rental — CarRentDesk",
   description:
-    "Create a free account for your car rental. Set a password, then add your cars.",
+    "Thousands of travellers search for car rentals in your city every month. List your fleet on CarRentDesk and get found — no commission, no subscription.",
   keywords: [
-    "car rental management software",
-    "car rental software",
-    "CRM system for car rental business",
-    "car rental fleet management",
+    "get more car rental bookings",
+    "car rental listing platform",
+    "independent car rental company",
+    "car rental marketplace",
     "car rental booking software",
-    "rental car management system",
-    "car rental business software",
+    "local car rental online presence",
+    "car rental management software",
     "fleet management for rental companies",
-    "car rental operations software",
-    "independent car rental software",
     "car rental CRM",
     "car rental invoicing software",
+    "independent car rental software",
+    "0% commission car rental platform",
   ],
   alternates: { canonical: "https://carrentdesk.com/join" },
   openGraph: {
-    title: "Join CarRentDesk",
+    title: "Get More Bookings for Your Car Rental — CarRentDesk",
     description:
-      "Create a free account for your car rental. Set a password, then add your cars.",
+      "Thousands of travellers search for car rentals in your city every month. List your fleet on CarRentDesk and get found — no commission, no subscription.",
     url: "https://carrentdesk.com/join",
     siteName: "CarRentDesk",
     type: "website",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "CarRentDesk — Car Rental Management Software", type: "image/png" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "CarRentDesk — Get More Car Rental Bookings", type: "image/png" }],
   },
 };
 
@@ -59,6 +59,33 @@ const schemaMarkup = {
     "Marketplace listing with 0% commission",
   ],
 };
+
+const HOW_IT_WORKS = [
+  {
+    num: "1",
+    title: "List your fleet",
+    body: "Add your cars, your location, and your prices. Takes about 5 minutes.",
+    note: null,
+  },
+  {
+    num: "2",
+    title: "Customers find you",
+    body: "Travellers searching for a car rental in your city see your fleet and pick a vehicle.",
+    note: null,
+  },
+  {
+    num: "3",
+    title: "Booking is confirmed",
+    body: "The customer pays a small confirmation fee by card. You get notified instantly and confirm or decline.",
+    note: "If you can't take it, the fee is returned to the customer.",
+  },
+  {
+    num: "4",
+    title: "They show up. You hand over the keys.",
+    body: "The full rental is paid to you at pickup. CarRentDesk takes nothing from that. The customer is yours to keep.",
+    note: null,
+  },
+];
 
 const INCLUDED = [
   "Booking calendar & fleet management",
@@ -97,24 +124,23 @@ export default function JoinPage() {
           <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-16">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-                Free to join · Create your account
+                For independent car rental companies
               </p>
               <h1 className="mt-3 text-4xl font-bold leading-[1.08] tracking-tight text-brand-950 sm:text-5xl">
-                Car Rental Management
-                <br className="hidden sm:block" /> Software for Independent
-                <br className="hidden sm:block" /> Operators
+                Get found.{" "}
+                <span className="text-brand-600">Get booked.</span>
               </h1>
               <p className="mt-5 max-w-lg text-base leading-7 text-neutral-600 sm:text-lg">
-                Fleet management, booking calendar, customer CRM, invoicing, and real P&L —
-                all in one platform. Built by a rental owner, for rental owners.
+                Thousands of people search for a car rental in your city every month.
+                CarRentDesk puts your fleet in front of them — and sends the booking straight to you.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                {["EU-hosted · GDPR", "0% commission", "Cancel anytime", "Founder-built"].map((t) => (
+                {["List in 5 minutes", "No commission", "No subscription", "The customer is yours"].map((t) => (
                   <span key={t} className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs font-medium text-neutral-600">{t}</span>
                 ))}
               </div>
               <div className="mt-10 rounded-2xl border border-border bg-surface-soft p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-4">What&apos;s included in every plan</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-4">Everything your rental needs — included</p>
                 <ul className="space-y-2.5">
                   {INCLUDED.map((item) => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-neutral-700">
@@ -128,8 +154,8 @@ export default function JoinPage() {
 
             <div className="lg:sticky lg:top-24">
               <div className="rounded-2xl border border-border bg-white p-7 shadow-sm">
-                <h2 className="text-xl font-bold text-neutral-900">Create your account</h2>
-                <p className="mt-1 text-sm text-neutral-500">One registration. You choose a password and open your office.</p>
+                <h2 className="text-xl font-bold text-neutral-900">Add your fleet — free</h2>
+                <p className="mt-1 text-sm text-neutral-500">Create your account. Add your cars. Start getting bookings.</p>
                 <div className="mt-6"><JoinForm cityOptions={joinCityOptions} /></div>
               </div>
               <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-5">
@@ -139,6 +165,41 @@ export default function JoinPage() {
                 </p>
                 <p className="mt-2 text-xs text-neutral-400">— Guntars Nemiro, Founder</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ── */}
+        <section className="bg-surface-soft py-16 lg:py-20">
+          <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">Simple by design</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">How it works</h2>
+              <p className="mt-4 mx-auto max-w-xl text-base text-neutral-600">
+                From listing your first car to receiving your first booking — here is the full picture.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {HOW_IT_WORKS.map((step) => (
+                <div key={step.num} className="relative rounded-2xl border border-border bg-white p-6">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">
+                    {step.num}
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-brand-950">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">{step.body}</p>
+                  {step.note && (
+                    <p className="mt-3 text-xs italic text-neutral-400">{step.note}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <a
+                href="#signup"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
+              >
+                Add your fleet — it&apos;s free →
+              </a>
             </div>
           </div>
         </section>
@@ -325,8 +386,8 @@ export default function JoinPage() {
         {/* ── Bottom CTA ── */}
         <section id="signup" className="border-t border-border py-16 lg:py-20">
           <div className="mx-auto w-full max-w-lg px-6 text-center lg:px-8">
-            <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to manage your rental like a pro?</h2>
-            <p className="mt-3 text-sm text-neutral-500">Create your account. It is free.</p>
+            <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to get more bookings?</h2>
+            <p className="mt-3 text-sm text-neutral-500">Add your fleet today. Free to start, no card required.</p>
             <div className="mt-8 rounded-2xl border border-border bg-white p-7 shadow-sm text-left">
               <JoinForm cityOptions={joinCityOptions} />
             </div>
