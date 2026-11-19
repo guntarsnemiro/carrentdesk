@@ -226,7 +226,7 @@ export async function findAvailableCarsForCity(opts: {
   const { data: companies, error } = await db
     .from("companies")
     .select("slug")
-    .eq("city", city.slug as Database["public"]["Enums"]["city_slug"])
+    .eq("city", city.slug)
     .not("listed_at", "is", null);
   if (error) throw error;
 

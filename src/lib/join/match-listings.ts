@@ -46,7 +46,7 @@ export async function findJoinListingMatches(
     const { data, error } = await db
       .from("companies")
       .select("id, slug, name, city, country, phone, website, google_rating, google_reviews, status")
-      .eq("city", params.city as Database["public"]["Enums"]["city_slug"])
+      .eq("city", params.city)
       .eq("status", "unclaimed")
       .or(orFilter)
       .order("google_reviews", { ascending: false, nullsFirst: false })
@@ -69,7 +69,7 @@ export async function findJoinListingMatches(
     const { data: phoneRows } = await db
       .from("companies")
       .select("id, slug, name, city, country, phone, website, google_rating, google_reviews, status")
-      .eq("city", params.city as Database["public"]["Enums"]["city_slug"])
+      .eq("city", params.city)
       .eq("status", "unclaimed")
       .not("phone", "is", null)
       .limit(20);

@@ -112,7 +112,7 @@ export async function queryPipelineCompanies(
     query = query.eq("pipeline_stage", params.filterStage! as Database["public"]["Enums"]["pipeline_stage"]);
   }
   if (hasCityFilter) {
-    query = query.eq("city", params.filterCity! as Database["public"]["Enums"]["city_slug"]);
+    query = query.eq("city", params.filterCity!);
   }
 
   const limit = hasSearch ? 100 : hasAnyFilter ? 200 : 500;

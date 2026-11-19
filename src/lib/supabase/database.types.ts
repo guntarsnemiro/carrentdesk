@@ -254,11 +254,13 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
-          city: Database["public"]["Enums"]["city_slug"]
+          city: string
+          city_name: string | null
           claimed_at: string | null
           claimed_by_user_id: string | null
           contact_person: string | null
           country: Database["public"]["Enums"]["country_code"]
+          country_name: string | null
           created_at: string
           default_depreciation_rate: number | null
           description: string | null
@@ -300,11 +302,13 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          city: Database["public"]["Enums"]["city_slug"]
+          city: string
+          city_name?: string | null
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           contact_person?: string | null
           country: Database["public"]["Enums"]["country_code"]
+          country_name?: string | null
           created_at?: string
           default_depreciation_rate?: number | null
           description?: string | null
@@ -346,11 +350,13 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          city?: Database["public"]["Enums"]["city_slug"]
+          city?: string
+          city_name?: string | null
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           contact_person?: string | null
           country?: Database["public"]["Enums"]["country_code"]
+          country_name?: string | null
           created_at?: string
           default_depreciation_rate?: number | null
           description?: string | null
@@ -1968,6 +1974,7 @@ export type Database = {
         | "CH"
         | "AT"
         | "PL"
+        | "OTHER"
       demo_request_fleet_bucket:
         | "fleet_1_10"
         | "fleet_11_30"
@@ -2340,6 +2347,7 @@ export const Constants = {
         "CH",
         "AT",
         "PL",
+        "OTHER",
       ],
       demo_request_fleet_bucket: [
         "fleet_1_10",

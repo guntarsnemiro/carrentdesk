@@ -48,12 +48,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CityPage({ params }: PageProps) {
   const { city: slug } = await params;
   if (isReservedRootSlug(slug)) notFound();
-  const city = getCityBySlug(slug);
-  if (!city) notFound();
 
-  // Fetch ALL listings — vehicle-type filtering happens client-side in
-  // CityListingsView so this page stays statically cached (no searchParams).
+  // Fetch listings first — this works for both known and new cities
   const listings = await filterListings({ city: slug });
+
+  const knownCity = getCityBySlug(slug);
+
+  // For unknown cities: only show the page if there's at least one live listing
+  if (!knownCity && listings.length === 0) notFound();
+
+  // Build city display info — use known city metadata if available,
+  // otherwise derive from the first listing's city_name field
+  const cityName = knownCity?.name ?? (listings[0] as { city_name?: string | null })?.city_name ?? slug;
+  const countryName = knownCity?.country ?? "";
+  const citySlugForLinks = slug;
+
   const verifiedCount = listings.filter((l) => l.status === "verified").length;
 
   const breadcrumbJsonLd = {
@@ -61,10 +70,52 @@ export default async function CityPage({ params }: PageProps) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://carrentdesk.com/" },
-      { "@type": "ListItem", position: 2, name: city.country, item: `https://carrentdesk.com/${city.slug}` },
-      { "@type": "ListItem", position: 3, name: city.name, item: `https://carrentdesk.com/${city.slug}` },
+      ...(countryName ? [{ "@type": "ListItem", position: 2, name: countryName, item: `https://carrentdesk.com/${slug}` }] : []),
+      { "@type": "ListItem", position: countryName ? 3 : 2, name: cityName, item: `https://carrentdesk.com/${slug}` },
     ],
   };
+
+  // For new cities without full metadata, render a simplified page
+  if (!knownCity) {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+        <section className="border-b border-border bg-surface-soft">
+          <div className="mx-auto w-full max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
+            <nav className="text-xs text-neutral-500">
+              <Link href="/" className="hover:text-brand-900">Home</Link>
+              <span aria-hidden className="mx-2">/</span>
+              <span className="text-neutral-700">{cityName}</span>
+            </nav>
+            <div className="mt-3">
+              <h1 className="text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+                Car rentals in {cityName}
+              </h1>
+              <p className="mt-2 max-w-2xl text-base text-neutral-600">
+                Local rental companies in {cityName}. Direct contact, fair prices, no middleman.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8">
+          <Suspense>
+            <CityListingsView
+              citySlug={citySlugForLinks}
+              cityName={cityName}
+              listings={listings}
+              mapFallbackCenter={[56.946, 24.1059]}
+            />
+          </Suspense>
+        </section>
+      </>
+    );
+  }
+
+  // Known city — full page with bookable cars, demand capture, etc.
+  const city = knownCity;
 
   return (
     <>

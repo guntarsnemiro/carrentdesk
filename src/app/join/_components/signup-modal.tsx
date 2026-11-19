@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { JoinForm } from "./join-form";
 import { CITIES } from "@/lib/cities";
+import { COUNTRY_OPTIONS } from "@/app/api/join/route";
 
 const cityOptions = CITIES.map((c) => ({
   slug: c.slug,
   name: c.name,
   country: c.country,
 })).sort((a, b) => a.name.localeCompare(b.name));
+
+const countryOptions = COUNTRY_OPTIONS.map((c) => ({ code: c.code, name: c.name }));
 
 type Props = {
   label?: string;
@@ -69,7 +72,7 @@ export function SignupCTAButton({
             </p>
 
             <div className="mt-6">
-              <JoinForm cityOptions={cityOptions} />
+              <JoinForm cityOptions={cityOptions} countryOptions={countryOptions} />
             </div>
           </div>
         </div>

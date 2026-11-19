@@ -61,7 +61,7 @@ export default async function SetupPage({
 
   const { data: company } = await db
     .from("companies")
-    .select("id, name, slug, city, phone, email, description, invoice_legal_name, listed_at, onboarding_step")
+    .select("id, name, slug, city, city_name, phone, email, description, invoice_legal_name, listed_at, onboarding_step")
     .eq("id", membership.company_id)
     .maybeSingle();
   if (!company) redirect("/join");
@@ -70,7 +70,9 @@ export default async function SetupPage({
     redirect("/app/dashboard");
   }
 
-  const city = getCityBySlug(company.city);
+  // Use known city metadata if available, otherwise fall back to stored city_name
+  const knownCity = getCityBySlug(company.city);
+  const city = knownCity;
 
   const [{ data: locations }, { data: offer }, { data: insurance }, { data: vehicles }] =
     await Promise.all([
@@ -118,7 +120,7 @@ export default async function SetupPage({
   const initial: SetupWizardProps["initial"] = {
     companyId: company.id,
     citySlug: company.city,
-    cityName: city?.name ?? company.city,
+    cityName: city?.name ?? company.city_name ?? company.city,
     slug: company.slug,
     listed: Boolean(company.listed_at),
     step: wizardStep,

@@ -69,7 +69,7 @@ export async function filterListings(filter: ListingFilter = {}): Promise<Listin
   let q = supabase.from("companies").select(SELECT_LISTING).not("listed_at", "is", null);
 
   if (filter.city && filter.city !== "all") {
-    q = q.eq("city", filter.city as "riga" | "tallinn" | "vilnius" | "parnu" | "kaunas");
+    q = q.eq("city", filter.city);
   }
   if (filter.vehicleType) {
     q = q.contains("vehicle_types", [filter.vehicleType]);

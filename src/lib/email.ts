@@ -161,18 +161,27 @@ export async function sendJoinSignupNotification(data: {
   companySlug: string;
   listingUrl: string;
   adminUrl: string;
+  isNewCity?: boolean;
+  citySlug?: string;
 }) {
   const resend = getResend();
   if (!resend) return;
+
+  const newCityWarning = data.isNewCity
+    ? [`⚠️  NEW CITY — please check spelling and slug before it goes live.`, `   City slug: /${data.citySlug}/`, ``]
+    : [];
 
   await resend.emails.send({
     from: FROM_ADDRESS,
     to: OWNER_EMAIL,
     replyTo: data.email,
-    subject: `New operator signup — ${data.companyName} (${data.city})`,
+    subject: data.isNewCity
+      ? `🗺️ NEW CITY signup — ${data.companyName} (${data.city}, ${data.country})`
+      : `New operator signup — ${data.companyName} (${data.city})`,
     text: [
       `${data.contactName} signed up and started setup.`,
       ``,
+      ...newCityWarning,
       `Company: ${data.companyName}`,
       `City: ${data.city}, ${data.country}`,
       `Email: ${data.email}`,
@@ -590,4 +599,28 @@ export async function sendJoinClaimPendingEmail(data: {
       `— CarRentDesk`,
     ].join("\n"),
   });
+}
+
+/** Plain booking notice. Callers choose the recipients so the rental never receives the customer copy. */
+export async function sendBookingNotice(message: {
+  to: string[];
+  replyTo?: string | null;
+  subject: string;
+  text: string;
+}): Promise<boolean> {
+  const resend = getResend();
+  const to = [...new Set(message.to.map((email) => email.trim().toLowerCase()).filter((email) => email.includes("@")))];
+  if (!resend || to.length === 0) return false;
+  const result = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    replyTo: message.replyTo?.includes("@") ? message.replyTo : undefined,
+    subject: message.subject,
+    text: message.text,
+  });
+  if (result.error) {
+    console.error("[email] booking notice failed", result.error);
+    return false;
+  }
+  return true;
 }
