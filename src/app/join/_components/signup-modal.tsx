@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { JoinForm } from "./join-form";
 import { CITIES } from "@/lib/cities";
-import { COUNTRY_OPTIONS } from "@/app/api/join/route";
+import { COUNTRY_OPTIONS } from "@/lib/join/countries";
 
 const cityOptions = CITIES.map((c) => ({
   slug: c.slug,
@@ -11,7 +11,7 @@ const cityOptions = CITIES.map((c) => ({
   country: c.country,
 })).sort((a, b) => a.name.localeCompare(b.name));
 
-const countryOptions = COUNTRY_OPTIONS.map((c) => ({ code: c.code, name: c.name }));
+const countryOptions = COUNTRY_OPTIONS;
 
 type Props = {
   label?: string;

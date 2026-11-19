@@ -15,41 +15,6 @@ const KNOWN_COUNTRY_CODES = new Set<string>([
   "AT","PL",
 ]);
 
-/** Country display names for the signup form dropdown. */
-export const COUNTRY_OPTIONS: { code: CountryCode | "OTHER"; name: string }[] = [
-  { code: "LV", name: "Latvia" },
-  { code: "LT", name: "Lithuania" },
-  { code: "EE", name: "Estonia" },
-  { code: "FI", name: "Finland" },
-  { code: "NO", name: "Norway" },
-  { code: "SE", name: "Sweden" },
-  { code: "DK", name: "Denmark" },
-  { code: "IS", name: "Iceland" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "IE", name: "Ireland" },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "NL", name: "Netherlands" },
-  { code: "BE", name: "Belgium" },
-  { code: "AT", name: "Austria" },
-  { code: "CH", name: "Switzerland" },
-  { code: "PL", name: "Poland" },
-  { code: "ES", name: "Spain" },
-  { code: "PT", name: "Portugal" },
-  { code: "IT", name: "Italy" },
-  { code: "GR", name: "Greece" },
-  { code: "HR", name: "Croatia" },
-  { code: "SI", name: "Slovenia" },
-  { code: "BG", name: "Bulgaria" },
-  { code: "CY", name: "Cyprus" },
-  { code: "MT", name: "Malta" },
-  { code: "ME", name: "Montenegro" },
-  { code: "AL", name: "Albania" },
-  { code: "LU", name: "Luxembourg" },
-  { code: "TR", name: "Turkey" },
-  { code: "OTHER", name: "Other country" },
-];
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
