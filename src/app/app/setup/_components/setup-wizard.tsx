@@ -15,14 +15,11 @@ type VehicleCategory =
 
 const CATEGORIES: { value: VehicleCategory; label: string; emoji: string }[] = [
   { value: "economy",  label: "Small / Economy", emoji: "🚗" },
-  { value: "compact",  label: "Compact",          emoji: "🚗" },
-  { value: "midsize",  label: "Midsize",           emoji: "🚙" },
-  { value: "suv",      label: "SUV / Crossover",   emoji: "🚐" },
-  { value: "van",      label: "Van / Minivan",      emoji: "🚌" },
-  { value: "electric", label: "Electric",           emoji: "⚡" },
-  { value: "cargo",    label: "Cargo van",          emoji: "📦" },
-  { value: "luxury",   label: "Premium / Luxury",   emoji: "🏎️" },
-  { value: "other",    label: "Other",              emoji: "🚘" },
+  { value: "midsize",  label: "Midsize",          emoji: "🚙" },
+  { value: "suv",      label: "SUV / Crossover",  emoji: "🚐" },
+  { value: "van",      label: "Van / Minivan",     emoji: "🚌" },
+  { value: "electric", label: "Electric",          emoji: "⚡" },
+  { value: "cargo",    label: "Cargo van",         emoji: "📦" },
 ];
 
 type CarRow = {
@@ -204,7 +201,7 @@ function FeeToggle({
       </button>
       <button
         type="button"
-        onClick={() => onToggle(false)}
+        onClick={() => { onToggle(false); onFee(""); }}
         className={
           "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors " +
           (!free
@@ -221,8 +218,8 @@ function FeeToggle({
           step="1"
           value={fee}
           onChange={(e) => onFee(e.target.value)}
-          placeholder="0"
-          className="w-24"
+          placeholder="Enter fee"
+          className="w-28"
         />
       )}
     </div>
@@ -346,7 +343,7 @@ function StepCompany({
 }: {
   initial: SetupWizardProps["initial"];
   companyId: string;
-  onDone: () => void;
+  onDone: (draft: Step0Draft) => void;
 }) {
   const [brandName, setBrandName] = useState(initial.brandName);
   const [legalName, setLegalName] = useState(initial.legalName);
@@ -362,7 +359,7 @@ function StepCompany({
     setSaving(true);
     try {
       await post({ step: "names", companyId, brandName, legalName, description, phone, email });
-      onDone();
+      onDone({ brandName, legalName, description, phone, email });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
     } finally {
@@ -445,7 +442,7 @@ function StepOffice({
 }: {
   initial: SetupWizardProps["initial"];
   companyId: string;
-  onBack: () => void;
+  onBack: (office: (AddressHit & { alwaysOpen: boolean; opensAt: string; closesAt: string }) | null) => void;
   onDone: () => void;
 }) {
   const [office, setOffice] = useState<AddressHit | null>(
@@ -454,6 +451,11 @@ function StepOffice({
   const [alwaysOpen, setAlwaysOpen] = useState(initial.office?.alwaysOpen ?? false);
   const [opensAt, setOpensAt] = useState(initial.office?.opensAt ?? "09:00");
   const [closesAt, setClosesAt] = useState(initial.office?.closesAt ?? "18:00");
+
+  function currentOfficeDraft() {
+    if (!office) return null;
+    return { label: office.label, lat: office.lat, lng: office.lng, alwaysOpen, opensAt, closesAt };
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -542,7 +544,7 @@ function StepOffice({
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => onBack(currentOfficeDraft())}
           className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
         >
           Back
@@ -559,13 +561,15 @@ type AirportState = { code: string; name: string; enabled: boolean; free: boolea
 
 function StepPickup({
   initial,
+  airports: airportsProp,
   companyId,
   onBack,
   onDone,
 }: {
   initial: SetupWizardProps["initial"];
+  airports?: AirportState[];
   companyId: string;
-  onBack: () => void;
+  onBack: (d: Step2Draft) => void;
   onDone: () => void;
 }) {
   const [officePickup, setOfficePickup] = useState(initial.officePickup);
@@ -581,6 +585,7 @@ function StepPickup({
   const [cityFee, setCityFee] = useState(initial.cityDeliveryPrice || "0");
 
   const [airports, setAirports] = useState<AirportState[]>(() =>
+    airportsProp ??
     initial.airports.map((a) => ({
       ...a,
       free: !a.fee || a.fee === "0",
@@ -712,7 +717,7 @@ function StepPickup({
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => onBack({ officePickup, officeFree, officeFee, cityDelivery, cityFree, cityFee, airports })}
           className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
         >
           Back
@@ -1267,10 +1272,31 @@ function StepLive({
 
 // ─── Root Wizard ──────────────────────────────────────────────────────────────
 
+// ─── Draft state (preserves form data when going back) ───────────────────────
+
+type Step0Draft = { brandName: string; legalName: string; description: string; phone: string; email: string };
+type Step1Draft = { office: (AddressHit & { alwaysOpen: boolean; opensAt: string; closesAt: string }) | null };
+type Step2Draft = {
+  officePickup: boolean; officeFree: boolean; officeFee: string;
+  cityDelivery: boolean; cityFree: boolean; cityFee: string;
+  airports: AirportState[];
+};
+
+type Drafts = {
+  0?: Step0Draft;
+  1?: Step1Draft;
+  2?: Step2Draft;
+};
+
 export function SetupWizard({ initial }: SetupWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(initial.step);
   const [progress, setProgress] = useState<Progress>(initial.progress);
+  const [drafts, setDrafts] = useState<Drafts>({});
+
+  function saveDraft<K extends keyof Drafts>(stepIdx: K, data: Drafts[K]) {
+    setDrafts((prev) => ({ ...prev, [stepIdx]: data }));
+  }
 
   function advance(nextStep: number, progressPatch: Partial<Progress> = {}) {
     setProgress((prev) => ({ ...prev, ...progressPatch }));
@@ -1305,7 +1331,21 @@ export function SetupWizard({ initial }: SetupWizardProps) {
     );
   }
 
-  const updatedInitial: SetupWizardProps["initial"] = { ...initial, progress };
+  const updatedInitial: SetupWizardProps["initial"] = {
+    ...initial,
+    progress,
+    // Merge drafts so going back restores what was typed
+    ...(drafts[0] ?? {}),
+    office: drafts[1]?.office !== undefined ? drafts[1].office : initial.office,
+    ...(drafts[2]
+      ? {
+          officePickup: drafts[2].officePickup,
+          officeFee: drafts[2].officeFree ? "0" : drafts[2].officeFee,
+          cityDeliveryEnabled: drafts[2].cityDelivery,
+          cityDeliveryPrice: drafts[2].cityFree ? "0" : drafts[2].cityFee,
+        }
+      : {}),
+  };
 
   return (
     <div className="md:flex md:gap-8">
@@ -1323,22 +1363,23 @@ export function SetupWizard({ initial }: SetupWizardProps) {
           <StepCompany
             initial={updatedInitial}
             companyId={initial.companyId}
-            onDone={() => advance(1, { names: true })}
+            onDone={(d) => { saveDraft(0, d); advance(1, { names: true }); }}
           />
         )}
         {step === 1 && (
           <StepOffice
             initial={updatedInitial}
             companyId={initial.companyId}
-            onBack={() => setStep(0)}
+            onBack={(d) => { saveDraft(1, { office: d }); setStep(0); }}
             onDone={() => advance(2, { office: true })}
           />
         )}
         {step === 2 && (
           <StepPickup
             initial={updatedInitial}
+            airports={drafts[2]?.airports}
             companyId={initial.companyId}
-            onBack={() => setStep(1)}
+            onBack={(d) => { saveDraft(2, d); setStep(1); }}
             onDone={() => advance(3, { places: true })}
           />
         )}
