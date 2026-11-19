@@ -211,42 +211,58 @@ export async function findAvailableCarsForCity(opts: {
     throw new BookingSearchError("Return must be after pickup.", 400);
   }
 
+  const days = quoteForDates(1, start, end).days;
   const empty: AvailableCarsResult = {
     city: opts.city,
     start: start.toISOString(),
     end: end.toISOString(),
-    days: quoteForDates(1, start, end).days,
+    days,
     cars: [],
   };
 
   const city = getCityBySlug(opts.city);
   if (!city) return empty;
 
+  const now = opts.now ?? new Date();
   const db = createServiceRoleClient();
-  const { data: companies, error } = await db
-    .from("companies")
-    .select("slug")
-    .eq("city", city.slug)
-    .not("listed_at", "is", null);
-  if (error) throw error;
 
+  // One round-trip: bookable cars joined to listed companies in this city.
+  // Avoids the old N+1 path (3 queries × every listed company).
+  type CityVehicleRow = VehicleRow & {
+    company_id: string;
+    companies: { id: string; name: string; slug: string } | null;
+  };
+  const { data: vehicles, error: vehicleError } = await db
+    .from("vehicles")
+    .select(`${VEHICLE_COLUMNS}, company_id, companies!inner(id, name, slug)`)
+    .eq("bookable", true)
+    .neq("status", "retired")
+    .eq("companies.city", city.slug)
+    .not("companies.listed_at", "is", null);
+  if (vehicleError) throw vehicleError;
+
+  const candidates = ((vehicles ?? []) as CityVehicleRow[]).filter(
+    (v) => v.companies != null && isPublicCandidate(v),
+  );
+  if (candidates.length === 0) return empty;
+
+  const ids = candidates.map((v) => v.id);
+  const { data: bookings, error: bookingError } = await db
+    .from("bookings")
+    .select("id, vehicle_id, start_at, end_at, status, pending_expires_at")
+    .in("vehicle_id", ids)
+    .neq("status", "cancelled");
+  if (bookingError) throw bookingError;
+
+  const blocking = (bookings ?? []) as BlockingBooking[];
   const cars: PublicBookableCar[] = [];
-  let days = empty.days;
 
-  for (const company of companies ?? []) {
-    try {
-      const result = await findAvailableCars({
-        slug: company.slug,
-        start: opts.start,
-        end: opts.end,
-        now: opts.now,
-      });
-      days = result.days;
-      cars.push(...result.cars);
-    } catch (err) {
-      if (err instanceof BookingSearchError && err.status === 404) continue;
-      throw err;
-    }
+  for (const v of candidates) {
+    const company = v.companies!;
+    if (!v.always_available && isVehicleBlocked(blocking, v.id, start, end, { now })) continue;
+    const rate = rateForDays(ratesOf(v), rentalDays(start, end));
+    if (rate == null) continue;
+    cars.push(toPublicCar(v, company, quoteForDates(rate, start, end), true));
   }
 
   cars.sort((a, b) => a.rentalTotal - b.rentalTotal || a.make.localeCompare(b.make));

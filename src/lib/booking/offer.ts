@@ -120,20 +120,43 @@ export type OfferQuote = {
 const INSURANCE_ORDER: InsuranceCode[] = ["none", "partial", "full"];
 
 export function rateForDays(rates: VehicleRates, days: number): number | null {
-  const chain =
-    days >= 28
-      ? [rates.rateMonthly, rates.rateWeekly, rates.rate46, rates.rate23, rates.rate1]
-      : days >= 7
-        ? [rates.rateWeekly, rates.rate46, rates.rate23, rates.rate1]
-        : days >= 4
-          ? [rates.rate46, rates.rate23, rates.rate1]
-          : days >= 2
-            ? [rates.rate23, rates.rate1]
-            : [rates.rate1];
-  for (const rate of chain) {
-    if (rate != null && Number.isFinite(rate) && rate > 0) return rate;
+  const hasDetailedTiers =
+    (rates.rate23 != null && rates.rate23 > 0) ||
+    (rates.rate46 != null && rates.rate46 > 0);
+
+  if (hasDetailedTiers) {
+    // ── Legacy 5-rate per-day tier system (fleet editor) ──────────────────
+    // rateWeekly and rateMonthly are per-day rates for their respective tiers.
+    const chain =
+      days >= 28
+        ? [rates.rateMonthly, rates.rateWeekly, rates.rate46, rates.rate23, rates.rate1]
+        : days >= 7
+          ? [rates.rateWeekly, rates.rate46, rates.rate23, rates.rate1]
+          : days >= 4
+            ? [rates.rate46, rates.rate23, rates.rate1]
+            : days >= 2
+              ? [rates.rate23, rates.rate1]
+              : [rates.rate1];
+    for (const r of chain) {
+      if (r != null && Number.isFinite(r) && r > 0) return r;
+    }
+    return null;
   }
-  return null;
+
+  // ── New 3-rate flat-package system (onboarding) ───────────────────────
+  // rateWeekly = flat fee for 7 days → per-day = rateWeekly / 7
+  // rateMonthly = flat fee for 30 days → per-day = rateMonthly / 30
+  // Always use the cheapest per-day equivalent regardless of duration.
+  const dailyPerDay = rates.rate1 != null && rates.rate1 > 0 ? rates.rate1 : null;
+  const weeklyPerDay =
+    rates.rateWeekly != null && rates.rateWeekly > 0 ? rates.rateWeekly / 7 : null;
+  const monthlyPerDay =
+    rates.rateMonthly != null && rates.rateMonthly > 0 ? rates.rateMonthly / 30 : null;
+
+  const candidates = [dailyPerDay, weeklyPerDay, monthlyPerDay].filter(
+    (r): r is number => r != null,
+  );
+  return candidates.length > 0 ? Math.min(...candidates) : null;
 }
 
 function moneyOf(kind: PriceKind, amount: number, days: number): number {

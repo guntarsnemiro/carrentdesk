@@ -163,7 +163,7 @@ export function BookableCarsSection({ citySlug, cityName, companySlug }: Props) 
           {companySlug ? "Choose dates and a car" : "Cars you can book now"}
         </h2>
         <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-          Pay a confirmation fee by card now. The rental is paid to the office when you pick up the car.
+          Each car shows trip total, what you pay now, and deposit. Pay a small card fee to confirm — the rental is paid to the office at pickup.
         </p>
       </div>
 
@@ -187,9 +187,12 @@ export function BookableCarsSection({ citySlug, cityName, companySlug }: Props) 
       )}
 
       {loading && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-72 animate-pulse rounded-xl bg-surface-soft ring-1 ring-border" />
+            <div
+              key={i}
+              className="h-36 animate-pulse rounded-xl bg-surface-soft ring-1 ring-border lg:h-80"
+            />
           ))}
         </div>
       )}
@@ -204,7 +207,7 @@ export function BookableCarsSection({ citySlug, cityName, companySlug }: Props) 
               : `${cars.length} ${cars.length === 1 ? "car" : "cars"} · ${formatDateRange(appliedPickup, appliedReturn)} · ${appliedPickupTime}–${appliedReturnTime} · ${result.days} ${result.days === 1 ? "day" : "days"}`}
           </p>
           {cars.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4">
               {cars.map((car) => (
                 <BookableCarCard
                   key={car.id}
