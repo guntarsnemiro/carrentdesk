@@ -106,7 +106,7 @@ export function BookableCarsSection({ citySlug, cityName, companySlug }: Props) 
   }, [urlPickup, urlReturn, urlPickupTime, urlReturnTime]);
 
   // Auto-fetch (and update prices) whenever dates change — no button click needed
-  const autoFetchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoFetchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     clearTimeout(autoFetchTimer.current);
     autoFetchTimer.current = setTimeout(() => {
