@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { carTitle, categoryLabel, fuelLabel, type PublicBookableCar } from "@/lib/booking/public-types";
 import { formatEur } from "@/lib/booking/money";
 import { formatDateTimeLabel } from "@/lib/booking/dates";
@@ -88,8 +89,14 @@ export function CarBookingClient({
         <div className="overflow-hidden rounded-2xl bg-surface-soft ring-1 ring-border">
           <div className="relative aspect-[16/10] w-full bg-neutral-100">
             {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt={carTitle(car)} className="h-full w-full object-cover" />
+              <Image
+                src={photo}
+                alt={carTitle(car)}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 60vw"
+                className="object-cover"
+              />
             ) : null}
           </div>
           {car.photoUrls.length > 1 && (
@@ -99,12 +106,17 @@ export function CarBookingClient({
                   key={url}
                   type="button"
                   onClick={() => setActivePhoto(i)}
-                  className={`h-16 w-24 shrink-0 overflow-hidden rounded-lg ring-2 ${
+                  className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg ring-2 ${
                     i === activePhoto ? "ring-brand-900" : "ring-transparent"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <Image
+                    src={url}
+                    alt=""
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
                 </button>
               ))}
             </div>

@@ -34,6 +34,24 @@ export default async function AdminAnalyticsPage() {
   }
   const cities = [...byCity.entries()].sort((a, b) => b[1].searches - a[1].searches);
 
+  const { data: viewRows } = await db
+    .from("listing_views")
+    .select("company_slug, city_slug, views")
+    .limit(5000);
+  const byRental = new Map<string, { city: string | null; people: number; opens: number }>();
+  for (const row of viewRows ?? []) {
+    const entry = byRental.get(row.company_slug) ?? { city: row.city_slug, people: 0, opens: 0 };
+    entry.people += 1;
+    entry.opens += row.views;
+    byRental.set(row.company_slug, entry);
+  }
+  const rentalSlugs = [...byRental.keys()];
+  const { data: rentalNames } = rentalSlugs.length
+    ? await db.from("companies").select("slug, name").in("slug", rentalSlugs)
+    : { data: [] };
+  const nameBySlug = new Map((rentalNames ?? []).map((company) => [company.slug, company.name]));
+  const rentals = [...byRental.entries()].sort((a, b) => b[1].people - a[1].people || b[1].opens - a[1].opens);
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <h1 className="text-2xl font-bold text-neutral-900">Search demand</h1>
@@ -61,6 +79,37 @@ export default async function AdminAnalyticsPage() {
               </ul>
             </div>
           ))}
+        </div>
+      )}
+
+      <h2 className="mt-10 text-lg font-semibold text-neutral-900">Rental pages</h2>
+      <p className="mt-1 text-sm text-neutral-500">
+        One person per browser and rental. Opening the page again counts as another look, not another person.
+      </p>
+      {rentals.length === 0 ? (
+        <p className="mt-4 text-sm text-neutral-500">No rental pages opened yet.</p>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-border bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-xs uppercase tracking-wider text-neutral-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Rental</th>
+                <th className="px-4 py-3 font-medium">City</th>
+                <th className="px-4 py-3 font-medium">People</th>
+                <th className="px-4 py-3 font-medium">Opens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rentals.map(([slug, entry]) => (
+                <tr key={slug} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 font-medium text-neutral-900">{nameBySlug.get(slug) ?? slug}</td>
+                  <td className="px-4 py-3">{entry.city ? (getCityBySlug(entry.city)?.name ?? entry.city) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums">{entry.people}</td>
+                  <td className="px-4 py-3 tabular-nums">{entry.opens}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { roundMoney } from "@/lib/booking/platform-fee";
+import { notifyBookingConfirmed } from "@/lib/booking/notices";
 import { getStripe } from "@/lib/stripe";
 
 export type PaidSession = {
@@ -42,6 +43,7 @@ export async function applyPaidSession(session: PaidSession): Promise<PaymentApp
   if (session.currency !== "eur" || paid == null || paid !== expected) return "mismatch";
 
   if (booking.status === "confirmed" || booking.status === "active" || booking.status === "returned") {
+    if (booking.status === "confirmed") await notifyBookingConfirmed(booking.id);
     return "already";
   }
   if (booking.status !== "pending_payment") return "mismatch";
@@ -60,7 +62,12 @@ export async function applyPaidSession(session: PaidSession): Promise<PaymentApp
     .eq("status", "pending_payment")
     .select("id");
   if (updateError) throw updateError;
-  return updated && updated.length > 0 ? "confirmed" : "already";
+  if (updated && updated.length > 0) {
+    await notifyBookingConfirmed(bookingId);
+    return "confirmed";
+  }
+  await notifyBookingConfirmed(bookingId);
+  return "already";
 }
 
 export class FeeRefundError extends Error {

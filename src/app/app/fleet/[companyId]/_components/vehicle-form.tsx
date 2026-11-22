@@ -42,7 +42,13 @@ interface Vehicle {
   residual_value: number | null; disposed_at: string | null; disposal_price: number | null;
 }
 
-interface Props { companyId: string; vehicle?: Vehicle; lastOdoReading?: OdometerReading; }
+interface Props {
+  companyId: string;
+  vehicle?: Vehicle;
+  lastOdoReading?: OdometerReading;
+  /** Existing full insurance option for this company, if any */
+  fullInsuranceOption?: { code: string; price: number } | null;
+}
 
 const CATEGORIES: { value: VehicleCategory; label: string }[] = [
   { value: "economy",  label: "Economy"  }, { value: "compact",  label: "Compact"  },
@@ -61,7 +67,7 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: "maintenance", label: "Maintenance" }, { value: "retired",     label: "Retired"     },
 ];
 
-export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
+export function VehicleForm({ companyId, vehicle, lastOdoReading, fullInsuranceOption }: Props) {
   const router  = useRouter();
   const isEdit  = Boolean(vehicle);
 
@@ -103,6 +109,11 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
     disposed_at:        vehicle?.disposed_at ?? "",
     disposal_price:     vehicle?.disposal_price != null ? String(vehicle.disposal_price) : "",
   });
+
+  const [fullInsuranceEnabled, setFullInsuranceEnabled] = useState(!!fullInsuranceOption);
+  const [fullInsurancePrice, setFullInsurancePrice] = useState(
+    fullInsuranceOption ? String(fullInsuranceOption.price) : ""
+  );
 
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -167,6 +178,21 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
       const { data, error } = await supabase.from("vehicles").insert(payload).select("id").single();
       if (error || !data) { setStatus("error"); setErrorMsg(error?.message ?? "Failed"); return; }
       vehicleId = data.id;
+    }
+
+    // Save full insurance option (company-wide)
+    await supabase.from("company_insurance_options").upsert(
+      { company_id: companyId, code: "none", label: "Basic", price: 0, price_kind: "per_day", excess: 0 },
+      { onConflict: "company_id,code" }
+    );
+    if (fullInsuranceEnabled && fullInsurancePrice) {
+      await supabase.from("company_insurance_options").upsert(
+        { company_id: companyId, code: "full", label: "Full", price: parseFloat(fullInsurancePrice), price_kind: "per_day", excess: 0 },
+        { onConflict: "company_id,code" }
+      );
+    } else if (!fullInsuranceEnabled) {
+      await supabase.from("company_insurance_options").delete()
+        .eq("company_id", companyId).eq("code", "full");
     }
 
     // Log odometer reading if provided and changed
@@ -297,6 +323,33 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <Field label="Deposit with basic insurance (€)"><input name="deposit_basic" type="number" min={0} step={0.01} value={form.deposit_basic} onChange={set} placeholder="500" className={inp} /></Field>
         </div>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
+          <input
+            type="checkbox"
+            checked={fullInsuranceEnabled}
+            onChange={(e) => setFullInsuranceEnabled(e.target.checked)}
+            className="mt-0.5"
+          />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Offer full insurance (no deposit)</p>
+            <p className="mt-0.5 text-xs text-neutral-400">Customer pays extra per day — no excess or deposit required. Applies to all your cars.</p>
+          </div>
+        </label>
+        {fullInsuranceEnabled && (
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Full insurance price (€/day) *">
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={fullInsurancePrice}
+                onChange={(e) => setFullInsurancePrice(e.target.value)}
+                placeholder="10"
+                className={inp}
+              />
+            </Field>
+          </div>
+        )}
         <VehiclePhotos
           companyId={companyId}
           vehicleId={vehicle?.id}
@@ -364,81 +417,7 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
         </div>
       </Section>
 
-      {/* ── Asset & Depreciation ── */}
-      <Section title="Asset & depreciation">
-        <p className="text-xs text-neutral-400">
-          Used for true P&amp;L reporting — monthly depreciation is calculated and shown in the Finance dashboard.
-        </p>
-        <div className="mt-3 space-y-3">
-          {/* Mode selection */}
-          {(["none","current_value","original"] as DepreciationMode[]).map((mode) => (
-            <label key={mode} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors
-              ${form.depreciation_mode === mode ? "border-brand-500 bg-brand-50" : "border-border bg-white hover:bg-slate-50"}`}>
-              <input type="radio" name="depreciation_mode" value={mode}
-                checked={form.depreciation_mode === mode}
-                onChange={() => setForm((f) => ({ ...f, depreciation_mode: mode }))}
-                className="mt-0.5 text-brand-600" />
-              <div>
-                <p className="text-sm font-medium text-neutral-800">
-                  {mode === "none"          && "Skip — no depreciation for this car"}
-                  {mode === "current_value" && "Use current market value (recommended for existing cars)"}
-                  {mode === "original"      && "I know the original purchase price and date"}
-                </p>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  {mode === "none"          && "Car excluded from depreciation calculations."}
-                  {mode === "current_value" && "Enter what the car is worth today. Depreciation runs forward from now."}
-                  {mode === "original"      && "Enter exact purchase price + date. Full historical depreciation from day 1."}
-                </p>
-              </div>
-            </label>
-          ))}
-        </div>
-
-        {form.depreciation_mode !== "none" && (
-          <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label={form.depreciation_mode === "current_value" ? "Current market value (€) *" : "Original purchase price (€) *"}>
-                <input name="purchase_price" type="number" min={0} step={0.01}
-                  value={form.purchase_price} onChange={set} placeholder="10000" className={inp} />
-              </Field>
-              <Field label={form.depreciation_mode === "current_value" ? "Date of valuation *" : "Purchase date *"} hint="DD.MM.YYYY">
-                <DateInput value={form.purchase_date} onChange={(v) => setForm((p) => ({ ...p, purchase_date: v }))} className={inp} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Depreciation rate (%/year)" hint="Leave blank to use company default (20%)">
-                <input name="depreciation_rate" type="number" min={0} max={100} step={0.1}
-                  value={form.depreciation_rate} onChange={set} placeholder="20" className={inp} />
-              </Field>
-              <Field label="Expected residual value (€)" hint="Optional — what you expect to sell it for">
-                <input name="residual_value" type="number" min={0} step={0.01}
-                  value={form.residual_value} onChange={set} placeholder="4000" className={inp} />
-              </Field>
-            </div>
-
-            {/* Disposal — only for edit */}
-            {isEdit && (
-              <div className="rounded-xl border border-dashed border-neutral-200 p-4">
-                <p className="mb-3 text-xs font-medium text-neutral-500 uppercase tracking-wide">Vehicle disposal (sold / written off)</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Disposal date" hint="Date car left the fleet">
-                    <DateInput value={form.disposed_at} onChange={(v) => setForm((p) => ({ ...p, disposed_at: v }))} className={inp} />
-                  </Field>
-                  <Field label="Sale / payout price (€)" hint="Insurance payout or actual sale price">
-                    <input name="disposal_price" type="number" min={0} step={0.01}
-                      value={form.disposal_price} onChange={set} placeholder="4200" className={inp} />
-                  </Field>
-                </div>
-                {form.disposed_at && (
-                  <p className="mt-2 text-xs text-amber-600">
-                    ⚠ Set car status to "Retired" to remove it from active fleet views.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </Section>
+      {/* Asset & Depreciation — hidden for now, data preserved in DB */}
 
       {/* ── Notes ── */}
       <Section title="Internal notes">

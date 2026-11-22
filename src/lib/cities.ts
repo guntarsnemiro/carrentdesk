@@ -514,6 +514,22 @@ export const CITIES: City[] = [
     airport: { code: "MXP", lat: 45.6306, lng: 8.7281 },
   },
   {
+    slug: "bergamo",
+    name: "Bergamo",
+    country: "Italy",
+    countryCode: "IT",
+    currency: "EUR",
+    tagline: "Local car rentals in Bergamo and at Orio al Serio",
+    placeholderCount: 18,
+    gradient: "linear-gradient(135deg, #0a7c3a 0%, #1a9d5a 50%, #cd212a 100%)",
+    photoUrl: "",
+    center: [45.6983, 9.6773],
+    airport: { code: "BGY", lat: 45.6739, lng: 9.7042 },
+    airports: [
+      { code: "BGY", name: "Bergamo Orio al Serio Airport (BGY)", lat: 45.6739, lng: 9.7042 },
+    ],
+  },
+  {
     slug: "naples",
     name: "Naples",
     country: "Italy",

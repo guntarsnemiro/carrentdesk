@@ -1,0 +1,1 @@
+﻿          <span style={{ color: B.amber }}>audzēt apgrozījumu un peļņu.</span>

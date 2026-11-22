@@ -119,7 +119,7 @@ export default async function BookingConfirmedPage({
     <Shell title="Booking confirmed">
       <p>
         {title} is booked{company ? ` with ${company.name}` : ""}. Pay the rental when you pick up the car.
-        This card payment was the confirmation fee only.
+        This card payment was the confirmation fee only. A confirmation email is on its way, with a link if you need to cancel.
       </p>
       <dl className="mt-8 space-y-3 text-sm">
         <Row label="Pickup" value={when(booking.start_at)} />

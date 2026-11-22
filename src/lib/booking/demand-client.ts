@@ -34,3 +34,18 @@ export async function recordDemand(input: DemandInput): Promise<void> {
     // Demand logging must not block the search.
   }
 }
+
+const recordedListings = new Set<string>();
+
+/** One person per browser and rental page. A later open adds to the count. */
+export function recordListingView(slug: string): void {
+  if (!slug || recordedListings.has(slug)) return;
+  recordedListings.add(slug);
+  void fetch("/api/listing-view", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slug, sessionId: sessionId() }),
+  }).catch(() => {
+    // A missed page view must not affect the rental page.
+  });
+}

@@ -1,11 +1,54 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { getAuthBrowserClient } from "@/lib/supabase/auth-browser";
 
 const BUCKET = "vehicle-photos";
 const MAX_PHOTOS = 8;
 const MAX_BYTES = 5 * 1024 * 1024;
+
+// Max dimensions and quality used when compressing before upload.
+// Keeps file size ~100–200 KB while staying sharp on retina screens.
+const COMPRESS_MAX_PX  = 1600;   // longest edge in pixels
+const COMPRESS_QUALITY = 0.82;   // JPEG/WebP quality (0–1)
+
+/**
+ * Resizes and compresses an image file client-side using the Canvas API.
+ * Returns a Blob (image/jpeg) ≤ ~200 KB. No libraries needed.
+ */
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > COMPRESS_MAX_PX || height > COMPRESS_MAX_PX) {
+        if (width >= height) {
+          height = Math.round((height / width) * COMPRESS_MAX_PX);
+          width  = COMPRESS_MAX_PX;
+        } else {
+          width  = Math.round((width / height) * COMPRESS_MAX_PX);
+          height = COMPRESS_MAX_PX;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not available")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
+        "image/jpeg",
+        COMPRESS_QUALITY,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Could not read image")); };
+    img.src = objectUrl;
+  });
+}
 
 type Props = {
   companyId: string;
@@ -41,10 +84,19 @@ export function VehiclePhotos({ companyId, vehicleId, urls, onChange, allowDraft
         setError("Each photo must be under 5 MB.");
         continue;
       }
-      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const path = `${companyId}/${vehicleId ?? "setup"}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type,
+
+      // Compress + resize silently before upload — operator sees nothing different
+      let blob: Blob;
+      try {
+        blob = await compressImage(file);
+      } catch {
+        // Fallback: upload original if canvas compression fails
+        blob = file;
+      }
+
+      const path = `${companyId}/${vehicleId ?? "setup"}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, blob, {
+        contentType: "image/jpeg",
         upsert: false,
       });
       if (upErr) {
@@ -79,9 +131,14 @@ export function VehiclePhotos({ companyId, vehicleId, urls, onChange, allowDraft
       {urls.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {urls.map((url, i) => (
-            <div key={url} className="relative overflow-hidden rounded-lg border border-border bg-slate-50">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-24 w-full object-cover" />
+            <div key={url} className="relative h-24 overflow-hidden rounded-lg border border-border bg-slate-50">
+              <Image
+                src={url}
+                alt=""
+                fill
+                sizes="160px"
+                className="object-cover"
+              />
               <button
                 type="button"
                 onClick={() => removeAt(i)}

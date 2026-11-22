@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test src/lib/booking/platform-fee.test.ts src/lib/booking/offer.test.ts"
+    "test": "npx tsx --test src/lib/booking/platform-fee.test.ts src/lib/booking/offer.test.ts src/lib/booking/notice-copy.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BookableCarCard } from "@/components/booking/bookable-car-card";
 import { DateRangeBar } from "@/components/booking/date-range-bar";
@@ -97,16 +97,23 @@ export function BookableCarsSection({ citySlug, cityName, companySlug }: Props) 
     [citySlug, companySlug],
   );
 
-  useEffect(() => {
-    void fetchCars(appliedPickup, appliedReturn, appliedPickupTime, appliedReturnTime);
-  }, [appliedPickup, appliedReturn, appliedPickupTime, appliedReturnTime, fetchCars]);
-
+  // Sync URL params → local state when navigating back/forward or sharing a link
   useEffect(() => {
     if (urlPickup) setPickup(urlPickup);
     if (urlReturn) setReturnDate(urlReturn);
     if (urlPickupTime) setPickupTime(urlPickupTime);
     if (urlReturnTime) setReturnTime(urlReturnTime);
   }, [urlPickup, urlReturn, urlPickupTime, urlReturnTime]);
+
+  // Auto-fetch (and update prices) whenever dates change — no button click needed
+  const autoFetchTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    clearTimeout(autoFetchTimer.current);
+    autoFetchTimer.current = setTimeout(() => {
+      void fetchCars(pickup, returnDate, pickupTime, returnTime);
+    }, 300);
+    return () => clearTimeout(autoFetchTimer.current);
+  }, [pickup, returnDate, pickupTime, returnTime, fetchCars]);
 
   function writeWhen(next: {
     pickup: string;

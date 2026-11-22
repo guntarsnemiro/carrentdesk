@@ -66,7 +66,7 @@ const HOW_IT_WORKS = [
   {
     num: "4",
     title: "They show up. You hand over the keys.",
-    body: "The full rental is paid to you at pickup. CarRentDesk takes nothing from that. The customer is yours to keep.",
+    body: "Customer pays you the full rental at pickup. We take nothing.",
     note: null,
   },
 ];
@@ -96,18 +96,29 @@ export default function JoinPage() {
         {/* ── Hero ── */}
         <section className="mx-auto w-full max-w-4xl px-6 py-20 text-center lg:px-8 lg:py-28">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-            For independent car rental companies
+            For local car rental companies
           </p>
           <h1 className="mt-4 text-5xl font-bold leading-[1.08] tracking-tight text-brand-950 sm:text-6xl">
-            Get found.{" "}
-            <span className="text-brand-600">Get booked.</span>
+            You have cars?{" "}
+            <span className="text-brand-600">We have customers!</span>
           </h1>
           <p className="mt-6 mx-auto max-w-xl text-lg leading-7 text-neutral-600">
-            Thousands of people search for a car rental in your city every month.
-            CarRentDesk puts your fleet in front of them — and sends the booking straight to you.
+            Last month alone, 20 000 people searched for a local car rental on CarRentDesk.
           </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-8">
+            {[
+              { num: "20 000", label: "searches last month" },
+              { num: "50+",    label: "cities" },
+              { num: "100%",   label: "you keep of the rental" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <p className="text-2xl font-bold text-brand-700">{s.num}</p>
+                <p className="text-xs text-neutral-500">{s.label}</p>
+              </div>
+            ))}
+          </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {["List in 5 minutes", "No commission", "No subscription", "The customer is yours"].map((t) => (
+            {["List in 5 minutes", "No subscription", "The customer is yours"].map((t) => (
               <span key={t} className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs font-medium text-neutral-600">{t}</span>
             ))}
           </div>

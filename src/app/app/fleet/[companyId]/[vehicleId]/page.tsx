@@ -45,7 +45,7 @@ export default async function EditVehiclePage({
     .eq("id", vehicleId).eq("company_id", companyId).maybeSingle();
   if (!vehicle) notFound();
 
-  const [{ data: maintLogs }, { data: lastOdoRow }] = await Promise.all([
+  const [{ data: maintLogs }, { data: lastOdoRow }, { data: insuranceOptions }] = await Promise.all([
     db.from("maintenance_logs")
       .select("id, date, type, description, cost, supplier, next_due_km, next_due_date, next_due_label, odometer_km")
       .eq("vehicle_id", vehicleId)
@@ -57,6 +57,9 @@ export default async function EditVehiclePage({
       .order("recorded_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    db.from("company_insurance_options")
+      .select("code, price")
+      .eq("company_id", companyId),
   ]);
 
   const lastOdoReading: OdometerReading | undefined = lastOdoRow
@@ -77,7 +80,12 @@ export default async function EditVehiclePage({
         </h1>
         <p className="mt-1 font-mono text-sm text-neutral-500">{vehicle.plate}</p>
       </div>
-      <VehicleForm companyId={companyId} vehicle={{ ...vehicle, depreciation_mode: vehicle.depreciation_mode as ("none" | "current_value" | "original" | null) }} lastOdoReading={lastOdoReading} />
+      <VehicleForm
+        companyId={companyId}
+        vehicle={{ ...vehicle, depreciation_mode: vehicle.depreciation_mode as ("none" | "current_value" | "original" | null) }}
+        lastOdoReading={lastOdoReading}
+        fullInsuranceOption={insuranceOptions?.find((o) => o.code === "full") ?? null}
+      />
 
       {/* Service history */}
       <div className="mt-10">

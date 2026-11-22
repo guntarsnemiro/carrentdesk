@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CITIES } from "@/lib/cities";
 import { AMENITY_LABELS, type Listing } from "@/lib/listings-types";
 
@@ -35,12 +36,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
     >
       {useLogoHeader ? (
         <div className="relative isolate flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-surface-soft px-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={listing.logoUrl}
+          <Image
+            src={listing.logoUrl!}
             alt={`${listing.name} logo`}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="max-h-[60%] max-w-[80%] object-contain transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
           />
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-medium text-brand-900 shadow-sm ring-1 ring-brand-200">
             <span aria-hidden className="size-1.5 rounded-full bg-success" />

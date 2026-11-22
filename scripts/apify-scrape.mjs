@@ -91,6 +91,15 @@ const BATCHES = {
       "car rental Malta", "car rental Malta airport", "car hire Malta",
     ],
   },
+  // Italy — Bergamo and Orio al Serio (BGY). Kept small so one run stays under a few dollars.
+  bergamo: {
+    countryCode: "it",
+    queries: [
+      "car rental Bergamo",
+      "autonoleggio Bergamo",
+      "car rental Bergamo airport Orio al Serio",
+    ],
+  },
   // Croatia — boost existing coast + add Istria/Kvarner (Pula, Rijeka)
   croatia: {
     countryCode: "hr",
@@ -340,8 +349,13 @@ const ACTOR_INPUT = {
 
 const BASE = "https://api.apify.com/v2";
 
-async function apify(method, path, body) {
-  const res = await fetch(`${BASE}${path}?token=${APIFY_TOKEN}`, {
+async function apify(method, path, body, extraQuery) {
+  const url = new URL(`${BASE}${path}`);
+  url.searchParams.set("token", APIFY_TOKEN);
+  for (const [key, value] of Object.entries(extraQuery ?? {})) {
+    if (value != null && value !== "") url.searchParams.set(key, String(value));
+  }
+  const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -360,12 +374,13 @@ async function sleep(ms) {
 async function main() {
   console.log(`🚀  Starting Apify run — batch "${BATCH}" (countryCode: ${selected.countryCode}) with ${SEARCH_QUERIES.length} queries…`);
   console.log(`    Actor: ${ACTOR_ID}`);
-  console.log(`    Cap: ${ACTOR_INPUT.maxCrawledPlacesPerSearch}/search · est. max ${SEARCH_QUERIES.length * ACTOR_INPUT.maxCrawledPlacesPerSearch} results`);
+  const maxCharge = process.env.APIFY_MAX_CHARGE;
+  console.log(`    Cap: ${ACTOR_INPUT.maxCrawledPlacesPerSearch}/search · est. max ${SEARCH_QUERIES.length * ACTOR_INPUT.maxCrawledPlacesPerSearch} results${maxCharge ? ` · spend cap $${maxCharge}` : ""}`);
   console.log(`    Queries:\n${SEARCH_QUERIES.map((q) => `      · ${q}`).join("\n")}\n`);
 
   // 1. Start the actor run
-  const { data: run } = await apify("POST", `/acts/${ACTOR_ID}/runs`, {
-    ...ACTOR_INPUT,
+  const { data: run } = await apify("POST", `/acts/${ACTOR_ID}/runs`, ACTOR_INPUT, {
+    maxTotalChargeUsd: maxCharge,
   });
   const runId = run.id;
   console.log(`▶  Run started: ${runId}`);

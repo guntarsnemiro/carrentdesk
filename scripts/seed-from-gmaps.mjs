@@ -121,7 +121,7 @@ const CITY_COUNTRY = {
   madrid: "ES", barcelona: "ES", malaga: "ES", palma: "ES", alicante: "ES",
   valencia: "ES", seville: "ES", bilbao: "ES", girona: "ES",
   lisbon: "PT", porto: "PT", faro: "PT",
-  rome: "IT", milan: "IT", naples: "IT", catania: "IT",
+  rome: "IT", milan: "IT", bergamo: "IT", naples: "IT", catania: "IT",
   venice: "IT", florence: "IT", pisa: "IT", bari: "IT", brindisi: "IT",
   "ponta-delgada": "PT", kefalonia: "GR", naxos: "GR", paros: "GR",
   london: "GB", manchester: "GB", birmingham: "GB", edinburgh: "GB", glasgow: "GB", bristol: "GB",

@@ -34,6 +34,8 @@ export default async function EditBookingPage({
   ]);
   if (!booking) notFound();
 
+  const { platform_fee: _platformFee, ...officeBooking } = booking;
+
   const locationPresets = (locs ?? []).map((l) => l.address);
 
   const { data: customer } = booking.customer_id ? await db
@@ -139,7 +141,7 @@ export default async function EditBookingPage({
       <BookingForm
         companyId={companyId}
         vehicles={vehicles ?? []}
-        booking={booking}
+        booking={officeBooking}
         initialCustomer={customer ?? undefined}
         locationPresets={locationPresets}
       />

@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import { ContactCTAs } from "./_components/contact-ctas";
 import { ContactSidebarCard } from "./_components/contact-sidebar-card";
 import { BookableCarsSection } from "@/components/booking/bookable-cars-section";
+import { ListingView } from "./_components/listing-view";
 
 // Company data only changes on re-scrape / operator edits (rare), so cache for
 // a month. Time-based revalidation that finds no change costs no ISR write, so

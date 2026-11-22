@@ -61,7 +61,7 @@ export default async function CalendarPage({
 
   const { data: rawBookings } = await db
     .from("bookings")
-    .select("id, vehicle_id, status, start_at, end_at, pending_expires_at, is_maintenance, is_longterm, renewal_period_days, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, flight_number, customer_request, platform_fee, fee_paid_at, fee_refunded_at, customers(id, full_name, phone)")
+    .select("id, vehicle_id, status, start_at, end_at, pending_expires_at, is_maintenance, is_longterm, renewal_period_days, insurance, child_seat_infant, child_seat_toddler, child_seat_child, booking_price, deposit_amount, deposit_paid, payment_method, pickup_location, return_location, notes, flight_number, customer_request, fee_paid_at, fee_refunded_at, customers(id, full_name, phone)")
     .eq("company_id", companyId)
     .neq("status", "cancelled")
     .gte("end_at", start)
@@ -93,7 +93,6 @@ export default async function CalendarPage({
     notes:              b.notes,
     flight_number:      b.flight_number,
     customer_request:   b.customer_request,
-    platform_fee:       b.platform_fee,
     fee_paid_at:        b.fee_paid_at,
     fee_refunded_at:    b.fee_refunded_at,
     customer_name:  (b.customers as { id: string; full_name: string; phone: string } | null)?.full_name ?? null,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { BookingSearchError, getPublicCar } from "@/lib/booking/search";
 import {
   quoteOffer,
@@ -183,23 +184,41 @@ export async function POST(request: Request) {
     const deposit = selection.insuranceCode === "full" ? 0 : detail.car.depositBasic;
     const db = createServiceRoleClient();
 
-    const { data: customer, error: customerError } = await db
+    const { data: existingCustomer, error: existingError } = await db
       .from("customers")
-      .insert({
-        company_id: detail.car.companyId,
-        full_name: name,
-        email,
-        phone,
-      })
       .select("id")
-      .single();
-    if (customerError || !customer) throw customerError ?? new CheckoutError("Could not save the driver.", 500);
+      .eq("company_id", detail.car.companyId)
+      .eq("phone", phone)
+      .maybeSingle();
+    if (existingError) throw existingError;
+
+    let customerId = existingCustomer?.id ?? null;
+    if (customerId) {
+      const { error: updateError } = await db
+        .from("customers")
+        .update({ full_name: name, email, updated_at: new Date().toISOString() })
+        .eq("id", customerId);
+      if (updateError) throw updateError;
+    } else {
+      const { data: customer, error: customerError } = await db
+        .from("customers")
+        .insert({
+          company_id: detail.car.companyId,
+          full_name: name,
+          email,
+          phone,
+        })
+        .select("id")
+        .single();
+      if (customerError || !customer) throw customerError ?? new CheckoutError("Could not save the driver.", 500);
+      customerId = customer.id;
+    }
 
     const { data: booking, error: bookingError } = await db
       .from("bookings")
       .insert({
         company_id: detail.car.companyId,
-        customer_id: customer.id,
+        customer_id: customerId,
         vehicle_id: detail.car.id,
         listed_vehicle_id: detail.car.id,
         source: "online",
@@ -220,6 +239,7 @@ export async function POST(request: Request) {
         return_location: dropoff ? placeLine(dropoff, "return", collection, "") : null,
         flight_number: flightOk || null,
         customer_request: customerRequest || null,
+        customer_cancel_token: randomBytes(24).toString("base64url"),
         is_longterm: false,
         is_maintenance: false,
       })

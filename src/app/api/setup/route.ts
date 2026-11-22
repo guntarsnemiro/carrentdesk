@@ -54,12 +54,13 @@ export async function POST(req: Request) {
     const company = await loadCompany(db, user.id, companyId);
     if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
 
-    if (step === "names") return await saveNames(db, company, body);
-    if (step === "office") return await saveOffice(db, company, body);
-    if (step === "places") return await savePlaces(db, company, body);
-    if (step === "offer") return await saveOffer(db, company, body);
-    if (step === "car") return await saveCar(db, company, body);
-    if (step === "live") return await goLive(db, company);
+    if (step === "names")      return await saveNames(db, company, body);
+    if (step === "office")     return await saveOffice(db, company, body);
+    if (step === "places")     return await savePlaces(db, company, body);
+    if (step === "offer")      return await saveOffer(db, company, body);
+    if (step === "car")        return await saveCar(db, company, body);
+    if (step === "live")       return await goLive(db, company);
+    if (step === "fleet_size") return await saveFleetSize(db, company.id, body);
     return NextResponse.json({ error: "Unknown setup step." }, { status: 400 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not save this step.";
@@ -400,8 +401,8 @@ async function saveOffer(
   }
   const creditCardRequired = depositCard; // credit card pre-auth for deposit
 
-  const ready = await hasReadyCar(db, company.id);
-  if (!ready) throw new Error("Add a car with a price, a deposit, and a photo first.");
+  const readyCount = await countReadyCars(db, company.id);
+  if (readyCount < 1) throw new Error("Add at least one car with a price, a deposit, and a photo first.");
 
   // Upsert booking offer
   const { error: offerError } = await db.from("company_booking_offers").upsert({
@@ -454,7 +455,7 @@ async function goLive(
     .maybeSingle();
   if (!office) throw new Error("Save the office address first.");
   if (company.onboarding_step < 5) throw new Error("Complete all setup steps before going live.");
-  if (!(await hasReadyCar(db, company.id))) throw new Error("Add a car with a price, a deposit, and a photo.");
+  if ((await countReadyCars(db, company.id)) < 3) throw new Error("Add at least 3 cars with a price, a deposit, and a photo each.");
 
   const { error } = await db
     .from("companies")
@@ -468,7 +469,19 @@ async function goLive(
   return NextResponse.json({ ok: true, listed: true });
 }
 
-async function hasReadyCar(db: Db, companyId: string) {
+async function saveFleetSize(db: Db, companyId: string, body: Record<string, unknown>) {
+  const min = typeof body.fleetMin === "number" ? body.fleetMin : null;
+  const max = typeof body.fleetMax === "number" ? body.fleetMax : null;
+  if (min === null) return NextResponse.json({ ok: true });
+  await db.from("companies").update({
+    fleet_size: min,
+    updated_at: new Date().toISOString(),
+  }).eq("id", companyId);
+  void max; // max stored as fleet_size range if schema supports it; using min for now
+  return NextResponse.json({ ok: true });
+}
+
+async function countReadyCars(db: Db, companyId: string) {
   const { data } = await db
     .from("vehicles")
     .select("id, photo_urls")
@@ -477,5 +490,5 @@ async function hasReadyCar(db: Db, companyId: string) {
     .not("rate_1_day", "is", null)
     .not("deposit_basic", "is", null)
     .limit(20);
-  return (data ?? []).some((car) => (car.photo_urls?.length ?? 0) > 0);
+  return (data ?? []).filter((car) => (car.photo_urls?.length ?? 0) > 0).length;
 }

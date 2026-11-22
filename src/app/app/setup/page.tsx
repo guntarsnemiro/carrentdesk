@@ -180,7 +180,7 @@ export default async function SetupPage({
       office: Boolean(office?.address && office.opens_at && office.closes_at),
       places: company.onboarding_step >= 3,
       offer: company.onboarding_step >= 5,
-      car: cars.some((car) => car.ready),
+      car: cars.filter((car) => car.ready).length >= 3,
       listed: Boolean(company.listed_at),
     },
   };

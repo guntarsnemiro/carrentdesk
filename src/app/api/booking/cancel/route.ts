@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { FeeRefundError, refundPaidConfirmationFee } from "@/lib/booking/payment";
+import { cancelOnlineBooking, type CancelReason } from "@/lib/booking/cancel-online";
+import { FeeRefundError } from "@/lib/booking/payment";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type CancelReason = "unavailable" | "customer" | "operator";
 
 function isCancelReason(value: unknown): value is CancelReason {
   return value === "unavailable" || value === "customer" || value === "operator";
@@ -14,8 +13,8 @@ function isCancelReason(value: unknown): value is CancelReason {
 
 /**
  * POST /api/booking/cancel
- * Office only. "unavailable" refunds the whole confirmation fee.
- * Customer and office cancels keep the fee. The rental is never charged here.
+ * Office only. A rental cancellation refunds the confirmation fee.
+ * A customer cancellation keeps it. The rental is never charged here.
  */
 export async function POST(request: Request) {
   const authClient = await createAuthServerClient();
@@ -50,7 +49,7 @@ export async function POST(request: Request) {
 
   const { data: booking, error } = await db
     .from("bookings")
-    .select("id, status, company_id, fee_paid_at, fee_refunded_at")
+    .select("id")
     .eq("id", bookingId)
     .eq("company_id", companyId)
     .maybeSingle();
@@ -60,34 +59,16 @@ export async function POST(request: Request) {
   }
   if (!booking) return NextResponse.json({ error: "Booking not found." }, { status: 404 });
 
-  let refunded = Boolean(booking.fee_refunded_at);
-  if (reason === "unavailable" && booking.fee_paid_at && !booking.fee_refunded_at) {
-    try {
-      const result = await refundPaidConfirmationFee(booking.id);
-      refunded = result === "refunded" || result === "already";
-    } catch (err) {
-      const message = err instanceof FeeRefundError ? err.message : "Stripe could not refund the confirmation fee.";
-      return NextResponse.json({ error: message }, { status: 502 });
-    }
+  try {
+    const result = await cancelOnlineBooking(booking.id, reason);
+    return NextResponse.json({ ok: true, refunded: result.refunded });
+  } catch (err) {
+    const message = err instanceof FeeRefundError
+      ? err.message
+      : err instanceof Error
+        ? err.message
+        : "Could not cancel the booking.";
+    const status = err instanceof FeeRefundError ? 502 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
-
-  if (booking.status !== "cancelled") {
-    const now = new Date().toISOString();
-    const { error: updateError } = await db
-      .from("bookings")
-      .update({
-        status: "cancelled",
-        cancel_reason: reason,
-        pending_expires_at: null,
-        updated_at: now,
-      })
-      .eq("id", booking.id)
-      .eq("company_id", companyId);
-    if (updateError) {
-      console.error("[booking/cancel]", updateError);
-      return NextResponse.json({ error: "The fee was handled, but the booking could not be cancelled." }, { status: 500 });
-    }
-  }
-
-  return NextResponse.json({ ok: true, refunded });
 }

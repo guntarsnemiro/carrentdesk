@@ -285,6 +285,53 @@ function ErrorBox({ msg }: { msg: string }) {
   );
 }
 
+const FLEET_SIZE_OPTIONS = [
+  { value: "1-5",    label: "1–5 cars" },
+  { value: "6-15",   label: "6–15 cars" },
+  { value: "16-30",  label: "16–30 cars" },
+  { value: "31-50",  label: "31–50 cars" },
+  { value: "50+",    label: "50+ cars" },
+];
+
+function FleetSizeSelect({ companyId }: { companyId: string }) {
+  const [value, setValue] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function save(val: string) {
+    setValue(val);
+    setSaved(false);
+    if (!val) return;
+    const [min, max] = val === "50+"
+      ? [50, 99]
+      : val.split("-").map(Number);
+    try {
+      await fetch("/api/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: "fleet_size", companyId, fleetMin: min, fleetMax: max ?? min }),
+      });
+      setSaved(true);
+    } catch { /* non-blocking */ }
+  }
+
+  return (
+    <div>
+      <select
+        value={value}
+        onChange={(e) => save(e.target.value)}
+        className="mt-1 block w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      >
+        <option value="">How many cars do you have?</option>
+        {FLEET_SIZE_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      {saved && <p className="mt-1 text-xs text-green-600">Saved</p>}
+      <p className="mt-1 text-xs text-neutral-500">Shown on your public listing. You can update this any time.</p>
+    </div>
+  );
+}
+
 // ─── Sidebar progress ─────────────────────────────────────────────────────────
 
 const STEP_LABELS = ["Company", "Office", "Pickup", "First car", "Go live"];
@@ -416,7 +463,7 @@ function StepCompany({
       </div>
 
       <div>
-        <Label>Email <span className="text-red-500">*</span></Label>
+        <Label>Contact email <span className="text-red-500">*</span></Label>
         <Input
           type="email"
           value={email}
@@ -424,6 +471,12 @@ function StepCompany({
           placeholder="contact@yourcompany.com"
           required
         />
+        <p className="mt-1 text-xs text-neutral-500">Shown on your public listing so customers can reach you.</p>
+      </div>
+
+      <div>
+        <Label>Fleet size <span className="text-neutral-400 text-xs">(optional)</span></Label>
+        <FleetSizeSelect companyId={companyId} />
       </div>
 
       {error && <ErrorBox msg={error} />}
@@ -937,6 +990,7 @@ function StepCar({
                 max={String(new Date().getFullYear() + 1)}
                 required
               />
+              <p className="mt-0.5 text-xs text-neutral-400">Not shown to customers.</p>
             </div>
             <div>
               <Label>Plate <span className="text-neutral-400 text-xs">(optional)</span></Label>
@@ -959,7 +1013,7 @@ function StepCar({
                   type="number"
                   value={form.rate1Day}
                   onChange={(e) => field("rate1Day", e.target.value)}
-                  placeholder="45"
+                  placeholder="25"
                   min="0"
                   step="1"
                   required
@@ -971,7 +1025,7 @@ function StepCar({
                   type="number"
                   value={form.rateWeekly}
                   onChange={(e) => field("rateWeekly", e.target.value)}
-                  placeholder="250"
+                  placeholder="140"
                   min="0"
                   step="1"
                 />
@@ -982,7 +1036,7 @@ function StepCar({
                   type="number"
                   value={form.rateMonthly}
                   onChange={(e) => field("rateMonthly", e.target.value)}
-                  placeholder="800"
+                  placeholder="450"
                   min="0"
                   step="1"
                 />
@@ -1167,7 +1221,7 @@ function StepLive({
     { label: "Company details", done: initial.progress.names },
     { label: "Office address", done: initial.progress.office },
     { label: "Pickup options", done: initial.progress.places },
-    { label: "First car with photos & price", done: initial.progress.car },
+    { label: "At least 3 cars with photos & price", done: initial.progress.car },
     { label: "Payment options", done: initial.progress.offer },
   ];
   const allDone = checks.every((c) => c.done);

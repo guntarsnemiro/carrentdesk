@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -78,19 +78,70 @@ interface Props {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  confirmed:   "bg-amber-400 hover:bg-amber-500",
-  active:      "bg-emerald-500 hover:bg-emerald-600",
-  returned:    "bg-neutral-300 hover:bg-neutral-400",
-  maintenance: "bg-slate-400 hover:bg-slate-500",
-  pending_payment: "bg-sky-300 hover:bg-sky-400",
+  confirmed:       "bg-amber-400/90 hover:bg-amber-400",
+  active:          "bg-emerald-500/90 hover:bg-emerald-500",
+  returned:        "bg-neutral-200 hover:bg-neutral-300",
+  maintenance:     "bg-slate-400/90 hover:bg-slate-400",
+  pending_payment: "bg-sky-400/90 hover:bg-sky-400",
 };
 const STATUS_TEXT: Record<string, string> = {
-  confirmed:   "text-amber-900",
-  active:      "text-white",
-  returned:    "text-neutral-600",
-  maintenance: "text-white",
+  confirmed:       "text-amber-950",
+  active:          "text-white",
+  returned:        "text-neutral-600",
+  maintenance:     "text-white",
   pending_payment: "text-sky-950",
 };
+
+/** Online marketplace booking: pending card hold or confirmation fee paid. */
+function isOnlineBooking(b: Pick<Booking, "fee_paid_at" | "status">) {
+  return b.status === "pending_payment" || Boolean(b.fee_paid_at);
+}
+
+function SidePanel({
+  title,
+  subtitle,
+  badge,
+  onClose,
+  footer,
+  children,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  badge?: ReactNode;
+  onClose: () => void;
+  footer: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/25" />
+      <div
+        className="relative flex h-full w-full max-w-md flex-col border-l border-border bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold text-neutral-900">{title}</p>
+              {badge}
+            </div>
+            {subtitle ? <div className="mt-1">{subtitle}</div> : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">{children}</div>
+        <div className="border-t border-border px-5 py-4">{footer}</div>
+      </div>
+    </div>
+  );
+}
 
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAY_SHORT   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
@@ -361,20 +412,22 @@ function CreateBookingPopup({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <p className="text-base font-semibold text-neutral-900">New booking</p>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
+    <SidePanel
+      title="New booking"
+      onClose={onClose}
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={handleSave} disabled={saving}
+            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
+            {saving ? "Saving…" : "Create booking"}
+          </button>
+          <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-neutral-700">
+            Cancel
+          </button>
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-
-            {/* Type toggle */}
+      }
+    >
+          {/* Type toggle */}
           <div className="flex gap-2">
             <button type="button"
               onClick={() => setMaintenance(false)}
@@ -384,7 +437,7 @@ function CreateBookingPopup({
             <button type="button"
               onClick={() => setMaintenance(true)}
               className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${isMaintenance ? "border-slate-500 bg-slate-100 text-slate-700" : "border-border text-neutral-500 hover:bg-slate-50"}`}>
-              🔧 Maintenance block
+              Maintenance block
             </button>
           </div>
 
@@ -519,24 +572,11 @@ function CreateBookingPopup({
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-5 py-4">
-          <button onClick={handleSave} disabled={saving}
-            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-            {saving ? "Saving…" : "Create booking"}
-          </button>
-          <button onClick={onClose} className="text-sm text-neutral-500 hover:text-neutral-700">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    </SidePanel>
   );
 }
 
-// ── Edit booking popup ───────────────────────────────────────────────────────
+// ── Edit booking panel ───────────────────────────────────────────────────────
 
 interface BookingPopupProps {
   booking: Booking;
@@ -643,39 +683,60 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
     await cancelWith("operator");
   }
 
+  const online = isOnlineBooking(booking);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
-          <div>
-            {isMaintenance ? (
-              <p className="text-base font-semibold text-slate-700">🔧 Maintenance block</p>
-            ) : (
-              <p className="text-base font-semibold text-neutral-900">{booking.customer_name ?? "—"}</p>
-            )}
-            {!isMaintenance && booking.customer_phone && (
-              <a href={`tel:${booking.customer_phone}`}
-                className="mt-0.5 flex items-center gap-1 text-sm text-brand-700 hover:underline">
-                📞 {booking.customer_phone}
-              </a>
-            )}
-            {isMaintenance && null}
-          </div>
-          <div className="flex items-center gap-3">
-            <a href={`/app/rentals/${companyId}/${booking.id}`}
-              className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline">
-              Full edit →
+    <SidePanel
+      title={isMaintenance ? "Maintenance block" : (booking.customer_name ?? "Booking")}
+      badge={
+        online ? (
+          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800">
+            {booking.status === "pending_payment" ? "Online · awaiting card" : "Online"}
+          </span>
+        ) : null
+      }
+      subtitle={
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {!isMaintenance && booking.customer_phone ? (
+            <a href={`tel:${booking.customer_phone}`} className="text-sm text-brand-700 hover:underline">
+              {booking.customer_phone}
             </a>
-            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
-          </div>
+          ) : null}
+          <a
+            href={`/app/rentals/${companyId}/${booking.id}`}
+            className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline"
+          >
+            Full edit →
+          </a>
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-
+      }
+      onClose={onClose}
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={handleSave} disabled={saving || cancelling}
+            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+          {booking.fee_paid_at && !booking.fee_refunded_at ? (
+            <div className="flex flex-col items-end gap-1">
+              <button type="button" onClick={() => cancelWith("operator")} disabled={cancelling || saving}
+                className="text-sm font-medium text-neutral-900 underline-offset-2 hover:underline disabled:opacity-50">
+                {cancelling ? "Cancelling…" : "Cancel — refund"}
+              </button>
+              <button type="button" onClick={() => cancelWith("customer")} disabled={cancelling || saving}
+                className="text-sm text-red-500 underline-offset-2 hover:underline disabled:opacity-50">
+                Customer cancelled — keep fee
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={handleCancel} disabled={cancelling || saving}
+              className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50">
+              {cancelling ? "Cancelling…" : "Cancel booking"}
+            </button>
+          )}
+        </div>
+      }
+    >
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Pickup</p>
             <div className="grid grid-cols-2 gap-3">
@@ -782,16 +843,27 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
             </div>
           </div>
 
-          {(booking.flight_number || booking.customer_request || booking.fee_paid_at) && (
+          {online && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Online booking</p>
+              <p className="mt-1">
+                {booking.status === "pending_payment"
+                  ? "Customer started checkout — confirmation fee not paid yet."
+                  : booking.fee_refunded_at
+                    ? "Confirmation fee was paid, then refunded."
+                    : "Confirmation fee paid by card."}
+              </p>
+              {booking.flight_number ? <p className="mt-1">Flight {booking.flight_number}</p> : null}
+              {booking.customer_request ? (
+                <p className="mt-1 whitespace-pre-wrap text-sky-900/80">{booking.customer_request}</p>
+              ) : null}
+            </div>
+          )}
+          {!online && (booking.flight_number || booking.customer_request) && (
             <div className="rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">From the customer</p>
               {booking.flight_number && <p>Flight {booking.flight_number}</p>}
               {booking.customer_request && <p className="whitespace-pre-wrap">{booking.customer_request}</p>}
-              {booking.fee_paid_at && (
-                <p>
-                  Confirmation fee{booking.fee_refunded_at ? " — refunded" : " — paid by card"}
-                </p>
-              )}
             </div>
           )}
 
@@ -802,34 +874,7 @@ function BookingPopup({ booking, vehicles, allBookings, companyId, onClose, onUp
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-5 py-4">
-          <button onClick={handleSave} disabled={saving || cancelling}
-            className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-          {booking.fee_paid_at && !booking.fee_refunded_at ? (
-            <div className="flex flex-col items-end gap-1">
-              <button type="button" onClick={() => cancelWith("operator")} disabled={cancelling || saving}
-                className="text-sm font-medium text-neutral-900 underline-offset-2 hover:underline disabled:opacity-50">
-                {cancelling ? "Cancelling…" : "Cancel booking — refund the customer"}
-              </button>
-              <button type="button" onClick={() => cancelWith("customer")} disabled={cancelling || saving}
-                className="text-sm text-red-500 underline-offset-2 hover:underline disabled:opacity-50">
-                Customer cancelled — keep fee
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={handleCancel} disabled={cancelling || saving}
-              className="text-sm text-red-500 underline-offset-2 hover:text-red-700 hover:underline disabled:opacity-50">
-              {cancelling ? "Cancelling…" : "Cancel booking"}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    </SidePanel>
   );
 }
 
@@ -843,11 +888,11 @@ function SortableVehicleLabel({ vehicle, index, total }: { vehicle: Vehicle; ind
     <div
       ref={setNodeRef}
       style={{ ...style, minWidth: 140 }}
-      className={`flex h-9 items-center gap-1.5 px-2 ${index < total - 1 ? "border-b border-border" : ""}`}
+      className={`flex h-10 items-center gap-1.5 px-2.5 ${index < total - 1 ? "border-b border-border" : ""}`}
     >
       <button
         {...listeners} {...attributes}
-        className="cursor-grab touch-none p-0.5 text-neutral-200 hover:text-neutral-400 active:cursor-grabbing"
+        className="cursor-grab touch-none p-0.5 text-neutral-300 hover:text-neutral-500 active:cursor-grabbing"
         title="Drag to reorder"
       >
         <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
@@ -1120,16 +1165,18 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-slate-50">
           1 month →
         </button>
-        <span className="ml-auto text-xs text-neutral-400">Drag on a row to create · Click a booking to edit</span>
+        <span className="ml-auto hidden text-xs text-neutral-400 lg:inline">
+          Drag a row to create · Click a booking for the side panel
+        </span>
       </div>
 
       {/* Grid */}
-      <div className="overflow-clip rounded-2xl border border-border bg-white">
+      <div className="overflow-clip rounded-xl border border-border bg-white">
         <div className="flex">
 
           {/* Fixed vehicle column */}
-          <div className="shrink-0 border-r border-border" style={{ minWidth: 140 }}>
-            <div className="h-10 border-b border-border" />
+          <div className="shrink-0 border-r border-border bg-neutral-50/40" style={{ minWidth: 148 }}>
+            <div className="h-11 border-b border-border" />
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={vehicles.map((v) => v.id)} strategy={verticalListSortingStrategy}>
                 {vehicles.map((v, i) => (
@@ -1142,10 +1189,10 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
           {/* Scrollable day grid */}
           <div ref={scrollRef} className="flex-1 overflow-x-scroll select-none"
             style={{ scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent" }}>
-            <div style={{ width: totalWidth }}>
+            <div className="relative" style={{ width: totalWidth }}>
 
               {/* Header */}
-              <div className="sticky top-0 z-10 border-b border-border bg-white" style={{ height: 40 }}>
+              <div className="sticky top-0 z-10 border-b border-border bg-white" style={{ height: 44 }}>
                 <div className="flex h-full">
                   {days.map(({ date, str }) => {
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -1153,17 +1200,17 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                     const isFirst   = date.getDate() === 1;
                     return (
                       <div key={str} style={{ width: DAY_W }}
-                        className={`relative flex shrink-0 flex-col items-center justify-center border-r border-border/30
-                          ${isToday ? "bg-brand-500" : isWeekend ? "bg-slate-50" : ""}`}>
+                        className={`relative flex shrink-0 flex-col items-center justify-center border-r border-border/25
+                          ${isToday ? "bg-brand-600" : isWeekend ? "bg-slate-50" : ""}`}>
                         {isFirst && (
-                          <span className="absolute -top-px left-0.5 text-[8px] font-bold uppercase text-neutral-400">
+                          <span className={`absolute left-0.5 top-0.5 text-[8px] font-bold uppercase ${isToday ? "text-white/70" : "text-neutral-400"}`}>
                             {MONTH_SHORT[date.getMonth()]}
                           </span>
                         )}
-                        <span className={`text-[9px] font-medium leading-none ${isToday ? "text-white" : "text-neutral-400"}`}>
+                        <span className={`text-[9px] font-medium leading-none ${isToday ? "text-white/80" : "text-neutral-400"}`}>
                           {DAY_SHORT[date.getDay()]}
                         </span>
-                        <span className={`mt-0.5 text-[11px] font-bold leading-none ${isToday ? "text-white" : isWeekend ? "text-neutral-500" : "text-neutral-700"}`}>
+                        <span className={`mt-0.5 text-[11px] font-bold leading-none ${isToday ? "text-white" : isWeekend ? "text-neutral-500" : "text-neutral-800"}`}>
                           {date.getDate()}
                         </span>
                       </div>
@@ -1172,7 +1219,20 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                 </div>
               </div>
 
-              {/* Vehicle rows — compact */}
+              {/* Today vertical line across all rows */}
+              {(() => {
+                const todayIdx = days.findIndex((d) => d.str === todayStr);
+                if (todayIdx < 0) return null;
+                return (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute bottom-0 top-11 z-[6] w-px bg-brand-600/70"
+                    style={{ left: todayIdx * DAY_W + DAY_W / 2 }}
+                  />
+                );
+              })()}
+
+              {/* Vehicle rows */}
               {vehicles.map((v, vi) => {
                 const vBookings = bookings.filter(
                   (b) => b.vehicle_id === v.id && b.status !== "cancelled"
@@ -1192,7 +1252,7 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
 
                 return (
                   <div key={v.id}
-                    className={`relative flex h-9 ${vi < vehicles.length - 1 ? "border-b border-border" : ""}`}>
+                    className={`relative flex h-10 ${vi < vehicles.length - 1 ? "border-b border-border" : ""}`}>
                     {days.map(({ date, str }) => {
                       const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
                       const isToday    = str === todayStr;
@@ -1200,10 +1260,10 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       return (
                         <div key={str}
                           style={{ width: DAY_W }}
-                          className={`shrink-0 h-full border-r border-border/30 cursor-crosshair
+                          className={`shrink-0 h-full border-r border-border/25 cursor-crosshair
                             ${isSelected             ? "bg-brand-100"    : ""}
-                            ${!isSelected && isToday  ? "bg-brand-50/50"  : ""}
-                            ${!isSelected && !isToday && isWeekend ? "bg-slate-50/70" : ""}
+                            ${!isSelected && isToday  ? "bg-brand-50/40"  : ""}
+                            ${!isSelected && !isToday && isWeekend ? "bg-slate-50/60" : ""}
                           `}
                           onMouseDown={(e) => {
                             if (e.button !== 0) return;
@@ -1261,30 +1321,31 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                       const clipsRight = endStr   > rangeEnd;
 
                       const isLongTerm = b.is_longterm && !b.is_maintenance;
+                      const online = !b.is_maintenance && isOnlineBooking(b);
 
                       const blockColor = b.is_maintenance
                         ? "bg-slate-400 hover:bg-slate-500 text-white"
                         : `${colorBg} ${colorText}`;
                       const blockLabel = b.is_maintenance
-                        ? "🔧 Maintenance"
+                        ? "Maintenance"
                         : `${isLongTerm ? "↻ " : ""}${b.customer_name ?? "—"}`;
 
                       const fmtDt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
                       const tipLines = b.is_maintenance
-                        ? ["🔧 Maintenance block", `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`, ...(b.notes ? [b.notes] : [])]
+                        ? ["Maintenance block", `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`, ...(b.notes ? [b.notes] : [])]
                         : [
                             b.customer_name ?? "—",
-                            ...(b.customer_phone ? [`📞 ${b.customer_phone}`] : []),
+                            ...(online ? [b.status === "pending_payment" ? "Online · awaiting card" : "Online booking"] : []),
+                            ...(b.customer_phone ? [b.customer_phone] : []),
                             `${fmtDt(b.start_at)} → ${fmtDt(b.end_at)}`,
                             ...(b.pickup_location ? [`↑ ${b.pickup_location}`] : []),
                             ...(b.return_location ? [`↓ ${b.return_location}`] : []),
-                            ...(b.booking_price != null ? [`€${b.booking_price.toFixed(2)}`] : []),
+                            ...(b.booking_price != null ? [formatEur(b.booking_price)] : []),
                           ];
 
                       // On a split day (same-day return + pickup):
                       // — return bar ends in the left half of that cell with a small gap
                       // — pickup bar starts in the right half of that cell with a small gap
-                      // Both keep their normal rounded ends, creating a visible gap between them.
                       const half = Math.floor(DAY_W / 2);
                       const isReturnOnSplitDay = endIdx !== -1 && splitDays.has(endStr);
                       const isPickupOnSplitDay  = splitDays.has(startStr);
@@ -1300,10 +1361,15 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                         barWidth = span * DAY_W - half - 3;
                       }
 
+                      const priceBit =
+                        !b.is_maintenance && b.booking_price != null && barWidth >= DAY_W * 3
+                          ? ` · ${formatEur(b.booking_price)}`
+                          : "";
+
                       return (
-                        <> {/* fragment allows tail div alongside main bar */}
+                        <div key={b.id}>
                         <button
-                          key={b.id}
+                          type="button"
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => setActiveBooking(b)}
                           onMouseEnter={(e) => setTooltip({ lines: tipLines, x: e.clientX, y: e.clientY })}
@@ -1315,13 +1381,20 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                             top: "50%",
                             transform: "translateY(-50%)",
                           }}
-                          className={`absolute flex h-6 items-center overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer z-10
+                          className={`absolute z-10 flex h-7 items-center gap-1 overflow-hidden px-1.5 text-[11px] font-medium transition-opacity hover:opacity-90 cursor-pointer
                             ${blockColor}
+                            ${online ? "ring-1 ring-inset ring-sky-700/40" : ""}
                             ${!clipsLeft  ? "rounded-l-md" : ""}
                             ${!clipsRight && !isLongTerm ? "rounded-r-md" : ""}
                           `}
                         >
-                          <span className="truncate">{blockLabel}</span>
+                          {online ? (
+                            <span
+                              className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-950/80"
+                              title="Online booking"
+                            />
+                          ) : null}
+                          <span className="truncate">{blockLabel}{priceBit}</span>
                         </button>
 
                         {/* Long-term: lighter "committed" tail extends to end of visible range */}
@@ -1333,13 +1406,13 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
                               top: "50%",
                               transform: "translateY(-50%)",
                             }}
-                            className={`absolute flex h-6 items-center overflow-hidden pl-1.5 text-[10px] font-medium opacity-35 z-10 rounded-r-md
+                            className={`absolute z-10 flex h-7 items-center overflow-hidden rounded-r-md pl-1.5 text-[10px] font-medium opacity-35
                               ${blockColor}`}
                           >
                             <span className="truncate italic">committed</span>
                           </div>
                         )}
-                        </> // fragment end
+                        </div>
                       );
                     })}
                   </div>
@@ -1357,34 +1430,30 @@ export function CalendarGrid({ companyId, vehicles: initialVehicles, bookings: i
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3">
           {[
-            { label: "Confirmed",    color: "bg-amber-400",   square: true },
-            { label: "Active",       color: "bg-emerald-500", square: true },
-            { label: "Returned",     color: "bg-neutral-300", square: true },
-            { label: "Maintenance",  color: "bg-slate-400",   square: true },
-            { label: "Today",        color: "bg-brand-500",   square: true },
+            { label: "Confirmed",   color: "bg-amber-400" },
+            { label: "Active",      color: "bg-emerald-500" },
+            { label: "Returned",    color: "bg-neutral-200" },
+            { label: "Maintenance", color: "bg-slate-400" },
+            { label: "Awaiting card", color: "bg-sky-400" },
+            { label: "Today",       color: "bg-brand-600" },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
-              <span className={`h-3 w-3 rounded-sm ${l.color}`} />
+              <span className={`h-2.5 w-2.5 rounded-sm ${l.color}`} />
               <span className="text-xs text-neutral-500">{l.label}</span>
             </div>
           ))}
-          <div className="mx-1 h-4 w-px bg-border" />
-          {[
-            { label: "Gov. inspection", color: "bg-yellow-300" },
-          ].map((l) => (
-            <div key={l.label} className="flex items-center gap-1.5">
-              <span className={`h-3 w-4 rounded-sm ${l.color} opacity-70`} />
-              <span className="text-xs text-neutral-500">{l.label}</span>
-            </div>
-          ))}
+          <div className="mx-1 hidden h-4 w-px bg-border sm:block" />
           <div className="flex items-center gap-1.5">
-            <span className="flex items-center gap-0.5">
-              <span className="h-3 w-3 rounded-sm bg-neutral-300" />
-              <span className="h-3 w-3 rounded-sm bg-amber-400" />
+            <span className="flex h-2.5 w-5 items-center justify-center rounded-sm bg-amber-400 ring-1 ring-inset ring-sky-700/40">
+              <span className="h-1 w-1 rounded-full bg-sky-950/80" />
             </span>
-            <span className="text-xs text-neutral-500">Return + pickup same day</span>
+            <span className="text-xs text-neutral-500">Online booking</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-4 rounded-sm bg-yellow-300 opacity-70" />
+            <span className="text-xs text-neutral-500">Gov. inspection</span>
           </div>
         </div>
       </div>
