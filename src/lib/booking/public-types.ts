@@ -31,7 +31,7 @@ export type AvailableCarsResult = {
 };
 
 export function carTitle(car: Pick<PublicBookableCar, "make" | "model">): string {
-  return `${car.make} ${car.model} or similar`;
+  return `${car.make} ${car.model}`;
 }
 
 export function matchesPublicType(

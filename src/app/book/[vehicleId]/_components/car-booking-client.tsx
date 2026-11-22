@@ -131,10 +131,6 @@ export function CarBookingClient({
             {carTitle(car)}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">{bits.join(" · ")}</p>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600">
-            You are booking this make and model or similar. The office may assign another car in
-            the same class, or a free upgrade. A cheaper car is only used if you agree.
-          </p>
         </div>
 
         {!car.available && (
@@ -187,6 +183,9 @@ export function CarBookingClient({
           </dl>
           <p className="mt-4 text-xs leading-5 text-neutral-500">
             Pay {formatEur(quote.platformFee)} now to confirm. Pay the rental ({formatEur(quote.rentalTotal)}) to {car.companyName} when you pick up the car.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-neutral-400">
+            The office may assign an equivalent or better car. A cheaper substitute is only offered with your agreement.
           </p>
           {!car.available ? (
             <Link
