@@ -42,6 +42,9 @@ interface Booking {
   flight_number?: string | null;
   customer_request?: string | null;
   cancel_reason?: string | null;
+  driver_licence?: string | null;
+  id_doc_type?: string | null;
+  id_doc_number?: string | null;
 }
 
 interface Props {
@@ -95,6 +98,9 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
     notes:              booking?.notes ?? "",
     is_longterm:        booking?.is_longterm ?? false,
     renewal_period_days: booking?.renewal_period_days != null ? String(booking.renewal_period_days) : "30",
+    driver_licence:     booking?.driver_licence  ?? "",
+    id_doc_type:        (booking?.id_doc_type    ?? "id_card") as "id_card" | "passport",
+    id_doc_number:      booking?.id_doc_number   ?? "",
   });
 
   // ── Customer search ──
@@ -230,6 +236,9 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
       notes:              form.notes.trim() || null,
       is_longterm:        form.is_longterm,
       renewal_period_days: form.is_longterm && form.renewal_period_days ? parseInt(form.renewal_period_days) : null,
+      driver_licence:     form.driver_licence.trim()  || null,
+      id_doc_type:        form.id_doc_type,
+      id_doc_number:      form.id_doc_number.trim()   || null,
       updated_at:         new Date().toISOString(),
     };
 
@@ -493,6 +502,30 @@ export function BookingForm({ companyId, vehicles, booking, initialCustomer, loc
               </label>
             ))}
           </div>
+        </div>
+      </Section>
+
+      {/* ── Driver ID ── */}
+      <Section title="Driver documents">
+        <Field label="Driver's licence number">
+          <input name="driver_licence" value={form.driver_licence} onChange={set}
+            placeholder="e.g. DE123456789" className={inp} autoComplete="off" />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="ID document type">
+            <select
+              value={form.id_doc_type}
+              onChange={(e) => setForm((p) => ({ ...p, id_doc_type: e.target.value as "id_card" | "passport" }))}
+              className={inp}
+            >
+              <option value="id_card">National ID card</option>
+              <option value="passport">Passport</option>
+            </select>
+          </Field>
+          <Field label="ID / Passport number">
+            <input name="id_doc_number" value={form.id_doc_number} onChange={set}
+              placeholder="As shown on document" className={inp} autoComplete="off" />
+          </Field>
         </div>
       </Section>
 

@@ -47,7 +47,6 @@ interface Props {
   vehicle?: Vehicle;
   lastOdoReading?: OdometerReading;
   /** Existing full insurance option for this company, if any */
-  fullInsuranceOption?: { code: string; price: number } | null;
 }
 
 const CATEGORIES: { value: VehicleCategory; label: string }[] = [
@@ -67,7 +66,7 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: "maintenance", label: "Maintenance" }, { value: "retired",     label: "Retired"     },
 ];
 
-export function VehicleForm({ companyId, vehicle, lastOdoReading, fullInsuranceOption }: Props) {
+export function VehicleForm({ companyId, vehicle, lastOdoReading }: Props) {
   const router  = useRouter();
   const isEdit  = Boolean(vehicle);
 
@@ -110,10 +109,6 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading, fullInsuranceO
     disposal_price:     vehicle?.disposal_price != null ? String(vehicle.disposal_price) : "",
   });
 
-  const [fullInsuranceEnabled, setFullInsuranceEnabled] = useState(!!fullInsuranceOption);
-  const [fullInsurancePrice, setFullInsurancePrice] = useState(
-    fullInsuranceOption ? String(fullInsuranceOption.price) : ""
-  );
 
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -178,21 +173,6 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading, fullInsuranceO
       const { data, error } = await supabase.from("vehicles").insert(payload).select("id").single();
       if (error || !data) { setStatus("error"); setErrorMsg(error?.message ?? "Failed"); return; }
       vehicleId = data.id;
-    }
-
-    // Save full insurance option (company-wide)
-    await supabase.from("company_insurance_options").upsert(
-      { company_id: companyId, code: "none", label: "Basic", price: 0, price_kind: "per_day", excess: 0 },
-      { onConflict: "company_id,code" }
-    );
-    if (fullInsuranceEnabled && fullInsurancePrice) {
-      await supabase.from("company_insurance_options").upsert(
-        { company_id: companyId, code: "full", label: "Full", price: parseFloat(fullInsurancePrice), price_kind: "per_day", excess: 0 },
-        { onConflict: "company_id,code" }
-      );
-    } else if (!fullInsuranceEnabled) {
-      await supabase.from("company_insurance_options").delete()
-        .eq("company_id", companyId).eq("code", "full");
     }
 
     // Log odometer reading if provided and changed
@@ -318,38 +298,11 @@ export function VehicleForm({ companyId, vehicle, lastOdoReading, fullInsuranceO
           <Field label="28+ days (€/day)"><input name="rate_monthly" type="number" min={0} step={0.01} value={form.rate_monthly} onChange={set} placeholder="18" className={inp} /></Field>
         </div>
         <p className="text-xs text-neutral-400">
-          Deposit for this car when the customer chooses basic insurance. Full insurance has no deposit.
+          Deposit for this car when the customer chooses basic insurance. Full insurance pricing is managed under <a href={`/app/offer/${companyId}`} className="text-brand-700 underline">Online offer</a>.
         </p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Deposit with basic insurance (€)"><input name="deposit_basic" type="number" min={0} step={0.01} value={form.deposit_basic} onChange={set} placeholder="500" className={inp} /></Field>
         </div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
-          <input
-            type="checkbox"
-            checked={fullInsuranceEnabled}
-            onChange={(e) => setFullInsuranceEnabled(e.target.checked)}
-            className="mt-0.5"
-          />
-          <div>
-            <p className="text-sm font-medium text-neutral-800">Offer full insurance (no deposit)</p>
-            <p className="mt-0.5 text-xs text-neutral-400">Customer pays extra per day — no excess or deposit required. Applies to all your cars.</p>
-          </div>
-        </label>
-        {fullInsuranceEnabled && (
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Full insurance price (€/day) *">
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={fullInsurancePrice}
-                onChange={(e) => setFullInsurancePrice(e.target.value)}
-                placeholder="10"
-                className={inp}
-              />
-            </Field>
-          </div>
-        )}
         <VehiclePhotos
           companyId={companyId}
           vehicleId={vehicle?.id}

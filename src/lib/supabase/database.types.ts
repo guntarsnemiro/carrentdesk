@@ -35,6 +35,9 @@ export type Database = {
           flight_number: string | null
           customer_request: string | null
           customer_cancel_token: string | null
+          driver_licence: string | null
+          id_doc_type: string | null
+          id_doc_number: string | null
           id: string
           insurance: Database["public"]["Enums"]["booking_insurance"]
           is_longterm: boolean
@@ -76,6 +79,9 @@ export type Database = {
           flight_number?: string | null
           customer_request?: string | null
           customer_cancel_token?: string | null
+          driver_licence?: string | null
+          id_doc_type?: string | null
+          id_doc_number?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean
@@ -117,6 +123,9 @@ export type Database = {
           flight_number?: string | null
           customer_request?: string | null
           customer_cancel_token?: string | null
+          driver_licence?: string | null
+          id_doc_type?: string | null
+          id_doc_number?: string | null
           id?: string
           insurance?: Database["public"]["Enums"]["booking_insurance"]
           is_longterm?: boolean

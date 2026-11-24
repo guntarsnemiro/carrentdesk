@@ -23,11 +23,6 @@ export default async function AddVehiclePage({
     .eq("user_id", user.id).eq("company_id", companyId).maybeSingle();
   if (!membership) notFound();
 
-  const { data: insuranceOptions } = await db
-    .from("company_insurance_options")
-    .select("code, price")
-    .eq("company_id", companyId);
-
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6">
@@ -39,7 +34,6 @@ export default async function AddVehiclePage({
       </div>
       <VehicleForm
         companyId={companyId}
-        fullInsuranceOption={insuranceOptions?.find((o) => o.code === "full") ?? null}
       />
     </div>
   );

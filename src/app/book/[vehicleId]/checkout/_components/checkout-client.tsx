@@ -39,6 +39,9 @@ export function CheckoutClient({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [driverAge, setDriverAge] = useState("");
+  const [driverLicence, setDriverLicence] = useState("");
+  const [idDocType, setIdDocType] = useState<"id_card" | "passport">("id_card");
+  const [idDocNumber, setIdDocNumber] = useState("");
   const [flightNumber, setFlightNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -80,6 +83,9 @@ export function CheckoutClient({
           email,
           phone,
           driverAge: age,
+          driverLicence: driverLicence.trim() || null,
+          idDocType,
+          idDocNumber: idDocNumber.trim() || null,
           flightNumber,
           customerRequest: notes,
           deliveryLabel: deliveryAddress?.label ?? "",
@@ -151,6 +157,38 @@ export function CheckoutClient({
               value={driverAge}
               onChange={(e) => setDriverAge(e.target.value)}
               className={inp}
+            />
+          </Field>
+          <Field label="Driver's licence number">
+            <input
+              required
+              type="text"
+              value={driverLicence}
+              onChange={(e) => setDriverLicence(e.target.value)}
+              className={inp}
+              placeholder="e.g. DE123456789"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="ID document type">
+            <select
+              value={idDocType}
+              onChange={(e) => setIdDocType(e.target.value as "id_card" | "passport")}
+              className={inp}
+            >
+              <option value="id_card">National ID card</option>
+              <option value="passport">Passport</option>
+            </select>
+          </Field>
+          <Field label="ID / Passport number">
+            <input
+              required
+              type="text"
+              value={idDocNumber}
+              onChange={(e) => setIdDocNumber(e.target.value)}
+              className={inp}
+              placeholder="As shown on your document"
+              autoComplete="off"
             />
           </Field>
           <Field label="Flight number">

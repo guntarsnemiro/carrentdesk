@@ -20,15 +20,14 @@ export const metadata: Metadata = {
   },
 };
 
-const INCLUDED = [
-  "Booking calendar & fleet management",
-  "Customer CRM with blacklist protection",
-  "PDF invoicing with email send",
-  "Real P&L — revenue, costs, depreciation",
-  "Marketplace listing — 0% commission",
-  "Add each car from the office",
-  "Unlimited team members",
-  "Export your data anytime",
+const FEATURES = [
+  { icon: "📅", label: "Calendar",          desc: "See every car, every booking, every day" },
+  { icon: "🚗", label: "Bookings",           desc: "Create, confirm and manage all rentals" },
+  { icon: "👥", label: "Customers",          desc: "CRM with rental history and driver docs" },
+  { icon: "🔧", label: "Maintenance log",    desc: "Service records per car, never miss a service" },
+  { icon: "📄", label: "Invoices",           desc: "One-click PDF invoices from any booking" },
+  { icon: "💸", label: "Costs",              desc: "Log fuel, repairs and running costs per car" },
+  { icon: "📊", label: "Finances",           desc: "Revenue, costs and profit at a glance" },
 ];
 
 /* ── Page ────────────────────────────────────────────────────────────── */
@@ -41,52 +40,85 @@ export default function PlatformPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur px-6 py-4 flex items-center justify-between">
         <Link href="/" className="text-sm font-bold text-brand-950">CarRentDesk</Link>
         <div className="flex items-center gap-4">
-          <Link href="/join" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Get started</Link>
-          <Link href="/app/login" className="text-sm font-medium text-brand-700 hover:underline">Sign in →</Link>
+          <Link href="#features" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Features</Link>
+          <Link href="#pricing" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Pricing</Link>
+          <Link href="/app/login" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Sign in</Link>
+          <Link href="/join" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 transition-colors">
+            Get started free →
+          </Link>
         </div>
       </header>
 
       {/* ── Hero ── */}
       <section className="mx-auto w-full max-w-4xl px-6 py-20 text-center lg:px-8 lg:py-24">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-          Everything in one platform
+          Free car rental management platform
         </p>
         <h1 className="mt-4 text-5xl font-bold leading-[1.08] tracking-tight text-brand-950 sm:text-6xl">
-          Built for independent<br className="hidden sm:block" /> car rental operators.
+          Everything your car rental<br className="hidden sm:block" /> business needs.
         </h1>
         <p className="mt-6 mx-auto max-w-xl text-lg leading-7 text-neutral-600">
-          Fleet management, bookings, customer CRM, invoicing, and real profit numbers —
-          all in one place. Built by a rental owner who needed it and couldn&apos;t find it.
+          Manage your fleet, bookings, calendar, customers, invoicing and expenses —
+          all in one simple platform.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {["EU-hosted · GDPR", "Founder-built", "No lock-in", "Cancel anytime"].map((t) => (
+          {["12 months free", "No card required", "Cancel anytime", "Setup in 10 min"].map((t) => (
             <span key={t} className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs font-medium text-neutral-600">{t}</span>
           ))}
         </div>
-        <div className="mt-10">
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link
             href="/join"
             className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
           >
-            Add your fleet — it&apos;s free →
+            Add my fleet — it&apos;s free →
+          </Link>
+          <Link
+            href="#features"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-neutral-700 hover:bg-surface-soft transition-colors"
+          >
+            See how it works
           </Link>
         </div>
       </section>
 
-      {/* ── Included list ── */}
-      <section className="border-y border-border bg-surface-soft py-12">
-        <div className="mx-auto w-full max-w-4xl px-6 lg:px-8">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500 mb-8">
-            Everything your rental needs — included
-          </p>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {INCLUDED.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-neutral-700">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">✓</span>
-                {item}
-              </li>
+      {/* ── Feature icon grid ── */}
+      <section id="features" className="border-y border-border bg-surface-soft py-16">
+        <div className="mx-auto w-full max-w-5xl px-6 lg:px-8">
+          <div className="mb-10 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">What&apos;s included</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-brand-950">
+              One platform for everything car rental needs.
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {FEATURES.map((f) => (
+              <div key={f.label} className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-5 shadow-sm">
+                <div className="grid size-11 place-items-center rounded-xl bg-brand-50 text-2xl">{f.icon}</div>
+                <div>
+                  <p className="text-sm font-bold text-brand-950">{f.label}</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">{f.desc}</p>
+                </div>
+              </div>
             ))}
-          </ul>
+            {/* Marketplace tile — accent */}
+            <div className="flex flex-col gap-3 rounded-2xl bg-brand-800 p-5 shadow-sm">
+              <div className="grid size-11 place-items-center rounded-xl bg-white/15 text-2xl">🌐</div>
+              <div>
+                <p className="text-sm font-bold text-white">Marketplace listing</p>
+                <p className="mt-1 text-xs leading-5 text-brand-200">Your cars visible to customers searching online</p>
+              </div>
+            </div>
+          </div>
+          {/* Bonus row */}
+          <div className="mt-8 flex flex-wrap justify-center gap-6">
+            {["Shared customer blacklist", "Online booking checkout", "Unlimited team members"].map((b) => (
+              <div key={b} className="flex items-center gap-2 text-sm text-neutral-700">
+                <span className="grid size-5 place-items-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-700">✓</span>
+                {b}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -270,6 +302,54 @@ export default function PlatformPage() {
         </div>
       </section>
 
+      {/* ── Pricing ── */}
+      <section id="pricing" className="bg-brand-950 py-16 lg:py-24">
+        <div className="mx-auto w-full max-w-4xl px-6 lg:px-8">
+          <div className="mb-12 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">Pricing</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Simple, transparent pricing.</h2>
+            <p className="mt-3 text-base text-brand-300">Free for your first 12 months. After that, pay only for the cars you have.</p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Free card */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-300">First 12 months</p>
+              <p className="mt-3 text-6xl font-extrabold text-white">€0</p>
+              <p className="mt-2 text-sm text-brand-300">Everything included. No card required.</p>
+              <ul className="mt-6 space-y-3">
+                {["Fleet & booking management", "Customer CRM + blacklist", "PDF invoicing", "Revenue reporting", "Marketplace listing", "Unlimited team members"].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-brand-100">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-bold text-white">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/join" className="mt-7 block rounded-xl bg-brand-600 py-3 text-center text-sm font-bold text-white hover:bg-brand-500 transition-colors">
+                Add my fleet — it&apos;s free →
+              </Link>
+            </div>
+            {/* After 12 months */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-300">After 12 months</p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-6xl font-extrabold text-white">€2</span>
+                <span className="text-base text-brand-300">/car/month</span>
+              </div>
+              <p className="mt-2 text-sm text-brand-300">Everything still included. No surprises.</p>
+              <div className="mt-6 divide-y divide-white/5 rounded-xl border border-white/10">
+                {[["5 cars", "€10 / month"], ["10 cars", "€20 / month"], ["20 cars", "€40 / month"], ["30 cars", "€60 / month"]].map(([cars, price]) => (
+                  <div key={cars} className="flex items-center justify-between px-4 py-3 text-sm">
+                    <span className="text-brand-300">{cars}</span>
+                    <span className="font-semibold text-white">{price}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-5 text-xs text-brand-400">No contract. Cancel anytime. Marketplace online bookings: 10% confirmation fee paid by the customer — you keep 100% of the rental price.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
       <section className="border-t border-border bg-white py-16 lg:py-20">
         <div className="mx-auto w-full max-w-4xl px-6 lg:px-8">
@@ -284,8 +364,8 @@ export default function PlatformPage() {
       {/* ── Bottom CTA ── */}
       <section className="border-t border-border py-16 lg:py-20">
         <div className="mx-auto w-full max-w-lg px-6 text-center">
-          <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to get more bookings?</h2>
-          <p className="mt-3 text-sm text-neutral-500">Free to start. No card required.</p>
+          <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to get started?</h2>
+          <p className="mt-3 text-sm text-neutral-500">Set up in 10 minutes. No card, no contract.</p>
           <div className="mt-8">
             <Link
               href="/join"
@@ -294,7 +374,8 @@ export default function PlatformPage() {
               Add your fleet — it&apos;s free →
             </Link>
           </div>
-          <p className="mt-5 text-xs text-neutral-400">
+          <p className="mt-4 text-xs text-neutral-400">Free for 12 months · €2/car/month after · Cancel anytime</p>
+          <p className="mt-3 text-xs text-neutral-400">
             Questions?{" "}
             <a href="mailto:info@carrentdesk.com" className="text-brand-700 hover:underline">info@carrentdesk.com</a>
             {" "}· Same-day reply.
@@ -340,14 +421,14 @@ function Bullet({ children, light }: { children: React.ReactNode; light?: boolea
 function CalendarMockup() {
   const CARS = ["Toyota Corolla", "VW Passat", "Ford Focus", "Skoda Octavia", "BMW 3 Series"];
   const BOOKINGS = [
-    { car: 0, start: 1, len: 4, name: "M. Bērziņš",   color: "bg-brand-500" },
-    { car: 0, start: 7, len: 6, name: "J. Kalniņš",   color: "bg-brand-500" },
-    { car: 1, start: 0, len: 3, name: "A. Liepiņš",   color: "bg-violet-500" },
-    { car: 1, start: 5, len: 8, name: "K. Ozols",     color: "bg-violet-500" },
-    { car: 2, start: 2, len: 5, name: "R. Zariņš",    color: "bg-emerald-500" },
-    { car: 3, start: 0, len: 7, name: "I. Jansons",   color: "bg-amber-500" },
-    { car: 3, start: 9, len: 4, name: "D. Krūmiņš",  color: "bg-amber-500" },
-    { car: 4, start: 3, len: 9, name: "P. Vītoliņš", color: "bg-rose-500" },
+    { car: 0, start: 1, len: 4, name: "J. Miller",   color: "bg-brand-500" },
+    { car: 0, start: 7, len: 6, name: "T. Schmidt",  color: "bg-brand-500" },
+    { car: 1, start: 0, len: 3, name: "S. Garcia",   color: "bg-violet-500" },
+    { car: 1, start: 5, len: 8, name: "L. Weber",    color: "bg-violet-500" },
+    { car: 2, start: 2, len: 5, name: "M. Johnson",  color: "bg-emerald-500" },
+    { car: 3, start: 0, len: 7, name: "A. Rossi",    color: "bg-amber-500" },
+    { car: 3, start: 9, len: 4, name: "P. Müller",   color: "bg-amber-500" },
+    { car: 4, start: 3, len: 9, name: "C. Dubois",   color: "bg-rose-500" },
   ];
   const DAYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
   const TOTAL = 13;
@@ -396,10 +477,10 @@ function CalendarMockup() {
 
 function FleetMockup() {
   const cars = [
-    { make: "Toyota Corolla", plate: "LV-4521", year: 2021, status: "Available", statusCls: "bg-emerald-50 text-emerald-700", fuel: "Petrol", insp: "Nov 2026", inspOk: true },
-    { make: "VW Passat",      plate: "LV-7834", year: 2020, status: "On rent",   statusCls: "bg-brand-50 text-brand-700",    fuel: "Diesel", insp: "Aug 2026", inspOk: true },
-    { make: "Ford Focus",     plate: "LV-2210", year: 2019, status: "Available", statusCls: "bg-emerald-50 text-emerald-700", fuel: "Petrol", insp: "Jun 2026", inspOk: false },
-    { make: "BMW 3 Series",   plate: "LV-9902", year: 2022, status: "On rent",   statusCls: "bg-brand-50 text-brand-700",    fuel: "Diesel", insp: "Mar 2027", inspOk: true },
+    { make: "Toyota Corolla", plate: "DE-AB 421", year: 2021, status: "Available", statusCls: "bg-emerald-50 text-emerald-700", fuel: "Petrol", insp: "Nov 2026", inspOk: true },
+    { make: "VW Passat",      plate: "DE-CD 834", year: 2020, status: "On rent",   statusCls: "bg-brand-50 text-brand-700",    fuel: "Diesel", insp: "Aug 2026", inspOk: true },
+    { make: "Ford Focus",     plate: "DE-EF 210", year: 2019, status: "Available", statusCls: "bg-emerald-50 text-emerald-700", fuel: "Petrol", insp: "Jun 2026", inspOk: false },
+    { make: "BMW 3 Series",   plate: "DE-GH 902", year: 2022, status: "On rent",   statusCls: "bg-brand-50 text-brand-700",    fuel: "Diesel", insp: "Mar 2027", inspOk: true },
   ];
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-lg">
@@ -434,10 +515,10 @@ function FleetMockup() {
 
 function CustomerMockup() {
   const customers = [
-    { name: "Mārtiņš Bērziņš", initials: "MB", rentals: 7, flag: null,        tag: "Regular",     tagCls: "bg-brand-50 text-brand-700" },
-    { name: "Anna Liepiņa",    initials: "AL", rentals: 2, flag: null,        tag: "New",         tagCls: "bg-neutral-100 text-neutral-600" },
-    { name: "Igor Petrov",     initials: "IP", rentals: 1, flag: "⚠ Blacklist", tag: "Blacklisted", tagCls: "bg-red-50 text-red-700" },
-    { name: "Katrīna Ozola",   initials: "KO", rentals: 4, flag: null,        tag: "Regular",     tagCls: "bg-brand-50 text-brand-700" },
+    { name: "James Miller",   initials: "JM", rentals: 7, flag: null,           tag: "Regular",     tagCls: "bg-brand-50 text-brand-700" },
+    { name: "Sophie Garcia",  initials: "SG", rentals: 2, flag: null,           tag: "New",         tagCls: "bg-neutral-100 text-neutral-600" },
+    { name: "Igor Petrov",    initials: "IP", rentals: 1, flag: "⚠ Blacklist",  tag: "Blacklisted", tagCls: "bg-red-50 text-red-700" },
+    { name: "Laura Weber",    initials: "LW", rentals: 4, flag: null,           tag: "Regular",     tagCls: "bg-brand-50 text-brand-700" },
   ];
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-lg">
@@ -485,7 +566,7 @@ function InvoiceMockup() {
           </div>
           <div>
             <p className="font-semibold text-neutral-500 uppercase tracking-wide mb-1">To</p>
-            <p className="font-semibold text-neutral-800">Mārtiņš Bērziņš</p>
+            <p className="font-semibold text-neutral-800">James Miller</p>
             <p className="text-neutral-500">Issued: 3 Jun 2026</p>
             <p className="text-neutral-500">Due: 3 Jun 2026</p>
           </div>
@@ -566,14 +647,14 @@ function RevenueMockup() {
 
 function MarketplaceMockup() {
   const listings = [
-    { name: "Baltic Car Rent", rating: "4.8", reviews: 124, badge: true,  city: "Riga" },
-    { name: "Riga Auto Rent",  rating: "4.6", reviews: 87,  badge: false, city: "Riga" },
-    { name: "EcoRent Latvia",  rating: "4.9", reviews: 203, badge: true,  city: "Riga" },
+    { name: "City Auto Rent",   rating: "4.8", reviews: 124, badge: true,  city: "Berlin" },
+    { name: "EuroRent Group",   rating: "4.6", reviews: 87,  badge: false, city: "Berlin" },
+    { name: "EcoRent Europe",   rating: "4.9", reviews: 203, badge: true,  city: "Berlin" },
   ];
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-lg">
-      <div className="border-b border-border bg-slate-50 px-4 py-3 flex items-center justify-between">
-        <span className="text-xs font-semibold text-neutral-700">Car rentals in Riga</span>
+        <div className="border-b border-border bg-slate-50 px-4 py-3 flex items-center justify-between">
+        <span className="text-xs font-semibold text-neutral-700">Car rentals in Berlin</span>
         <span className="text-[10px] text-neutral-400">31 companies</span>
       </div>
       <div className="divide-y divide-border">

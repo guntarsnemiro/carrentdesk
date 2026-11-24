@@ -281,41 +281,6 @@ export function ExpenseForm({ companyId, expense, payees = [], vehicles = [] }: 
         <input name="invoice_number" value={form.invoice_number} onChange={set} placeholder="INV-2026-001" className={inp} />
       </Field>
 
-      <div className="space-y-3">
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
-          <input type="checkbox" name="is_recurring" checked={form.is_recurring} onChange={set}
-            className="h-4 w-4 rounded border-border text-brand-700" />
-          <div>
-            <p className="text-sm font-medium text-neutral-800">Recurring cost</p>
-            <p className="text-xs text-neutral-400">Mark if this repeats monthly (rent, salary, phone, etc.)</p>
-          </div>
-        </label>
-
-        <div className="rounded-xl border border-border bg-slate-50 px-4 py-3">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input type="checkbox" checked={amortizeOn} onChange={(e) => setAmortizeOn(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand-700" />
-            <div>
-              <p className="text-sm font-medium text-neutral-800">Spread cost across a period</p>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                For annual insurance, inspection fees — splits daily portion into each month on Finance page
-              </p>
-            </div>
-          </label>
-          {amortizeOn && (
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700">Covers from</label>
-                <DateInput value={coversFrom} onChange={setCoversFrom} className={inp} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700">Covers until</label>
-                <DateInput value={coversUntil} onChange={setCoversUntil} className={inp} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       <Field label="Notes">
         <textarea name="notes" rows={2} value={form.notes} onChange={set}

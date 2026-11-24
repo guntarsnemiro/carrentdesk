@@ -14,7 +14,6 @@ import {
   isoToYmd,
   ymdToIso,
 } from "@/lib/booking/dates";
-import { selectionFromParams } from "@/lib/booking/offer";
 
 export const dynamic = "force-dynamic";
 
@@ -104,14 +103,7 @@ export default async function BookCarPage({ params, searchParams }: PageProps) {
         returnTime={range.returnTime}
         citySlug={citySlug}
         offer={detail.offer}
-        initialSelection={selectionFromParams(detail.offer, range.pickupTime, range.returnTime, {
-          insurance: first(sp.insurance),
-          pickupPlace: first(sp.pickupPlace),
-          returnPlace: first(sp.returnPlace),
-          seats: first(sp.seats),
-          extras: first(sp.extras),
-          crossBorder: first(sp.crossBorder),
-        })}
+        hasOptions={detail.offer != null}
       />
     </>
   );
