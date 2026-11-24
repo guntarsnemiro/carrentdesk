@@ -44,9 +44,7 @@ export default function PlatformPage() {
           <Link href="#features" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Features</Link>
           <Link href="#pricing" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Pricing</Link>
           <Link href="/app/login" className="hidden text-sm text-neutral-500 hover:text-neutral-900 sm:block">Sign in</Link>
-          <Link href="/join" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 transition-colors">
-            Get started free →
-          </Link>
+          <SignupCTAButton label="Get started free →" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 transition-colors" />
         </div>
       </header>
 
