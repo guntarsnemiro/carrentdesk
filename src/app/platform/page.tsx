@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FAQ } from "@/app/for-rentals/_components/faq";
+import { SignupCTAButton } from "@/app/join/_components/signup-modal";
 
 /* ── SEO metadata ───────────────────────────────────────────────────── */
 
@@ -67,12 +68,7 @@ export default function PlatformPage() {
           ))}
         </div>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/join"
-            className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
-          >
-            Add my fleet — it&apos;s free →
-          </Link>
+          <SignupCTAButton label="Add my fleet — it's free →" />
           <Link
             href="#features"
             className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-neutral-700 hover:bg-surface-soft transition-colors"
@@ -324,9 +320,9 @@ export default function PlatformPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/join" className="mt-7 block rounded-xl bg-brand-600 py-3 text-center text-sm font-bold text-white hover:bg-brand-500 transition-colors">
-                Add my fleet — it&apos;s free →
-              </Link>
+              <div className="mt-7">
+                <SignupCTAButton label="Add my fleet — it's free →" className="block w-full rounded-xl bg-brand-600 py-3 text-center text-sm font-bold text-white hover:bg-brand-500 transition-colors" />
+              </div>
             </div>
             {/* After 12 months */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
@@ -367,12 +363,7 @@ export default function PlatformPage() {
           <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">Ready to get started?</h2>
           <p className="mt-3 text-sm text-neutral-500">Set up in 10 minutes. No card, no contract.</p>
           <div className="mt-8">
-            <Link
-              href="/join"
-              className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
-            >
-              Add your fleet — it&apos;s free →
-            </Link>
+                <SignupCTAButton label="Add my fleet — it's free →" />
           </div>
           <p className="mt-4 text-xs text-neutral-400">Free for 12 months · €2/car/month after · Cancel anytime</p>
           <p className="mt-3 text-xs text-neutral-400">
