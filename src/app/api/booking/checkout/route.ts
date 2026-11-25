@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
-import { Resend } from "resend";
 import { BookingSearchError, getPublicCar } from "@/lib/booking/search";
 import {
   quoteOffer,
@@ -12,66 +11,10 @@ import {
 import { PENDING_PAYMENT_HOLD_MINUTES, roundMoney } from "@/lib/booking/platform-fee";
 import { releaseUnpaidHold } from "@/lib/booking/payment";
 import { getStripe, publicSiteOrigin } from "@/lib/stripe";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { carTitle } from "@/lib/booking/public-types";
 
-async function sendBookingNotification({
-  companyId,
-  bookingId,
-  carName,
-  customerName,
-  customerPhone,
-  startAt,
-  endAt,
-  origin,
-}: {
-  companyId: string;
-  bookingId: string;
-  carName: string;
-  customerName: string;
-  customerPhone: string;
-  startAt: string;
-  endAt: string;
-  origin: string;
-}) {
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return;
-
-  const db = createServiceRoleClient();
-  const { data: company } = await db
-    .from("companies")
-    .select("name, email")
-    .eq("id", companyId)
-    .maybeSingle();
-
-  const toEmail = company?.email;
-  if (!toEmail) return; // company has no notification email set
-
-  const pickupDate = new Date(startAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-  const returnDate = new Date(endAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-  const bookingUrl = `${origin}/app/rentals/${companyId}/${bookingId}`;
-
-  const resend = new Resend(resendKey);
-  const from = process.env.EMAIL_FROM ?? "CarRentDesk <info@carrentdesk.com>";
-
-  await resend.emails.send({
-    from,
-    to: [toEmail],
-    subject: `New booking — ${carName} · ${pickupDate}`,
-    html: `
-      <p>You have a new online booking on CarRentDesk.</p>
-      <table style="border-collapse:collapse;margin:16px 0;font-size:14px">
-        <tr><td style="color:#6b7280;padding-right:24px;padding-bottom:8px">Car</td><td style="font-weight:600">${carName}</td></tr>
-        <tr><td style="color:#6b7280;padding-right:24px;padding-bottom:8px">Customer</td><td>${customerName}</td></tr>
-        <tr><td style="color:#6b7280;padding-right:24px;padding-bottom:8px">Phone</td><td>${customerPhone}</td></tr>
-        <tr><td style="color:#6b7280;padding-right:24px;padding-bottom:8px">Pickup</td><td>${pickupDate}</td></tr>
-        <tr><td style="color:#6b7280;padding-right:24px;padding-bottom:8px">Return</td><td>${returnDate}</td></tr>
-      </table>
-      <p><a href="${bookingUrl}" style="background:#1e3a5f;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">View booking →</a></p>
-      <p style="color:#9ca3af;font-size:12px;margin-top:24px">CarRentDesk — your rental management platform</p>
-    `,
-  }).catch((err) => console.error("[booking/checkout] notification email failed:", err));
-}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -314,17 +257,6 @@ export async function POST(request: Request) {
 
     const origin = publicSiteOrigin(request);
 
-    // Fire-and-forget notification email to the company
-    void sendBookingNotification({
-      companyId: detail.car.companyId,
-      bookingId: booking.id,
-      carName: carTitle(detail.car),
-      customerName: name,
-      customerPhone: phone,
-      startAt: detail.start,
-      endAt: detail.end,
-      origin,
-    });
     const back = new URLSearchParams({
       start: detail.start,
       end: detail.end,
